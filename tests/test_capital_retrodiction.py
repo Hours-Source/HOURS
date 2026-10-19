@@ -1,21 +1,18 @@
-"""
-Reading ε off a real economy — `reference/capital_inventory` + `scenarios/capital_retrodiction`.
+"""Reading ε off a real economy: `reference/capital_inventory` +
+`scenarios/capital_retrodiction`.
 
-WHAT IS AT STAKE. The anchor comparison ("What would change our mind") carries a
-live falsifier — *if a
-retrodiction produces an implausible ε, the endogenous-supply property is not
-reading the world it says it reads* — and it HAD FIRED. The only run against a
-real economy gave ε = 0.777–1.000, saturated, for a US where 158M people work,
-and `record/thermal.md` concluded the machine profiles were miscalibrated by ~3×.
+WHAT IS AT STAKE. The anchor comparison carries a live falsifier: if a retrodiction
+produces an implausible ε, the endogenous-supply property does not read the world it
+claims to read. It HAD FIRED. The only run against a real economy gave a saturated ε for
+the US ([record](record/thermal.md#capital-scale-retracted)).
 
-These tests pin the retraction and, more importantly, the reason for it: the
-saturated reading is one corner of a grid spanned by three judgements nobody had
-declared. What must not move without someone noticing is that all three stay
-DECLARED, that the conversion rate stays an intake field with no default, and
-that the saturation check can still fire.
+These tests pin the retraction and its reason. The saturated reading is one corner of a
+grid spanned by three judgements nobody had declared. All three must stay DECLARED, the
+conversion rate must stay an intake field with no default, and the saturation check must
+still be able to fire.
 
-THE LAST OF THOSE IS THE ONE THAT MATTERS. "No cell saturates" is worthless if
-saturation is unreachable. `test_the_saturation_check_can_fire` forces it.
+The last matters most. "No cell saturates" is worthless if saturation cannot happen, so
+`test_the_saturation_check_can_fire` forces it.
 """
 
 from __future__ import annotations
@@ -72,8 +69,9 @@ class TestTheJudgementsStayDeclared:
         assert len(row["reason"]) > 60
 
     def test_defence_is_excluded_by_name(self):
-        """Military capital discharges no obligation in any of the four domains.
-        A judgement, so it is named rather than filtered."""
+        """Military capital discharges no obligation in any of the four domains. That is
+        a judgement, so the exclusion names it and does not filter it.
+        """
         assert any(e["line"] == "National defense" for e in CI.EXCLUDED_LINES)
 
     def test_nothing_excluded_is_also_mapped(self):
@@ -91,7 +89,12 @@ class TestTheJudgementsStayDeclared:
         """Replaces the `age: 10.0` placeholder every earlier run of this used."""
         assert CI.MEASURED_AGES["private_structures"] == pytest.approx(28.6)
         assert CI.MEASURED_AGES["government_equipment"] == pytest.approx(8.7)
-        assert CR.epsilon_from_inventory(20.0)["age_years"] != 10.0
+        r = CR.epsilon_from_inventory(20.0)
+        assert r["age_source"].startswith("measured")
+        # Each profile at its own BEA ratio (2026-10-04), not one class age.
+        assert len({round(v, 6) for v in r["age_ratio_by_profile"].values()}) > 1
+        supplied = CR.epsilon_from_inventory(20.0, inventory={"building": 1000.0})
+        assert supplied["age_source"].startswith("default")
 
 
 class TestTheConversionRateIsIntakeAndNotADefault:
@@ -202,10 +205,9 @@ class TestTheDoctrineSpreadIsEvidenceForSection2:
 
 
 class TestTheUnallocatedLineIsBoundedNotIgnored:
-    """
-    Government equipment carries no by-type breakdown outside defence in ANY BEA
-    Fixed Assets table — 7.1 and 7.5 both single-line it. So it is placed, and
-    the placement is bounded rather than defended.
+    """Outside defence, government equipment has no by-type breakdown in ANY BEA Fixed
+    Assets table; 7.1 and 7.5 both give it one line. So the module places it, and bounds
+    the placement instead of defending it.
     """
 
     def test_moving_it_anywhere_barely_moves_epsilon(self):
@@ -257,31 +259,27 @@ class TestRetrodictionChangesNothing:
             assert not offenders, f"{offenders} import {name}"
 
 class TestTheInventoryCanBeSupplied:
-    """
-    STEP 1 OF MAKING THIS INSTRUMENT PORTABLE (2026-09-18).
+    """Step 1 of making this instrument portable (2026-09-18). The shipped BEA table
+    stays the default, and every US figure is bit-identical. A non-US institution
+    supplies its own inventory, keyed by machine profile.
 
-    The shipped BEA table stays the default and every US figure is bit-identical;
-    a non-US institution supplies its own inventory keyed by machine profile.
+    THE HALF A NAIVE BRANCH DROPS. `capital_by_profile` validates scope and doctrine, so
+    the call is unconditional, and its result is discarded on the supplied path.
+    Skipping it would stop the validation for the caller most likely to get them wrong.
 
-    WHAT THIS CLASS EXISTS TO PROTECT is the half a naive branch drops. Scope and
-    doctrine are validated INSIDE `capital_by_profile`, so an implementation that
-    skips that call when an inventory is supplied would stop validating them for
-    exactly the caller most likely to get them wrong — someone porting the
-    instrument to another jurisdiction. The call is therefore unconditional and
-    its result discarded on the supplied path, which looks wasteful and is not.
-
-    AND THE SUPPLIED TABLE ARRIVES UNDECLARED. The shipped one is 36 rows each
-    carrying a `basis` (see TestTheJudgementsStayDeclared); a supplied mapping has
-    none, because mapping national accounts onto machine profiles is the user's
-    judgement. `inventory_source` reports which table produced a figure so the two
-    can never be read as the same kind of thing.
+    A SUPPLIED TABLE ARRIVES UNDECLARED. Each of the shipped table's 37 rows carries a
+    `basis`; a supplied mapping carries none, because the mapping is the user's
+    judgement. `inventory_source` reports which table produced a figure, so nobody reads
+    the two as one kind of thing.
     """
 
     def test_the_default_reads_the_shipped_table(self):
         a = CR.epsilon_from_inventory(20.0)
         b = CR.epsilon_from_inventory(
-            20.0, inventory=CR.capital_by_profile("government", "current_cost"))
+            20.0, inventory=CR.capital_by_profile("government", "current_cost"),
+            age_ratios=a["age_ratio_by_profile"], conditions=a["condition_by_profile"])
         assert a["epsilon"] == pytest.approx(b["epsilon"], rel=1e-12)
+        assert b["age_source"].startswith("supplied")
         assert a["capital_usd_b"] == pytest.approx(b["capital_usd_b"], rel=1e-12)
 
     def test_a_supplied_inventory_is_used_as_given(self):
@@ -326,10 +324,8 @@ class TestTheInventoryCanBeSupplied:
         assert CR.epsilon_from_inventory(20.0)["saturated"] is False
 
     def test_a_supplied_inventory_can_saturate_and_says_so(self):
-        """
-        THE GAP SUPPLYING AN INVENTORY OPENED. The shipped grid has both a
-        no-saturation test and a can-fire test; a supplied inventory had neither,
-        so ε pinned at the arc endpoint by a too-low rate would read as a finding.
+        """A supplied inventory needs a saturation check too. Without one, an ε pinned
+        at the arc endpoint by a rate that is too low would read as a finding.
         """
         hot = CR.epsilon_from_inventory(0.5, inventory={"power_grid": 10_000.0})
         assert hot["saturated"] is True
@@ -356,3 +352,138 @@ class TestTheInventoryCanBeSupplied:
         small = CR.epsilon_from_inventory(20.0, inventory={"power_grid": 100.0})
         large = CR.epsilon_from_inventory(20.0, inventory={"power_grid": 10000.0})
         assert large["epsilon"] > small["epsilon"]
+
+
+class TestTheStockAgeRatio:
+    """`stock_age_ratio` is the stock's age over its life, from BEA (2026-10-04). The
+    rows rebuild the inventory from BEA's finest lines, so a row that drifts from
+    `PROFILE_MAP` fails here unless it is named with its reason.
+    """
+
+    def test_the_rows_rebuild_every_line(self):
+        """Rebuilding the lines from BEA's rows found four inventory errors
+        (corrected 2026-10-04); a line that drifts from its rows fails here."""
+        sums: dict[str, float] = {}
+        for r in CI.AGE_ROWS:
+            sums[r["line"]] = sums.get(r["line"], 0.0) + r["usd_b"]
+        off = {p["line"] for p in CI.PROFILE_MAP if abs(sums.get(p["line"], 0.0) - p["usd_b"]) > 0.1}
+        assert off == set() and set(sums) == {p["line"] for p in CI.PROFILE_MAP}
+
+    def test_the_default_is_the_us_reading(self):
+        """`CAPITAL_AGE_RATIO_DEFAULT` is the measured US stock, frozen in
+        data.py (which cannot import this layer) and held to the function."""
+        from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT
+        assert CAPITAL_AGE_RATIO_DEFAULT == pytest.approx(CR.stock_age_ratio()["ratio"], abs=5e-4)
+
+    def test_every_uncovered_row_says_why(self):
+        for r in CI.AGE_ROWS:
+            assert r["life_basis"]
+            if r["life"] is not None:
+                lo, hi = r["life"]
+                assert 0 < lo <= hi
+
+    @pytest.mark.parametrize("scope", sorted(CI.SCOPES))
+    def test_the_shape(self, scope):
+        cur = CR.stock_age_ratio(scope)
+        hist = CR.stock_age_ratio(scope, "historical_cost")
+        for r in (cur, hist):
+            assert 0.0 < r["low"] <= r["ratio"] <= r["high"]
+            assert 0.5 < r["coverage"] < 1.0
+            assert all(e["reason"] for e in r["excluded"])
+        # Historical cost weights old vintages at their nominal outlay: younger.
+        assert hist["ratio"] < cur["ratio"]
+        assert hist["private_only"] and not cur["private_only"]
+        dropped = [e for e in hist["excluded"] if "usd_b_current_cost" in e]
+        assert bool(dropped) == (scope != "productive")
+
+    def test_it_reads_the_age_and_the_life(self, monkeypatch):
+        base = CR.stock_age_ratio()["ratio"]
+        rows = [dict(r) for r in CI.AGE_ROWS]
+        for r in rows:
+            if r["life"]:
+                r["life"] = (2 * r["life"][0], 2 * r["life"][1])
+        monkeypatch.setattr(CR, "AGE_ROWS", tuple(rows))
+        assert CR.stock_age_ratio()["ratio"] == pytest.approx(base / 2)
+
+    def test_it_refuses_what_it_does_not_know(self):
+        with pytest.raises(ValueError):
+            CR.stock_age_ratio("everything")
+        with pytest.raises(ValueError):
+            CR.stock_age_ratio(doctrine="replacement")
+
+
+class TestTheConditionIsMeasured:
+    """The capital arm's condition (2026-10-04): BLS's age-efficiency curve on
+    each BEA row's measured age, in place of a flat 0.85 at every profile."""
+
+    @pytest.mark.parametrize("beta_name", ["AGE_EFFICIENCY_BETA_EQUIPMENT",
+                                           "AGE_EFFICIENCY_BETA_STRUCTURES"])
+    def test_the_curve_has_the_shape_bls_states(self, beta_name):
+        """New at 1, falling, slow early and fast late (concave), floored."""
+        import hours_eoh.data as D
+        from hours_eoh.core.civilization import age_efficiency
+        beta = getattr(D, beta_name)
+        xs = [i / 20 for i in range(21)]
+        e = [age_efficiency(x, beta) for x in xs]
+        assert e[0] == 1.0 and e[-1] == D.COND_DECAY_FLOOR
+        assert all(a >= b for a, b in zip(e, e[1:]))
+        early, late = e[0] - e[5], e[10] - e[15]
+        assert early < late, "BLS: efficiency is lost slowly at first, then faster"
+
+    def test_structures_hold_capacity_longer(self):
+        import hours_eoh.data as D
+        from hours_eoh.core.civilization import age_efficiency
+        assert age_efficiency(0.5, D.AGE_EFFICIENCY_BETA_STRUCTURES) > \
+            age_efficiency(0.5, D.AGE_EFFICIENCY_BETA_EQUIPMENT)
+
+    def test_the_default_mix_is_the_us_reading(self):
+        from hours_eoh.data import CAPITAL_STRUCTURES_SHARE_DEFAULT
+        assert CAPITAL_STRUCTURES_SHARE_DEFAULT == pytest.approx(
+            CR.stock_age_ratio()["structures_share"], abs=5e-4)
+
+    def test_no_profile_reads_a_flat_condition(self):
+        conds = CR.epsilon_from_inventory(20.0)["condition_by_profile"]
+        assert len({round(c, 6) for c in conds.values()}) > 1
+
+    def test_the_curve_reaches_the_reading(self, monkeypatch):
+        """Broken on purpose: a steeper structures curve lowers capital ε."""
+        base = CR.epsilon_from_inventory(20.0)["epsilon"]
+        monkeypatch.setattr(CR, "AGE_EFFICIENCY_BETA_STRUCTURES", 0.0)
+        assert CR.epsilon_from_inventory(20.0)["epsilon"] < base
+
+
+class TestTheMeasuredDepreciation:
+    """BEA depreciation over the stock it is taken from (2026-10-08): the stock-weighted
+    mean of asset-level rates, which settles the profiles' aggregation dispute.
+    Reporting only; no constant moves.
+    """
+
+    def test_the_extract_carries_the_workbook_figures(self):
+        # Tables 1.1 / 1.3, 2024, $B. The stock is cross-pinned to BEA's own
+        # CSV export of Table 1.1 (rawdata, a separate file from the workbook
+        # the ingest parses): line 4 there is 35,899.9 and line 2 is 91,548.5.
+        row = next(r for r in CI.depreciation_series() if r["year"] == 2024)
+        assert row["private_nonres_stock"] == pytest.approx(35_899.9, abs=0.05)
+        assert row["fixed_stock"] == pytest.approx(91_548.5, abs=0.05)
+        assert row["private_nonres_depreciation"] == pytest.approx(3_194.090)
+        assert row["fixed_depreciation"] == pytest.approx(4_809.593)
+        assert row["defense_stock"] == pytest.approx(2_330.227)
+
+    def test_the_government_scope_is_nondefence(self):
+        row = {int(r["year"]): r for r in CI.depreciation_series()}
+        r0, r1 = row[2023], row[2024]
+        k = lambda r: r["private_nonres_stock"] + r["government_stock"] - r["defense_stock"]  # noqa: E731
+        d = r1["private_nonres_depreciation"] + r1["government_depreciation"] - r1["defense_depreciation"]
+        got = CR.measured_depreciation_rate("government", 2024)["rate"]
+        assert got == pytest.approx(d / (0.5 * (k(r0) + k(r1))), rel=1e-12)
+
+    def test_the_profile_aggregations_are_live(self):
+        p = CR.profile_depreciation_rates()
+        assert round(p["weighted_mean_of_rates"], 4) == 0.0428
+        assert round(p["reciprocal_of_weighted_life"], 4) == 0.0286
+        assert round(p["unweighted_mean_of_rates"], 4) == 0.0602
+
+    def test_the_below_verdict_can_fire_and_can_not(self, monkeypatch):
+        assert CR.depreciation_report()["below_measured"]["DEP_RATE"]
+        monkeypatch.setattr(CR, "DEP_RATE", 0.5)
+        assert CR.depreciation_report()["below_measured"]["DEP_RATE"] == []

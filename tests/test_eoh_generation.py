@@ -2,7 +2,7 @@
 Tests for hours_eoh.core.eoh_generation
 
 Covers: personal_eoh, infrastructure_eoh, ecological_eoh, knowledge_eoh,
-total_eoh, ecological_eoh_breakdown, effective_capital_from_stock,
+total_eoh, ecological_eoh_breakdown,
 domain_labor_requirements, epsilon_delta_sensitivity, eoh_to_essential_domains.
 """
 
@@ -17,7 +17,6 @@ from hours_eoh.core.eoh_generation import (
     ecological_eoh,
     knowledge_eoh,
     total_eoh,
-    effective_capital_from_stock,
     ecological_eoh_breakdown,
     domain_labor_requirements,
     epsilon_delta_sensitivity,
@@ -106,12 +105,9 @@ class TestInfrastructureEoh:
         assert eoh_old > eoh_new, "Older capital stock should generate more EOH"
 
     def test_grows_with_epsilon(self):
-        """Higher ε → more capital investment → more infrastructure EOH.
-
-        (e) 2026-09-09: this holds for an UNSPECIFIED stock, which resolves
-        along the canonical arc. It is false — correctly — for a supplied stock,
-        which is the same physical capital whatever ε is, and the second half
-        pins that so the first cannot be read as ε scaling the caller's input.
+        """For an UNSPECIFIED stock, infrastructure EOH grows with ε along the canonical
+        arc. A supplied stock is the same capital at every ε, and the second half pins
+        that (reading (e), 2026-09-09).
         """
         eoh_0  = infrastructure_eoh(None, epsilon=0.0)
         eoh_90 = infrastructure_eoh(None, epsilon=0.90)
@@ -154,18 +150,10 @@ class TestEcologicalEoh:
         )
 
     def test_the_deferred_obligation_does_not_depend_on_who_is_watching(self):
-        """
-        INVERTED 2026-09-08 (author-approved layer fix). This asserted the
-        opposite — that better monitoring RAISES the obligation — because
-        `total` carried `deferred × monitoring_capability`. That made a physical
-        quantity depend on the observer: an unmonitored collective did not OWE
-        its backlog, which contradicts the standing invariant that EOH measures
-        entropy and has a physical basis.
-
-        The backlog is now owed in full at every monitoring level. What
-        legibility governs is what may be REGISTERED and minted against, which
-        `test_capability_vs_observable` and the pipeline tests pin — so the
-        incentive to look is unchanged and the physics is observer-independent.
+        """The deferred backlog is owed in full at every monitoring level, because EOH
+        has a physical basis (author-approved layer fix, 2026-09-08). Legibility governs
+        what may be REGISTERED, which other tests pin
+        ([record](record/fulfilment.md#eoh-generation-test-history)).
         """
         lo = ecological_eoh(0.70, epsilon=0.0,  deferred=1_000_000.0)
         hi = ecological_eoh(0.70, epsilon=0.90, deferred=1_000_000.0)
@@ -199,21 +187,15 @@ class TestKnowledgeEoh:
 
 
 class TestKnowledgePopulationScaling:
-    """
-    Block K-I: knowledge EOH was population-INVARIANT — the same absolute number
-    at 1M and at 300M — so the domain's share of total EOH fell as 1/population
-    while every other domain scaled. These tests pin the fix AND pin that the
-    fix moved no numbers at the default population.
+    """Knowledge EOH scales with population (Block K-I). It was the same absolute number
+    at 1M and 300M, so its share fell as 1/population. These tests pin the fix and that
+    it moved no number at the default population.
     """
 
     def test_default_population_arc_is_pinned(self):
-        """
-        Values at the reference population, after two adoptions. K-I moved
-        NOTHING here (10,000 / 112,240 / 973,251.19); K-IV adopted the measured
-        base and the transmission renewal rate (uniform 1,225×); the Finding-E
-        re-anchor to the ε_ref FIXED POINT then took 0.779× off that, giving a
-        net 954.91× against pre-K-IV; the nutrition-floor adoption of
-        2026-09-03 then re-anchored the base a further 0.920×.
+        """The knowledge arc at the reference population, pinned to the function. K-I
+        moved nothing here; later adoptions moved the level
+        ([record](record/fulfilment.md#eoh-generation-test-history)).
         """
         # AND THE COINCIDENCE IS PINNED AS A COINCIDENCE. These arc figures are
         # unchanged by the 2026-09-09 knowledge-path change only because the
@@ -224,18 +206,19 @@ class TestKnowledgePopulationScaling:
         assert knowledge_eoh(1.0, epsilon=0.40) != pytest.approx(
             knowledge_eoh(None, epsilon=0.40), rel=1e-6)
 
-        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.9407815493e6, rel=1e-6)
-        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.9127332110e7, rel=1e-6)
-        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.7283750924e8, rel=1e-6)
+        # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
+        # 2026-10-18: +0.170% when the automation floors followed their live source.
+        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.7980522367e+06, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.7525338305e+07, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.5894636191e+08, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
-        """The adoption rescales; it does not reshape. Guards against a base
-        change silently altering the arc's SHAPE as well as its level. The
-        factor is 1,394.45× once the working life was measured (954.91×
-        post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
-        across the arc is what this test is for."""
+        """The adoptions rescale the knowledge arc and do not reshape it: one factor
+        against the pre-K-IV arc at every point (779.81× on 2026-10-18;
+        [record](record/fulfilment.md#eoh-generation-test-history)).
+        """
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(794.07820, rel=1e-3)
+            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(779.80522, rel=1e-3)  # 794.07820 before 2026-10-15, 778.48226 before 2026-10-18
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(None, epsilon=0.40)
@@ -281,10 +264,9 @@ class TestKnowledgePopulationScaling:
 
 
 class TestKnowledgeStockFlowSemantics:
-    """
-    Block K-I: `base_rate` is a STOCK, not the annual figure. Pinned because the
-    O*NET closure route (Block K-II) depends on this reading — it supplies a
-    training stock and a renewal rate, which is the same shape.
+    """`base_rate` is a STOCK, not the annual figure (Block K-I). The O*NET closure
+    route (Block K-II) supplies a training stock and a renewal rate, so it depends on
+    this reading.
     """
 
     def test_base_rate_is_not_the_epsilon_zero_answer(self):
@@ -356,18 +338,10 @@ class TestTotalEoh:
 
 
 # ===========================================================================
-# effective_capital_from_stock
+# A supplied capital stock is never rescaled
 # ===========================================================================
 
-class TestEffectiveCapitalFromStock:
-
-    def test_at_eps0_returns_base(self):
-        assert effective_capital_from_stock(1_000_000.0, 0.0) == pytest.approx(1_000_000.0)
-
-    def test_grows_with_epsilon(self):
-        base  = effective_capital_from_stock(1_000_000.0, 0.0)
-        high  = effective_capital_from_stock(1_000_000.0, 0.90)
-        assert high > base
+class TestASuppliedStockIsNotRescaled:
 
     def test_matches_infrastructure_eoh_internal_scaling(self):
         capital = 2_000_000_000.0
@@ -377,15 +351,11 @@ class TestEffectiveCapitalFromStock:
         age_factor = 1.0 + (2.0 - 1.0) * age
         # (e) 2026-09-09: a SUPPLIED stock is never rescaled, so the ε argument
         # does not reach the capital at all. This used to assert the opposite —
-        # that infrastructure_eoh applied effective_capital_from_stock
-        # internally — which is exactly the behaviour the decision removed.
+        # that infrastructure_eoh rescaled the stock by ε internally —
+        # which is exactly the behaviour the decision removed.
         expected = capital * rate * age_factor
         actual   = infrastructure_eoh(capital, age, eps, rate, 2.0)
         assert actual == pytest.approx(expected)
-        # effective_capital_from_stock survives as the explicit baseline-scaler
-        # for a caller who genuinely holds an ε=0 baseline, and still scales.
-        assert effective_capital_from_stock(capital, eps) == pytest.approx(
-            capital * (1.0 + 2.0 * eps))
 
 
 # ===========================================================================
@@ -463,6 +433,46 @@ class TestDomainLaborRequirements:
         low  = domain_labor_requirements({"personal": 1e9}, epsilon=0.20)
         high = domain_labor_requirements({"personal": 1e9}, epsilon=0.80)
         assert high["total_workers_needed"] < low["total_workers_needed"]
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_pipeline_route_reads_the_pipeline_human_hours(self, eps):
+        """A supplied pipeline result gives the pipeline's own human hours. The uniform
+        (1 − ε) ignored the automation floors and read 13× low at 0.99 (2026-10-03).
+        """
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.data import H_REF
+        p = eoh_to_teh_pipeline(eps)
+        r = domain_labor_requirements(p["eoh_by_domain"], eps,
+                                      human_eoh_by_domain=p["human_eoh_by_domain"])
+        assert r["total_workers_needed"] == pytest.approx(p["human_eoh"] / H_REF, rel=1e-12)
+        assert r["human_fraction"] == pytest.approx(p["human_eoh"] / p["total_eoh"], rel=1e-9)
+
+    def test_the_fallback_reads_low_where_floors_bind(self):
+        """Why the pipeline route exists: the fallback disagrees at the top."""
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        p = eoh_to_teh_pipeline(0.99)
+        flat = domain_labor_requirements(p["eoh_by_domain"], 0.99)
+        assert flat["total_workers_needed"] * 5 < domain_labor_requirements(
+            p["eoh_by_domain"], 0.99,
+            human_eoh_by_domain=p["human_eoh_by_domain"])["total_workers_needed"]
+
+    def test_the_work_year_is_h_ref(self):
+        from hours_eoh.data import H_REF
+        r = domain_labor_requirements({"personal": 1e9}, epsilon=0.40)
+        assert r["hours_per_worker"] == H_REF
+        assert r["total_workers_needed"] == pytest.approx(1e9 * 0.60 / H_REF)
+
+    def test_a_missing_domain_raises(self):
+        with pytest.raises(ValueError):
+            domain_labor_requirements({"personal": 1e9, "knowledge": 1e8}, 0.40,
+                                      human_eoh_by_domain={"personal": 5e8})
+
+    def test_the_sensitivity_headcount_tracks_human_hours(self):
+        """`epsilon_delta_sensitivity` passes the pipeline's hours, so headcount
+        and human EOH move by the same share (they read −82.5% vs −23.8%)."""
+        r = epsilon_delta_sensitivity(0.94, 0.05)["metrics"]
+        assert r["workers_needed"]["pct_change"] == pytest.approx(
+            r["human_eoh"]["pct_change"], rel=1e-9)
 
     def test_workers_zero_at_eps_one(self):
         """At ε=1.0 (full automation), zero human workers needed."""
@@ -584,7 +594,7 @@ class TestEohToEssentialDomains:
         assert output_total == pytest.approx(input_total, rel=1e-6)
 
     def test_custom_weights_accepted(self):
-        """Custom weight matrix must be accepted and applied."""
+        """The function accepts and applies a custom weight matrix."""
         custom = {
             "agriculture": {"personal": 0.5, "infrastructure": 0.5},
             "construction": {"ecological": 1.0},
@@ -597,15 +607,16 @@ class TestEohToEssentialDomains:
         assert result["construction"] == pytest.approx(500.0)
 
     def test_missing_eoh_domains_treated_as_zero(self):
-        """EOH domain not in input dict must be treated as 0."""
+        """An EOH domain missing from the input counts as 0."""
         result = eoh_to_essential_domains({"personal": 1000.0})  # others missing
         assert all(v >= 0.0 for v in result.values())
 
-    def test_healthcare_largest_from_personal(self):
-        """With only personal EOH, healthcare must receive the largest share."""
+    def test_care_largest_from_personal(self):
+        """With only personal EOH, CARE receives the largest share (its own
+        essential domain since 2026-10-01; healthcare carried it before)."""
         result = eoh_to_essential_domains({"personal": 1_000_000.0,
                                            "infrastructure": 0.0, "ecological": 0.0, "knowledge": 0.0})
-        assert result["healthcare"] == max(result.values())
+        assert result["care"] == max(result.values())
 
     def test_agriculture_largest_from_ecological(self):
         """With only ecological EOH, agriculture must receive the largest share."""
@@ -619,7 +630,7 @@ class TestEohToEssentialDomains:
 # ---------------------------------------------------------------------------
 
 def test_thermal_obligation_defaults_to_zero_everywhere():
-    """The wiring is opt-in: every pre-existing caller must be unaffected."""
+    """The wiring is opt-in: no earlier caller sees a change."""
     from hours_eoh.core.eoh_generation import ecological_eoh_breakdown, ecological_eoh, total_eoh
     b = ecological_eoh_breakdown(0.70, 0.40)
     assert b["thermal"] == 0.0
@@ -748,10 +759,10 @@ def test_domain_balance_personal_still_dominates_the_low_arc():
 
 
 def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
-    """THE K-IV RESULT. Pre-adoption the two small domains were <0.1% of total
-    EOH at ε=0.40; knowledge alone now carries ~8%, and by ε=0.99 it is the
-    largest non-personal domain. This is the behaviour knowledge_eoh's own
-    reference text has always asserted and never delivered."""
+    """Since K-IV, knowledge is more than 5% of total EOH at ε=0.40 (5.69% today) and
+    the largest non-personal domain at ε=0.99
+    ([record](record/fulfilment.md#eoh-generation-test-history)).
+    """
     mid = total_eoh(epsilon=0.40)
     assert mid["knowledge"] / mid["total"] > 0.05
 
@@ -765,31 +776,36 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
     # itself grew. The claim being tested — knowledge stops being a rounding
     # error at the top of the arc — is unaffected by which way it happened,
     # which is why the share is pinned and the cause is recorded in prose.
-    assert top["knowledge"] / top["total"] == pytest.approx(0.32989, abs=0.01)
+    # → 0.32286: 2026-10-15, KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
+    assert top["knowledge"] / top["total"] == pytest.approx(0.32286, abs=0.01)
 
 
-def test_domain_balance_ecological_is_still_the_open_defect():
-    """Ecological was NOT touched by K-IV and remains ~0.04% of total. Named so
-    the closed domain is not mistaken for a closed defect."""
+def test_domain_balance_ecological_is_below_a_tenth_of_a_percent():
+    """The ecological domain is under 0.1% of total EOH at ε=0.40; it reads 0.0 today,
+    because Phases 4e/4f moved its recurring terms to GUF
+    ([record](record/ecological.md#eoh-generation-eco-test-history)).
+    """
     d = total_eoh(epsilon=0.40)
     assert d["ecological"] / d["total"] < 0.001
 
 
 def test_domain_balance_ecological_is_sub_hour_per_person():
-    """0.71 h/person·yr — the absolute-vs-relative scale defect, made visible."""
+    """Ecological EOH is under 1 h/person·yr (0.0 today) against more than 1,250 h for
+    personal EOH: an order-of-magnitude gap.
+    """
     pop = 1_000_000.0
     d = total_eoh(epsilon=0.40, population=pop)
     assert d["ecological"] / pop < 1.0
     # > 1,400 until the 2026-08-10 elderly revalue took w to 1.3016; the point
     # of the assertion is the ORDER-OF-MAGNITUDE gap against ecological's
-    # sub-hour figure, which 1,301.6 makes exactly as starkly.
+    # sub-hour figure, which 1,301.6 made exactly as starkly (1,352.8 live,
+    # 2026-10-17).
     assert d["personal"] / pop > 1_250.0
 
 
 def test_domain_balance_epsilon_is_insensitive_to_the_small_domains():
-    """A 100× ecological base barely moves the denominator ε is divided by.
-
-    This is why measured work on the small domains cannot be quoted as moving ε.
+    """A 100× ecological base barely moves the denominator of ε. So no one can quote
+    measured work on the small domains as moving ε.
     """
     base = total_eoh(epsilon=0.40)["total"]
     inflated = total_eoh(epsilon=0.40, ecological_base=500_000.0 * 100)["total"]
@@ -826,12 +842,10 @@ class TestPersonalStandards:
                 < personal_base_for("sufficiency"))
 
     def test_survival_is_inside_the_autarky_feasibility_bound(self):
-        """S_a is HARD-bounded: a survival standard above labour supply is extinction.
-
-        Bound is (L − R)/w = 733 per-equivalent on the repo's own constants (627
-        until the 2026-09-09 capital-path decision zeroed R at ε=0). 600
-        is set independently and CHECKED here rather than pinned to the bound —
-        a constant that cannot fail its own test says nothing.
+        """The survival standard S_a must sit inside the autarky bound, because a
+        standard above labour supply is extinction. The bound (733 per equivalent) and
+        the standard (600) are set independently, so this test can fail
+        ([record](record/fulfilment.md#eoh-generation-test-history)).
         """
         from hours_eoh.scenarios.feasibility import feasibility_check
         c = feasibility_check(adult_capacity_h_yr=2000.0, adult_share=0.5,
@@ -901,7 +915,7 @@ class TestKnowledgeSplit:
         assert shares[-1] == pytest.approx(0.898, abs=0.005)
 
     def test_split_derives_from_the_existing_form_not_a_new_constant(self):
-        """apparatus_fraction = 1 − 1/cpu, so no constant was introduced."""
+        """apparatus_fraction = 1 − 1/cpu, so the split adds no constant."""
         for cpu in (1.5, 3.0, 8.0):
             r = knowledge_eoh_breakdown(4.6, complexity_per_unit=cpu)
             assert r["apparatus_fraction"] == pytest.approx(1.0 - 1.0 / cpu)
@@ -966,34 +980,11 @@ class TestAccountingBasis:
                     == pytest.approx(d["knowledge"]))
 
     def test_final_basis_drifts_less_than_gross_but_no_longer_near_constant(self):
-        """
-        CONSERVATION RESULT DOWNGRADED BY BLOCK K-IV — recorded, not retuned.
-
-        Pre-adoption the final basis drifted +0.35% across the arc against the
-        gross basis's +10%, and that near-flatness was quoted as the payoff of
-        the Block I–III thread: obligation is population × per-person, and the
-        apparatus built to SERVE it is not additional obligation.
-
-        It drifted +7.7% after K-IV and drifts **+6.1%** (1,485 → 1,575
-        h/person·yr) after the Finding-E re-anchor. The direction still holds —
-        final drifts far less than gross — but "near-constant" is no longer
-        supportable, and the re-anchor does not restore it: a 22% smaller
-        knowledge base shrinks the drift proportionally without touching its
-        cause.
-
-        THE CAUSE IS STRUCTURAL, NOT A CALIBRATION ARTIFACT. The final basis
-        includes `knowledge_civilisational`, which is base·kbs(ε)·cpu(0)·d, and
-        kbs = 1 + slope·ε shares `CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE` with
-        cpu. So the component the Block I split labels *civilisational* — "the
-        corpus renewed whatever the capital" — is itself ε-driven, growing 9.91×
-        across the arc. The label implies an ε-invariant floor; the code has
-        never computed one.
-
-        Pre-K-IV this was invisible because knowledge was 0.005% of total EOH.
-        The honest reading: **the near-conservation result was an artifact of
-        the knowledge domain being negligible.** Whether the civilisational
-        corpus should be ε-invariant is a theory question (author sign-off), not
-        something to fix by moving a threshold here.
+        """The final basis drifts less than a fifth of the gross basis across the arc,
+        but it is no longer near-constant (+5.10% today). The cause is structural: the
+        civilisational corpus grows with ε. Whether it should be ε-invariant is a theory
+        question for the author
+        ([record](record/fulfilment.md#eoh-generation-test-history)).
         """
         finals = [total_eoh(epsilon=e, basis="final")["total"]
                   for e in (0.0, 0.40, 0.99)]
@@ -1003,14 +994,16 @@ class TestAccountingBasis:
 
         # +6.1% → +9.0%: the final basis excludes apparatus knowledge but keeps the
         # CIVILISATIONAL corpus, which the re-anchor grew 1.397× along with the rest.
-        assert final_drift == pytest.approx(0.055060, abs=0.005)
-        assert gross_drift > 0.05506
+        # → +5.10%: 2026-10-15, KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
+        assert final_drift == pytest.approx(0.050980, abs=0.005)
+        assert gross_drift > 0.050980
         assert final_drift < gross_drift / 5.0
 
     def test_civilisational_knowledge_is_not_epsilon_invariant(self):
-        """Pins the cause of the above, so it cannot be rediscovered as a
-        mystery. If the corpus is ever made ε-invariant this fails and the
-        conservation result should be re-examined at the same time."""
+        """Civilisational knowledge grows 9.91× across the arc; this pins the cause of
+        the drift above. If the corpus becomes ε-invariant, this fails, and the
+        conservation result needs a fresh look at the same time.
+        """
         lo = total_eoh(epsilon=0.0)["knowledge_civilisational"]
         hi = total_eoh(epsilon=0.99)["knowledge_civilisational"]
         assert hi / lo == pytest.approx(9.91, rel=1e-2), (
@@ -1039,7 +1032,7 @@ class TestAccountingBasis:
 # ===========================================================================
 
 class TestEcologicalAreaReachesTotalEoh:
-    """area_hectares reaches total_eoh, and the default path is unchanged."""
+    """area_hectares reaches total_eoh, and the default path does not change."""
 
     def test_area_scales_the_ecological_domain_linearly(self):
         # Area is the extensive quantity: doubling it doubles the obligation.
@@ -1052,17 +1045,10 @@ class TestEcologicalAreaReachesTotalEoh:
             assert five == pytest.approx(5.0 * one, rel=1e-12)
 
     def test_default_resolves_the_area_FROM_THE_POPULATION(self):
-        """
-        PHASE 4b (2026-08-17). The default used to be ECOLOGICAL_BASE_RATE — the
-        obligation for the WHOLE CONTIGUOUS US — while the default population is
-        1,000,000. Nothing connected them, so the shipped default had a million
-        people stewarding the entire United States and the reported ecological
-        share was flattered by the ratio between the two.
-
-        The fix is in the RESOLUTION, not the constant: ECOLOGICAL_BASE_RATE
-        correctly states the US-scale obligation and ECOLOGICAL_INTENSITY_BASE is
-        derived from it, so rewriting it would break an identity the repo pins
-        deliberately. The default now derives its area from the population.
+        """The default ecological area comes from the population, not from the whole-US
+        anchor (Phase 4b, 2026-08-17). The fix is in the resolution:
+        ECOLOGICAL_BASE_RATE still states the US-scale obligation
+        ([record](record/ecological.md#eoh-generation-eco-test-history)).
         """
         # PHASE 4f (adopted 2026-08-28): the domain no longer carries `standing`,
         # so the expected quantity is the DEGRADATION RESPONSE — rate·(1−h)/h —
@@ -1078,18 +1064,17 @@ class TestEcologicalAreaReachesTotalEoh:
                 assert got == pytest.approx(expected, rel=1e-12)
 
     def test_the_anchor_identity_is_UNTOUCHED(self):
-        """
-        What the resolution change deliberately preserves. A naive fix that
-        rewrote ECOLOGICAL_BASE_RATE to a 1M-consistent value would break
-        `intensity x reference area = anchor` — and that identity is correct, so
-        the pins would be firing against the fix rather than against a defect.
+        """`intensity × reference area = anchor` still holds. A fix that rewrote
+        ECOLOGICAL_BASE_RATE to a 1M value would break this correct identity.
         """
         assert ECOLOGICAL_INTENSITY_BASE == pytest.approx(
             ECOLOGICAL_BASE_RATE / US_MAINLAND_HECTARES, rel=1e-15
         )
 
     def test_supplying_the_us_area_still_reproduces_the_us_anchor(self):
-        """The constant is still reachable — it is now supplied, not assumed."""
+        """The constant stays reachable: a caller supplies it now, and nothing assumes
+        it.
+        """
         for eps in KEY_EPSILONS:
             got = total_eoh(epsilon=eps, ecosystem_health=0.70,
                             ecological_area_hectares=US_MAINLAND_HECTARES,
@@ -1102,10 +1087,8 @@ class TestEcologicalAreaReachesTotalEoh:
                              )["ecological"] == 0.0
 
     def test_the_us_frame_now_DIFFERS_from_the_default(self):
-        """
-        The mismatch this change removes, pinned as a difference. Before Phase 4b
-        the default WAS the whole-US area, so these agreed; now the default is
-        1M people's share of it and the US frame is 335x larger.
+        """The US frame and the default now differ, by 335×. Before Phase 4b the default
+        WAS the whole-US area, so they agreed.
         """
         for eps in KEY_EPSILONS:
             framed = total_eoh(epsilon=eps,
@@ -1175,10 +1158,8 @@ class TestStatutoryHoursPerUnitYear:
         assert statutory_hours_per_unit_year(16.0) == pytest.approx(8.0, rel=1e-12)
 
     def test_it_feeds_the_floor_and_reproduces_ITS_worked_example(self):
-        """
-        End-to-end: derived hours through the floor must give the 448,816 h/yr
-        the floor's own docstring states, which is what shows the derivation and
-        the floor were always meant to be the same chain.
+        """Derived hours through the floor must give the 448,816 h/yr that the floor's
+        own docstring states. That shows the derivation and the floor are one chain.
         """
         from hours_eoh.core.eoh_generation import (
             infrastructure_statutory_floor,
@@ -1215,11 +1196,9 @@ class TestStatutoryHoursPerUnitYear:
 
 
 def test_eta_land_mask_threshold_is_superseded_by_the_shipped_method():
-    """
-    The constant asserted a binary threshold "is required"; the η dataset that
-    shipped states it used the continuous land FRACTION and explicitly not a
-    threshold. Retired rather than wired — wiring it would reintroduce the
-    all-or-nothing coastal treatment the data deliberately avoided.
+    """The shipped η dataset uses the continuous land FRACTION and explicitly no
+    threshold. So the binary threshold is retired, not wired; wiring it would bring back
+    the all-or-nothing coastal treatment the data avoids.
     """
     from hours_eoh.research.thermal_path_c import load_eta_land
     weighting = load_eta_land()["_method"]["weighting"]
@@ -1228,18 +1207,9 @@ def test_eta_land_mask_threshold_is_superseded_by_the_shipped_method():
 
 
 class TestEcologicalSpikeShape:
-    """
-    THE SUB-THRESHOLD SPIKE, migrated and pinned (2026-08-28).
-
-    `ECOLOGICAL_SPIKE_INTENSITY` was `_ECOLOGICAL_SPIKE_INTENSITY` in
-    `core/eoh_generation.py`. The 2026-08-09 provenance pass NAMED it as
-    calibrated-to-target — picked to produce the escalation the arc was expected
-    to show — and it then stayed a shadow constant for the whole period since,
-    so the gate that reports calibrated-to-target constants could not see it. A
-    +7% move failed no test.
-
-    Division of labour with `ECOLOGICAL_THRESHOLD`: the threshold sets WHERE the
-    spike begins, this sets HOW BIG it gets. Pinned as shape.
+    """`ECOLOGICAL_SPIKE_INTENSITY` sets how big the sub-threshold spike gets;
+    `ECOLOGICAL_THRESHOLD` sets where it begins. Pinned as shape (2026-08-28;
+    [record](record/ecological.md#eoh-generation-eco-test-history)).
     """
 
     def test_no_spike_above_the_threshold(self):
@@ -1275,17 +1245,9 @@ class TestEcologicalSpikeShape:
         assert half == pytest.approx(4.0 * quarter, rel=1e-6)
 
     def test_total_collapse_costs_the_declared_multiple_of_the_baseline(self):
-        """
-        As health → 0 the deficit fraction → 1, so the spike approaches exactly
-        INTENSITY × scale. That is what the constant MEANS, and asserting it
-        binds the constant to the behaviour rather than restating the number.
-
-        THE HEALTH CLAMP IS WHY THIS IS AN APPROACH, NOT AN EQUALITY.
-        `ecological_eoh` floors health at 0.001 to avoid a division by zero, so
-        the deficit at h=0 is 0.9975 and the spike is 4.975×, never 5×. Pinned
-        with the clamp visible — a 0.5% shortfall that looks like a rounding
-        error is exactly the kind of thing that gets "fixed" by widening a
-        tolerance instead of being understood.
+        """As health → 0 the spike approaches INTENSITY × scale, which is what the
+        constant means. `ecological_eoh` floors health at 0.001, so the spike is 4.975×,
+        never 5×. The clamp stays visible, so no one widens a tolerance to hide it.
         """
         b = ecological_eoh_breakdown(0.0, area_hectares=1.0e6)
         deficit = (ECOLOGICAL_THRESHOLD - 0.001) / ECOLOGICAL_THRESHOLD
@@ -1305,21 +1267,11 @@ class TestEcologicalSpikeShape:
 
 
 class TestPhase4fTheStandingTermIsGufs:
-    """
-    THE ECOLOGICAL LEVEL, CLOSED — and not by a census (Phase 4f, 2026-08-28).
-
-    `ECOLOGICAL_BASE_RATE` produces `standing`, a RECURRING per-year term, and
-    Phase 4d's adopted partition says everything recurring is GUF's. The
-    question "what should the anchor be?" was carried for months as a
-    MEASUREMENT question; it is not one.
-
-    The argument is checkable, and `test_the_census_is_already_spent_in_guf`
-    checks it: GUF's recurring target already charges the measured stewardship
-    intensity of every class the census can price. Raising this anchor toward
-    the census would bill the same hours twice.
-
-    THEORY-FLAGGED. The relocation is opt-in and default-off, exactly as
-    `health_response` and `thermal_obligation` were at their sign-offs.
+    """The standing term is GUF's: everything recurring goes to GUF under Phase 4d's
+    partition (Phase 4f, adopted 2026-08-28). GUF's recurring target
+    already charges the measured stewardship intensity, so raising this anchor toward
+    the census would bill the same hours twice
+    ([record](record/ecological.md#phase-4f-adopted)).
     """
 
     def test_the_relocation_is_the_default(self):
@@ -1330,9 +1282,8 @@ class TestPhase4fTheStandingTermIsGufs:
             assert b["standing_relocated"] == pytest.approx(b["standing"])
 
     def test_the_pre_4f_behaviour_survives_under_domain(self):
-        """
-        The superseded policy is REACHABLE, not deleted — the `psi_policy`
-        precedent. It is what every pre-4f figure was computed at.
+        """The superseded policy stays REACHABLE under `domain`, as `psi_policy` set the
+        precedent. Every pre-4f figure used it.
         """
         for health in (0.3, 0.7, 1.0):
             kept = ecological_eoh_breakdown(health, area_hectares=1.65e6,
@@ -1353,7 +1304,7 @@ class TestPhase4fTheStandingTermIsGufs:
         assert moved["standing_relocated"] == pytest.approx(kept["standing"])
 
     def test_the_obligation_is_conserved_only_relocated(self):
-        """Nothing is destroyed: what leaves the domain is reported."""
+        """Nothing disappears: the result reports what leaves the domain."""
         for health in (0.3, 0.7, 1.0):
             kept = ecological_eoh_breakdown(health, area_hectares=1.65e6,
                                             standing_response="domain")
@@ -1363,13 +1314,9 @@ class TestPhase4fTheStandingTermIsGufs:
             )
 
     def test_pristine_land_now_owes_the_domain_nothing(self):
-        """
-        THE ADOPTED PARTITION'S SIGNATURE, and the sharpest statement of it.
-        At reference condition the domain is EXACTLY zero: land in balance asks
-        nothing of the ecological domain, because what it does ask — the
-        recurring cost of holding it — is GUF's. Degraded land still carries its
-        disturbance while `health_response` remains default `domain` (Phase 4e
-        is a separate, unadopted decision).
+        """The domain is EXACTLY zero at reference condition and, since Phase 4e
+        (2026-08-29), at every health. Under `health_response="domain"` degraded land
+        still carries its disturbance ([record](record/ecological.md#phase-4e-adopted)).
         """
         assert ecological_eoh_breakdown(1.0, area_hectares=1.65e6)["total"] == 0.0
         # 4e ADOPTED TOO (2026-08-29): the disturbance response is GUF's as well,
@@ -1426,10 +1373,9 @@ class TestPhase4fTheStandingTermIsGufs:
             assert v >= 0.0 and v == v
 
     def test_the_switch_is_reachable_from_the_documented_intake_path(self):
-        """
-        Parameters stranded one layer below `eoh_to_teh_pipeline` is this repo's
-        recurring failure — `personal_standard` and `ecological_health_response`
-        both hit that wall. This one is checked at the entry point.
+        """The switch must be reachable from `eoh_to_teh_pipeline`, the documented entry
+        point. `personal_standard` and `ecological_health_response` were both stranded
+        one layer below it (mode 5).
         """
         from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 

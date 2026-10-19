@@ -1,10 +1,9 @@
-"""
-Tests for B3 — maintain vs replace with the embodied-energy pulse
+"""Tests for B3: maintain vs replace with the embodied-energy pulse
 (research/thermal_capital.py).
 
-The first decision the thermal layer can inform, so what matters is that the
-trade-off has the right shape and the right sign, not that any figure is precise:
-the thermal intensities are still CHOSEN placeholders.
+This is the first decision the thermal layer can inform. What matters is the shape and
+sign of the trade-off, not any figure: the thermal intensities are still CHOSEN
+placeholders.
 """
 
 from __future__ import annotations
@@ -19,7 +18,8 @@ from hours_eoh.research.thermal_capital import (
 
 def test_replacing_always_costs_extra_dissipation():
     """Embodied energy is spent at construction, so every replacement is a pulse.
-    Replacing earlier than necessary can only add dissipation."""
+    Replacing earlier than necessary can only add dissipation.
+    """
     for age in (2.0, 10.0, 25.0):
         r = maintain_vs_replace("transportation", 1e8, age, horizon_years=40.0)
         assert r["replacing_is_thermally_worse"] is True
@@ -47,9 +47,10 @@ def test_exchange_rate_improves_with_age():
 
 
 def test_a_long_horizon_makes_the_strategies_converge():
-    """Over a horizon that is a whole number of design lives, both strategies do
-    the same total aging and the same number of replacements — the difference is
-    timing, not quantity. A useful null: the model is not inventing a gap."""
+    """Over a whole number of design lives, both strategies do the same total aging and
+    the same number of replacements; only the timing differs. A useful null: the model
+    does not invent a gap.
+    """
     r = maintain_vs_replace("transportation", 1e8, 20.0, horizon_years=60.0)
     assert r["eoh_saved_by_replacing"] == pytest.approx(0.0, abs=1.0)
     assert r["extra_dissipation_j"] == pytest.approx(0.0, abs=1e9)

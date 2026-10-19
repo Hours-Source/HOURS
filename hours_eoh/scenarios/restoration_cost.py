@@ -36,7 +36,7 @@ from hours_eoh.data import (
     RESTORATION_BOUNDING_ASSUMPTION_H_PER_HA,
     GUF_SERVICE_PROFILE_DECLARED,
     US_MAINLAND_HECTARES,
-    US_REFERENCE_POPULATION,
+    US_MAINLAND_POPULATION,
 )
 from hours_eoh.reference.restoration import (
     RESTORATION_SEQUENCES,
@@ -76,13 +76,12 @@ def legacy_stock(
 
         annual_hours = restorable_hectares × lifetime_h_per_ha / horizon
 
-    The area is the CALLER'S, and 100 Mha is the same figure the Phase-0
-    bounding used so the two are comparable — roughly the scale of US cropland
-    plus degraded rangeland. It is not a measurement of what needs restoring;
-    that inventory does not exist here.
+    The area is the CALLER'S. 100 Mha is the figure the Phase-0 bounding used, so the
+    two compare: roughly the scale of US cropland plus degraded rangeland. It is not a
+    measurement of what needs restoring; that inventory does not exist here.
     """
     band = restoration_band()
-    pop = US_REFERENCE_POPULATION
+    pop = US_MAINLAND_POPULATION
     out = {
         "restorable_hectares": restorable_hectares,
         "amortization_years":  amortization_years,
@@ -217,17 +216,16 @@ def pristine_gap_obligation(
     condition — 0 is at reference and owes nothing, 1 is fully degraded and owes
     a whole restoration.
 
-    units: labour-hours per year. Feeds `ecological_eoh(restoration_obligation=)`,
-    which is the STOCK half of the 2026-08-17 partition; the FLOW half is GUF's
-    E(p,ε) and is not computed here.
+    units: labour-hours per year. Feeds `ecological_eoh(restoration_obligation=)`, the
+    STOCK half of the 2026-08-17 partition. The FLOW half is GUF's E(p,ε), and this
+    function does not compute it.
 
-    THE INVENTORY IS THE CALLER'S, AND IT IS THE MISSING QUANTITY. This package
-    ships none. Phase 3 measured the cost PER HECTARE RESTORED from ASAE field
-    capacity; what this needs is the HECTARES NEEDING RESTORATION AND BY HOW
-    MUCH, which is a land-condition survey, not a machinery calculation. Passing
-    an invented deficit produces a number with the same standing as a measured
-    one and afterwards nothing can tell them apart — so the argument is required
-    and there is no default.
+    THE INVENTORY IS THE CALLER'S, AND IT IS THE MISSING QUANTITY. This package ships
+    none. Phase 3 measured the cost PER HECTARE RESTORED from ASAE field capacity. This
+    needs the HECTARES NEEDING RESTORATION AND BY HOW MUCH, which is a land-condition
+    survey, not a machinery calculation. Passing an invented deficit produces a number
+    with the same standing as a measured one and afterwards nothing can tell them apart
+    — so the argument is required and there is no default.
 
     resolves_by: USDA National Resources Inventory. FIELD: the NRI land
     cover/use transition matrices report area moving between condition classes
@@ -239,13 +237,14 @@ def pristine_gap_obligation(
     Args:
         condition_inventory: [{"class": str, "hectares": float,
                                "deficit": float ∈ [0,1]}, ...]
-        amortization_years:  Horizon over which the backlog is discharged.
+        amortization_years:  The horizon over which the collective discharges the
+            backlog.
         sequence:            Which restoration sequence prices the gap.
         corner:              "low" or "high" band corner of the derived cost.
 
     Returns:
-        dict with the annual obligation, the per-class breakdown, and the
-        per-hectare cost it was priced at.
+        dict with the annual obligation, the per-class breakdown, and the per-hectare
+        cost behind its price.
     """
     if corner not in ("low", "high"):
         raise ValueError(f"corner must be 'low' or 'high', got {corner!r}")
@@ -293,3 +292,27 @@ def pristine_gap_obligation(
             "survey settles."
         ),
     }
+
+
+def deficit_obligation(
+    hectares: float,
+    deficit: float,
+    amortization_years: float = DEFAULT_AMORTIZATION_YEARS,
+    corner: str = "high",
+) -> float:
+    """
+    The annual restoration obligation, h/yr, for a uniform health DEFICIT over
+    `hectares` — one class through `pristine_gap_obligation`. The ONE reading
+    of a frame's or a collapse's deficit (2026-10-04): `shocks._restoration`
+    (a collapse, before − after), the frame resolver (1 − health, when a frame
+    declares its people carry its ecological work) and the industrial
+    archetype all call it. A deficit ≤ 0 owes nothing.
+
+    units: hours/year. Priced by field-operation sequences — machinery; what
+    it does not price is biological recovery TIME (`implied_kappa`).
+    """
+    if deficit <= 0.0 or hectares <= 0.0:
+        return 0.0
+    return float(pristine_gap_obligation(
+        [{"class": "deficit", "hectares": hectares, "deficit": deficit}],
+        amortization_years=amortization_years, corner=corner)["annual_hours"])

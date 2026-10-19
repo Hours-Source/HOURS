@@ -1,33 +1,23 @@
-"""
-The ecological scale-resolution gate.
+"""The ecological scale-resolution gate.
 
-WHY THIS EXISTS. The same defect has now been found FOUR times, by four
-different routes, and never by a gate:
+WHY THIS EXISTS. On 2026-08-17 four routes found the same defect four times, and no gate
+found it (`TestTheFourKnownInstancesAreCovered`). A fifth followed on 2026-09-30
+(`TestTheRelocatedObligationTravelsWithTheFrame`). Each has one shape. A function scales
+one domain with `population` and calls `ecological_eoh(...)` with no area. The
+ecological term then resolves to a fixed reference frame, historically the whole
+contiguous US, and the function sums the two as if on one footing. Nothing looks wrong
+at the call site, so reading the code never caught it.
 
-    2026-08-17  `total_eoh` / `eoh_to_teh_pipeline`  — found by a readiness audit
-    2026-08-17  `scenarios/sweep.py`                 — found while fixing the above
-    2026-08-17  the dashboard's fiscal path          — found by re-auditing
-    2026-08-17  `core/autarky.autarky_reference`     — found by a codebase sweep
+WHAT THE GATE CHECKS. A function with a `population` in scope that calls into the
+ecological scale must SAY which frame it means. It can pass `area_hectares`, pass an
+explicit `base_rate`, or take a `hectares_per_capita`-style parameter and resolve from
+population. A call with none of these is the defect.
 
-Every instance is the same shape. A function scales one domain with
-`population` and then calls `ecological_eoh(...)` with **no area**, so the
-ecological term silently resolves to a fixed reference frame — historically the
-whole contiguous US — and the two are summed as though they were on the same
-footing. Nothing about it looks wrong at the call site, which is why reading the
-code never caught it.
-
-WHAT THE GATE CHECKS. Any function that has a `population` in scope and calls
-into the ecological scale must SAY which frame it means: pass `area_hectares`,
-pass an explicit `base_rate`, or take a `hectares_per_capita`-style parameter
-and resolve from population. Calling with neither is the defect.
-
-WHY IT IS AN ALLOWLIST AND NOT A BLANKET RULE. Some callers genuinely have no
-population — `ecological_eoh_breakdown` itself, the shock scenarios that vary
-health at a fixed frame — and for those the declared reference frame is the
-right default. Those are named, with the reason, so that adding to the list is a
-visible act in a diff rather than an emergent property of how a function
-happened to be written. The `_INNOCUOUS_NAMES` precedent: masking must be
-DECLARED, never inferred.
+WHY IT IS AN ALLOWLIST AND NOT A BLANKET RULE. Some callers have no population, such as
+`ecological_eoh_breakdown` itself and the shocks that vary health at a fixed frame. For
+those the declared reference frame is the right default. The allowlist names each with
+its reason, so an addition is a visible act in a diff. Masking must be DECLARED, never
+inferred (the `_INNOCUOUS_NAMES` precedent).
 """
 
 from __future__ import annotations
@@ -147,10 +137,8 @@ def _unframed_scale_calls(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[st
 class TestEveryPopulationScaledCallerStatesItsFrame:
 
     def test_no_unframed_ecological_call_alongside_a_population(self) -> None:
-        """
-        THE GATE. A function that scales with population and resolves the
-        ecological scale without saying which frame it means is the defect that
-        has been found four times by hand.
+        """THE GATE. A function that scales with population must say which frame it
+        means when it resolves the ecological scale.
         """
         offenders = []
         for path, fn in _iter_functions():
@@ -176,10 +164,8 @@ class TestTheGateItselfIsHonest:
     """A gate that cannot bite, or that exempts nothing real, is not a gate."""
 
     def test_every_exemption_names_a_function_that_exists(self) -> None:
-        """
-        An exemption for a function nobody has is an exemption nobody reviews —
-        the failure the `unused_innocuous_names` check was built for after the
-        registration migration made two allowlist entries stale within an hour.
+        """An exemption for a function that does not exist is an exemption nobody
+        reviews (the `unused_innocuous_names` lesson).
         """
         defined = {fn.name for _, fn in _iter_functions()}
         stale = sorted(set(_DECLARED_EXEMPT) - defined)
@@ -227,9 +213,8 @@ class TestTheGateItselfIsHonest:
 
 
 class TestTheFourKnownInstancesAreCovered:
-    """
-    Named so the regression is legible in the diff. Each was found by a
-    different route and none by a gate.
+    """The class names each instance, so a regression shows in the diff. A different
+    route found each one, and no gate found any.
     """
 
     @pytest.mark.parametrize(
@@ -253,3 +238,61 @@ class TestTheFourKnownInstancesAreCovered:
         assert not _unframed_scale_calls(fn), (
             f"{module}:{function} has regressed to an unframed ecological call"
         )
+
+
+class TestTheRelocatedObligationTravelsWithTheFrame:
+    """`fiscal_snapshot` resolved the ecological area from the population only when NO
+    override was passed (2026-09-30). With one, the relocated (GUF) obligation fell back
+    to the whole-US anchor, so per person it ran inverse to population.
+    `simulate_period` and `exchange.build_collective` both pass an override.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_per_capita_relocated_obligation_is_frame_invariant_with_an_override(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        per_cap = []
+        for pop in (5.0e4, 1.0e6, 2.0e7):
+            p = eoh_to_teh_pipeline(eps, population=pop)
+            snap = fiscal_snapshot(
+                trust_balance=None, labor_income=p["teh_created"],
+                capital_stock_teh=2400.0 * pop, capital_age_ratio=0.5,
+                population=pop, epsilon=eps, ecosystem_health=0.7,
+                eco_eoh_override=p["eoh_by_domain"]["ecological"],
+            )
+            per_cap.append(snap["ecological"]["relocated_teh_required"] / pop)
+        assert per_cap[0] == pytest.approx(per_cap[1], rel=1e-9)
+        assert per_cap[2] == pytest.approx(per_cap[1], rel=1e-9)
+
+    def test_and_it_equals_the_no_override_reading(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        p = eoh_to_teh_pipeline(0.40, population=5.0e4)
+        kw = dict(trust_balance=None, labor_income=p["teh_created"],
+                  capital_stock_teh=1.2e8, capital_age_ratio=0.5,
+                  population=5.0e4, epsilon=0.40, ecosystem_health=0.7)
+        a = fiscal_snapshot(**kw)["ecological"]["relocated_teh_required"]
+        b = fiscal_snapshot(**kw, eco_eoh_override=p["eoh_by_domain"]["ecological"])[
+            "ecological"]["relocated_teh_required"]
+        assert b == pytest.approx(a, rel=1e-12)
+
+    @pytest.mark.parametrize("pop", [1.0e5, 3.0e6])
+    def test_the_simulation_reads_the_frame_not_the_anchor(self, pop):
+        """The path the defect actually ran on: `simulate_period` passes an
+        override and never an area."""
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        def per_cap(p):
+            _, r = simulate_period(make_economy_state(epsilon=0.40, population=p))
+            return r["fiscal"]["ecological"]["relocated_teh_required"] / p
+        assert per_cap(pop) == pytest.approx(per_cap(1.0e6), rel=1e-9)
+
+    def test_no_frame_resolution_waits_on_the_override(self):
+        """The static check: no frame resolution may wait on the override's absence. The
+        dashboard's copy has no output to pin at runtime, so the test checks the shape.
+        Stated gap: a guard with a different name passes.
+        """
+        import pathlib
+        pkg = pathlib.Path(__file__).resolve().parent.parent / "hours_eoh"
+        hits = [str(f) for f in pkg.rglob("*.py")
+                if "eco_eoh_override is None and" in f.read_text()]
+        assert not hits, hits

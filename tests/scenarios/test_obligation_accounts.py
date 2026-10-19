@@ -1,13 +1,12 @@
-"""
-Tests for scenarios/obligation_accounts.py — Phase 0 of the one-obligation
-reframe.
+"""Tests for scenarios/obligation_accounts.py: Phase 0 of the one-obligation reframe.
 
-Discipline, following the modules this sits beside:
-  * the partition must CLOSE exactly — a presentation that loses or invents a
-    quantity is not a presentation of anything;
-  * findings are asserted as ORDERINGS and SIGNS where the level is calibration
-    that has moved before;
-  * `TestAccountsChangeNothing` pins that this is reporting only.
+Discipline, as in the modules beside it:
+
+  * The partition must CLOSE exactly. A presentation that loses or invents a
+    quantity presents nothing.
+  * The tests assert ORDERINGS and SIGNS where the level is calibration that
+    has moved before.
+  * `TestAccountsChangeNothing` pins that this module is reporting only.
 """
 
 from __future__ import annotations
@@ -71,10 +70,9 @@ class TestThePartitionCloses:
 class TestTheShapeTheFourWaySumHides:
 
     def test_the_obligation_is_nearly_flat_and_delivery_is_not(self):
-        """
-        THE FINDING, as an ordering rather than a level. What must be met barely
-        moves across the arc; what meeting it costs grows by more than an order
-        of magnitude. Adding the two into one total hides exactly that.
+        """THE FINDING, as an ordering. What must be met barely moves across the arc;
+        what meeting it costs grows by more than an order of magnitude. One total of the
+        two hides that.
         """
         arc = accounts_arc()
         obligation_growth = arc[-1]["obligation"] / arc[0]["obligation"]
@@ -98,29 +96,23 @@ class TestTheShapeTheFourWaySumHides:
         assert ratios == sorted(ratios)
 
     def test_delivery_approaches_but_no_longer_crosses_the_obligation(self):
-        """
-        THE CLAIM THAT MOVED WHEN A PLACEHOLDER GOT DATA (2026-09-01), and it is
-        the cleanest example in the repo. This asserted a crossover late in the
-        arc, and there WAS one at 1.0029. Then AGE_WEIGHT_CHILD took the MTUS
-        measurement for ages 6-14 — raising the obligation — and the knowledge
-        fixed point re-anchored -9.94% with it, cutting the apparatus term.
-        Both push the ratio down and it now peaks at 0.90.
-
-        The SHAPE is what survives and is what is asserted: delivery grows by
-        more than an order of magnitude against a nearly flat obligation. The
-        crossover was a LEVEL, and levels move.
+        """Delivery grows by more than an order of magnitude against a nearly flat
+        obligation, and no longer crosses it. The crossover was a LEVEL and moved when a
+        placeholder got data; the SHAPE survived, so the test asserts the shape
+        ([record](record/fulfilment.md#obligation-accounts-test-history)).
         """
         c = delivery_crossover()
         assert c["crossover_epsilon"] is None
         assert c["ratio_at_zero"] < 0.10
-        assert 0.64 < c["ratio_at_top"] < 1.0
+        # 0.64 → 0.60 lower edge (2026-10-15): the knowledge base re-derived
+        # -5.90%, cutting the apparatus term again; the top reads 0.623.
+        assert 0.60 < c["ratio_at_top"] < 1.0
 
     def test_the_crossover_is_not_reported_as_a_failure(self):
-        """
-        It is where the apparatus's entropy debt equals the obligation it
-        reduces. Whether that is acceptable depends on how much it ABATES, which
-        this account does not carry — so the module must say so rather than let
-        a reader infer a verdict.
+        """A crossover is where the apparatus's entropy debt equals the obligation it
+        reduces. Whether that is acceptable depends on how much it ABATES, which this
+        account does not carry. So the module must say so, and not let a reader infer a
+        verdict.
         """
         assert "Not a failure condition" in delivery_crossover()["note"]
         assert "abates" in delivery_crossover()["note"]
@@ -174,28 +166,23 @@ class TestTheCareContradiction:
         assert u["implied_human_fraction"] > u["uniform_human_fraction"]
 
     def test_the_disagreement_is_an_order_of_magnitude(self):
-        """
-        SIGN and MAGNITUDE-CLASS. The exact factor moves with the care share and
-        the floor, both of which are pinned elsewhere; that it is large is the
-        claim.
+        """The test checks SIGN and MAGNITUDE CLASS. The exact factor moves with the
+        care share and the floor, which other tests pin; the claim is that it is large.
         """
         assert automation_uniformity_check(0.99)["understatement_factor"] > 5.0
 
     def test_it_is_bound_to_both_sources_and_restates_neither(self):
-        """
-        The shadow-literal lesson: the check must READ the care share and the
-        floor rather than carry its own copies, or it can agree with a source
-        that has moved.
+        """The check must READ the care share and the floor, not carry copies. A copy
+        can agree with a source that has moved (the shadow-literal lesson).
         """
         u = automation_uniformity_check(0.99)
         assert u["care_share_of_personal"] == PERSONAL_EOH_COMPONENTS["care"]["share"]
         assert u["care_automation_floor"] == CARE_AUTOMATION_FLOOR
 
     def test_they_agree_at_zero_automation_which_is_the_control(self):
-        """
-        At ε=0 nothing is automated, so a floor on automation cannot bite and
-        the two accounts MUST coincide. If they disagreed here the check would
-        be measuring an arithmetic artefact rather than the contradiction.
+        """At ε=0 nothing is automated, so a floor on automation cannot bite, and the
+        two accounts MUST agree. A disagreement here would mean the check measures an
+        arithmetic artefact.
         """
         u = automation_uniformity_check(0.0)
         assert u["uniform_human_fraction"] == pytest.approx(1.0)
@@ -233,10 +220,9 @@ class TestTheAccountsAreDeclared:
 
 
 class TestAccountsChangeNothing:
-    """
-    REPORTING ONLY. This module must not move a single shipped number — it
-    exists to make a proposed reframing arguable BEFORE it is adopted, and a
-    presentation that changed behaviour would be the adoption.
+    """REPORTING ONLY. This module must not move a shipped number. It exists to make a
+    proposed reframing arguable BEFORE adoption; a presentation that changed behaviour
+    would be the adoption.
     """
 
     @pytest.mark.parametrize("epsilon", ARC)
@@ -263,19 +249,16 @@ class TestAccountsChangeNothing:
 
 
 class TestTheAnchorMoveIsMeasuredBeforePhase2:
-    """
-    Phase 2 de-risking. The care contradiction's fix moves the knowledge anchor,
-    and this measures how far BEFORE the change is committed to rather than
-    after — the anchor has been re-derived six times and every previous move was
-    tiny, which is exactly the reason to check whether "tiny" still holds.
+    """Phase 2 de-risking. The care contradiction's fix moves the knowledge anchor, and
+    this class measures how far BEFORE the change is committed. The anchor is re-derived
+    often (see `KNOWLEDGE_EOH_BASE`'s tag block), and each earlier move was tiny, which
+    is the reason to check that "tiny" still holds.
     """
 
     def test_the_uniform_branch_reproduces_the_shipped_constant(self):
-        """
-        THE CONTROL, and without it the comparison is worthless. This module
-        reimplements the fixed point; if the reimplementation did not land
-        exactly on `KNOWLEDGE_EOH_BASE`, the non-uniform figure would be
-        measuring the reimplementation's drift instead of the change.
+        """THE CONTROL. This module reimplements the fixed point. If the
+        reimplementation did not land exactly on `KNOWLEDGE_EOH_BASE`, the non-uniform
+        figure would measure the reimplementation's drift, not the change.
         """
         r = anchor_sensitivity()
         assert r["converged"] is True
@@ -289,12 +272,10 @@ class TestTheAnchorMoveIsMeasuredBeforePhase2:
         assert r["base_non_uniform"] == pytest.approx(r["shipped_base"], rel=1e-9)
 
     def test_the_control_flag_can_report_FALSE(self):
-        """
-        THE BITE THAT WAS MISSING. Hard-coding `uniform_reproduces_shipped` to
-        True passed every test here, because the fact was independently checked
-        and the FLAG was not — the reported-vs-applied pattern (`psi` vs
-        `psi_applied`). A flag that cannot report False is a flag nobody is
-        checking, so the reference is injectable purely to prove it can.
+        """The `uniform_reproduces_shipped` flag must be able to report False.
+        Hard-coding it True once passed every test here: the fact was checked and the
+        FLAG was not (`psi` against `psi_applied`). The reference is injectable only to
+        prove the flag can fail.
         """
         wrong = anchor_sensitivity(shipped_base=1.0e8)
         assert wrong["uniform_reproduces_shipped"] is False
@@ -319,18 +300,15 @@ class TestTheAnchorMoveIsMeasuredBeforePhase2:
         assert r["epsilon_non_uniform"] > r["epsilon_uniform"]
 
     def test_the_labour_at_the_top_of_the_arc_differs_by_an_order_of_magnitude(self):
-        """
-        The substantive consequence, not the calibration one: the difference
-        between "labour has effectively ended" and "most of a month of care work
-        per person per year still remains".
+        """The substantive consequence: the difference between "labour has effectively
+        ended" and "hundreds of hours of care work per person per year still remain".
         """
         top = anchor_sensitivity()["labour_at_top"]
         assert top["non_uniform"] > 4.0 * top["uniform"]
 
     def test_it_declares_the_move_a_lower_bound(self):
-        """
-        Only care is floored here. `PERSONAL_EOH_COMPONENTS` gives health an
-        abatability of 0.60 and nutrition 0.85, so a fuller treatment floors more
+        """Only care is floored here. `PERSONAL_EOH_COMPONENTS` gives health an
+        abatability of 0.60 and nutrition 0.85. A fuller treatment floors more
         components and moves the anchor further in the same direction.
         """
         r = anchor_sensitivity()

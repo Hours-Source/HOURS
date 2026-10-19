@@ -89,10 +89,12 @@ from __future__ import annotations
 
 import math
 
-from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     ANNUAL_DEATH_RATE,
-    CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     CONTESTABILITY_UNDERWRITE_FRACTION,
     FORMATION_DEPRECIATION_RATE,
@@ -119,14 +121,14 @@ _FD_STEP: float = 0.01
 _RATCHET_STEP: float = 0.01
 
 # Top of the ε range (CLAUDE.md design invariant: ε ∈ [0, 0.99]).
-_EPS_MAX: float = 0.99
+_EPS_MAX: float = EPSILON_ARC_MAX
 
 _PHI_POLICIES = ("target", "dilution", "escalated")
 
 
 def capital_stock_epsilon(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
 ) -> float:
     """
@@ -136,7 +138,8 @@ def capital_stock_epsilon(
         K(ε) = K₀ + ν · Y(ε)
         Y(ε) = machine_output_teh(ε) = ε · total_eoh(ε)    [TEH/yr]
 
-    Where K₀ = CAPITAL_STOCK_DEFAULT is the ε=0-era stock (human-era tools
+    Where K₀ = CAPITAL_STOCK_DEFAULT at the 1M reference frame, scaled to
+    `population` holding intensity fixed, is the ε=0-era stock (human-era tools
     and infrastructure, producing no machine-fulfilled EOH) and ν =
     RECAL_CAPITAL_OUTPUT_RATIO converts annual machine output into the
     capital stock required to produce it (Piketty's β ≈ 4–6; ν = 4).
@@ -168,8 +171,13 @@ def capital_stock_epsilon(
         raise ValueError(
             f"capital_output_ratio must be > 0, got {capital_output_ratio}"
         )
+    # K₀ TRAVELS WITH THE FRAME (2026-09-30). `CAPITAL_STOCK_DEFAULT` is declared
+    # at the 1M reference population, and it was added unscaled to ν·Y, which
+    # DOES scale with population — so K₀ per person ran 20,000 / 2,000 / 200 TEH
+    # at 1e5 / 1e6 / 1e7, reachable from `contestability recal --population`.
+    # Identical at 1M, so no shipped figure moves.
     return (
-        CAPITAL_STOCK_DEFAULT
+        resolve_capital_stock(None, None, population=population)
         + capital_output_ratio * machine_output_teh(epsilon, population)
     )
 
@@ -206,7 +214,7 @@ def _private_capital_ratchet(
 def phi_actual(
     epsilon: float,
     phi_policy: str = "dilution",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
 ) -> dict:
     """
@@ -277,7 +285,7 @@ def phi_actual(
 
 def commons_capital(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     phi_policy: str = "dilution",
 ) -> dict:
@@ -334,7 +342,7 @@ def commons_capital(
 
 def formation_share_required(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
 ) -> dict:
     """
@@ -397,7 +405,7 @@ def formation_share_required(
 
 def formation_levy_rate(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
 ) -> dict:
@@ -417,12 +425,19 @@ def formation_levy_rate(
     share at cost, funded from the labor-era economy — how every real
     sovereign fund was actually seeded (fiscal surpluses, payroll levies).
 
-    Worked example (defaults):
-        ε=0.05: gap ≈ 2.4e7 TEH/yr, labor ≈ 2.2e9 → levy ≈ 1.1%
-        ε=0.20: gap = 0 → levy = 0  (SUNSET — the levy self-extinguishes)
+    THE BASE IS HOURS, NOT TEH — REPORTED 2026-09-30, NOT CHANGED. `labor` is
+    human-fulfilled OBLIGATION HOURS, read as TEH/yr. Under the wage doctrine
+    (minted TEH is the wage, 2026-09-15) the TEH that labour is paid is the
+    MINT, which at the bottom of the arc is a few percent of those hours. So
+    `levy_rate` is the gap as a share of hours, and `levy_rate_on_mint` — the
+    same gap as a share of what the ledger pays — is reported beside it, far
+    larger at subsistence. Which base the §8.9b bridge is quoted on is the
+    author's (record/contestability.md § Open). Call the function for levels;
+    the worked figures that stood here (2.2e9 labour, sunset at 0.20) had
+    drifted — the sunset now sits near ε≈0.245.
 
-    ε-behavior: ≈ 1% at the start of the arc, monotone to 0 by ε ≈ 0.2,
-    0 thereafter. Compare SUFF_LEVY_RATE (4.5% since 2026-09-15; 1.25% when
+    ε-behavior: largest near the start of the arc, falling to 0 at the sunset,
+    0 thereafter. Compare SUFF_LEVY_RATE (4.6% since 2026-10-15, 4.5% from 2026-09-15; 1.25% when
     this was written): the bridge is smaller than the sufficiency levy and
     temporary.
 
@@ -434,7 +449,7 @@ def formation_levy_rate(
 
     Returns:
         dict with keys: levy_rate, funding_gap, labor_output, sunset
-        (gap == 0), epsilon.
+        (gap == 0), epsilon; and REPORTED ONLY: mint, levy_rate_on_mint.
     """
     inc = commons_income_statement(
         epsilon, population, capital_output_ratio, epsilon_rate_per_year,
@@ -444,18 +459,90 @@ def formation_levy_rate(
     labor = (1.0 - epsilon) * total_eoh(
         epsilon=epsilon, population=population
     )["total"]
+    mint = float(eoh_to_teh_pipeline(epsilon, population=population)["teh_created"])
     return {
         "levy_rate": gap / labor,
         "funding_gap": gap,
         "labor_output": labor,
         "sunset": gap == 0.0,
         "epsilon": epsilon,
+        "mint": mint,
+        "levy_rate_on_mint": gap / mint,
+    }
+
+
+def bridge_advance(
+    population: float = REFERENCE_FRAME_POPULATION,
+    capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
+    epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
+    step: float = 0.005,
+) -> dict:
+    """
+    The §8.9b bridge as a ZERO-INTEREST ADVANCE to the commons, repaid from its
+    own later surplus — the alternative to levying labour. REPORTING ONLY.
+
+    Under the purchase model (`phi_policy="target"`) the commons' acquisition
+    outruns its income early in the arc. `formation_levy_rate` prices closing
+    that gap with a levy on labour, which on the MINT is a large share of wages
+    at subsistence. But the gap is a TIMING problem: it is finite, it closes at
+    the sunset, and the same commons earns a surplus afterwards. So:
+
+        advance   = Σ max(0, reinvest − income) · Δt     over the gap window
+        repay     = the years after the sunset until Σ max(0, income − reinvest)·Δt
+                    reaches the advance
+        Δt        = step / epsilon_rate_per_year          (years per grid step)
+
+    Zero interest (Condition III), so the advance is repaid at face value. The
+    lender is whoever holds a stock at founding — the Trust's prior work, or a
+    federation commons; a collective founded with nothing needs one of those.
+    `share_of_default_prior_work` reports the advance against the shipped
+    inheritance at this population.
+
+    The arc speed is a SCENARIO choice, and the advance RISES with it: the
+    purchase rate is d(φ·K)/dε × dε/dt, so a faster arc buys faster against an
+    income that has not yet grown, and the sunset moves later. (The first draft
+    of this docstring said the opposite; the call corrected it.) Frame: every
+    flow scales with population, so the share of prior work is frame-invariant.
+    """
+    from hours_eoh.core.fiscal import resolve_trust_balance
+
+    if epsilon_rate_per_year <= 0.0:
+        raise ValueError("epsilon_rate_per_year must be > 0 for an advance to have a duration")
+    dt = step / epsilon_rate_per_year
+    advance = 0.0
+    sunset = None
+    repaid_after_years = None
+    surplus = 0.0
+    e = 0.0
+    while e <= _EPS_MAX:
+        c = commons_income_statement(
+            e, population, capital_output_ratio, epsilon_rate_per_year, phi_policy="target",
+        )
+        gap = c["reinvestment"] - c["income"]
+        if sunset is None and gap > 0.0:
+            advance += gap * dt
+        elif sunset is None:
+            sunset = e
+        if sunset is not None:
+            surplus += max(0.0, -gap) * dt
+            if repaid_after_years is None and surplus >= advance:
+                repaid_after_years = (e - sunset) / epsilon_rate_per_year
+        e = round(e + step, 10)
+    prior = resolve_trust_balance(None, population)
+    return {
+        "advance": advance,
+        "sunset_epsilon": sunset,
+        "gap_window_years": None if sunset is None else sunset / epsilon_rate_per_year,
+        "repaid_years_after_sunset": repaid_after_years,
+        "surplus_after_sunset": surplus,
+        "share_of_default_prior_work": advance / prior,
+        "reporting_only": True,
     }
 
 
 def commons_income_statement(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     phi_policy: str = "dilution",
@@ -595,7 +682,7 @@ def commons_income_statement(
 def capital_account_stock(
     tenure_years: float,
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     credit_share: float = RECAL_ACCOUNT_CREDIT_SHARE,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
@@ -668,7 +755,7 @@ def capital_account_stock(
 def estate_conversion_flow(
     epsilon: float,
     escheat_share: float = RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     death_rate: float = ANNUAL_DEATH_RATE,
 ) -> dict:
@@ -735,7 +822,7 @@ def estate_conversion_flow(
 def escalation_trigger(
     epsilon: float,
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     capacity_floor: float = RECAL_ESCALATION_CAPACITY_FLOOR,
@@ -883,7 +970,7 @@ def _exit_channels(
 
 def exit_financing(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     regime: str = "increasing_returns",
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
@@ -988,7 +1075,7 @@ def exit_financing(
 def recalibrated_arc(
     n_points: int = 20,
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     exit_horizon_years: float = RECAL_EXIT_HORIZON_YEARS,

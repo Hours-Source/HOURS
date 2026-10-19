@@ -1,12 +1,11 @@
-"""
-National parcel census → the shipped county extract.
+"""National parcel census → the shipped county extract.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-Run this ONCE when the raw parcel file changes; the repo ships only the small
-derived CSV it writes. The raw file is ~68 GB and lives in `rawdata/parcels/`,
-which is gitignored — exactly as the 2.9 GB ATUS microdata lives in
-`rawdata/atus/` while the repo ships `atus_annual_0325.csv`.
+Run this ONCE when the raw parcel file changes; the repo ships only the small derived
+CSV it writes. The raw file is ~68 GB and lives in gitignored `rawdata/parcels/`, as the
+2.9 GB ATUS microdata lives in `rawdata/atus/` while the repo ships
+`atus_annual_0325.csv`.
 
     python3 utils/parcel_ingest.py [--raw rawdata/parcels/...] [--out hours_eoh/reference/data]
 
@@ -15,25 +14,24 @@ Output (committed):
                                government_parcels, ownertype_known
 
 WHY THIS EXTRACT AND NOT A RICHER ONE
---------------------------------------
-The fee has ONE scaling basis and the measured servicing cost has three —
-area 41.9%, parcel 44.5%, throughput 13.6% (`scenarios/use_split`). The 44.5%
-that follows PARCEL COUNT is inexpressible in a per-SLU fee, and
-`guf_magnitude.subdivision_invariance` proves it: splitting every parcel in two
-returns the same fee to the float. Closing that needs a per-parcel TERM, and a
+-------------------------------------
+The fee has ONE scaling basis, and the measured servicing cost has three: area 41.9%, parcel
+44.5%, throughput 13.6% (`scenarios/use_split`). A per-SLU fee cannot express the 44.5% that
+follows PARCEL COUNT. `guf_magnitude.subdivision_invariance` proves it: splitting every
+parcel in two returns the same fee to the float. Closing that needs a per-parcel TERM, and a
 term needs a denominator.
 
 **This extract is that denominator and nothing else.** It carries no use-category
-mapping, because `usedesc` is 41.2% filled and is free text from 3,230
-independent county systems (`RESIDENTIAL`, `Residential`, `SFR`, `Single Family
-Detached`, `residential,residential`, `0131`). Normalising that onto ten fee
-categories is a project with a real judgement in it, and bundling a judgement
-into a count would make the count unciteable. It is deliberately left out.
+mapping. `usedesc` is 41.2% filled and is free text from 3,230 independent county
+systems (`RESIDENTIAL`, `Residential`, `SFR`, `Single Family Detached`,
+`residential,residential`, `0131`). Normalising that onto ten fee categories is a
+project with a real judgement in it. A judgement bundled into a count would make the
+count unciteable, so the extract leaves it out on purpose.
 
 AREA IS SHIPPED AND MUST NOT BE READ AS LAND AREA
---------------------------------------------------
-`area_m2` is the sum of parcel FOOTPRINT areas. It is **not** the land area of
-the county, and validating it against published state land areas shows why:
+-------------------------------------------------
+`area_m2` is the sum of parcel FOOTPRINT areas. It is **not** the county's land area, and a
+check against published state land areas shows why:
 
     FL  18.2 Mha summed vs 13.9 actual   1.31x
     TX  78.2            vs 67.7          1.16x
@@ -42,56 +40,54 @@ the county, and validating it against published state land areas shows why:
     AK  11.4            vs 147.8         0.08x
     UT   9.3            vs 21.3          0.43x
 
-Six of twelve checked states EXCEED their own land area, and the pattern is
-legible: developed states over-count because parcel footprints overlap, while
-federal-land-heavy states under-count because that land is thinly parcelised.
+Six of twelve checked states EXCEED their own land area, and the pattern is legible.
+Developed states over-count because parcel footprints overlap. States with much federal
+land under-count because that land has few parcels.
 
-THE OBVIOUS EXPLANATION IS NOT THE RIGHT ONE. `stackid` marks stacked parcels —
-condominium units sharing a footprint — and on Florida, the worst offender, it
-is populated on **0.2% of rows** (19,102 of 7.86M, largest stack 189 parcels).
-That is nowhere near a 31% over-count, so deduplicating by `stackid` would not
-fix it and the residual cause is unidentified. Easements, air and mineral
-rights, and untagged condominium splits are all candidates and none is checked.
+THE OBVIOUS EXPLANATION IS NOT THE RIGHT ONE. `stackid` marks stacked parcels
+(condominium units that share a footprint). On Florida, the worst case, it fills only
+**0.2% of rows** (19,102 of 7.86M, largest stack 189 parcels). That is nowhere near a
+31% over-count, so deduplicating by `stackid` would not fix it. Nobody has identified
+the residual cause. Easements, air and mineral rights, and untagged condominium splits
+are all candidates, and nobody has checked them.
 
-So the column is shipped because it is real data — these are the geometries the
-census carries — and it is documented as unsafe to sum for land area, with
-`tests/test_parcel_extract.py` pinning the over-count so the limitation cannot
-be quietly forgotten. **The deliverable of this extract is the parcel COUNT**,
-which is unaffected: geography is 100% populated and the total matches the
-file's own row count exactly.
+So the column ships because it is real data, the geometries the census carries, and this
+docstring marks it unsafe to sum for land area. `tests/test_parcel_extract.py` pins the
+over-count so nobody forgets the limit. **The deliverable is the parcel COUNT**, which
+this does not affect: geography is 100% filled, and the total matches the file's own row
+count exactly.
 
 `calcarea` NOT `taxacres`
---------------------------
-`taxacres` is assessor-reported and contaminated. Its median (0.6 acres) is
-plausible and its tail is not: p95 = 10,489 acres, p99 = 37,183, with a sentinel
-cap near 99,998. Summed it gives 157,478 Mha against 915 Mha of US land — **172×
-over**. A field whose median is right and whose tail is garbage survives a spot
-check and fails an aggregate, which is why this script sums the other one.
+-------------------------
+`taxacres` is assessor-reported and contaminated. Its median (0.6 acres) is plausible and
+its tail is not: p95 = 10,489 acres, p99 = 37,183, with a sentinel cap near 99,998. Summed,
+it gives 157,478 Mha against 915 Mha of US land, **172× over**. A field with a right median
+and a garbage tail survives a spot check and fails an aggregate, so this script sums the
+other field.
 
-`calcarea` is geometry-derived and is in SQUARE METRES — established, not
-assumed: the median ratio `calcarea/taxacres` over 717,431 rows where both are
-sane is **4,046.6 against 4,046.86 m²/acre**, matching to four significant
-figures and ruling out square feet.
+`calcarea` is geometry-derived and in SQUARE METRES, established, not assumed. Over
+717,431 rows where both fields are sane, the median ratio `calcarea/taxacres` is
+**4,046.6 against 4,046.86 m²/acre**. That matches to four significant figures and rules
+out square feet.
 
 WHAT THE COUNTS DO AND DO NOT INCLUDE
---------------------------------------
-`parcels` counts every row for the county — the parcel roll as it stands.
-`area_parcels` counts only those with a positive `calcarea`, and `area_m2` sums
-those. A caller computing mean parcel size must divide by `area_parcels`, not by
-`parcels`. In this vintage the distinction is nearly immaterial — **99.9% of
-parcels carry geometry** — but both columns are shipped rather than a single
-averaged one, because a vintage with poorer geometry coverage would make the
-difference matter and an averaged column would hide it.
+-------------------------------------
+`parcels` counts every row for the county: the parcel roll as it stands. `area_parcels`
+counts only rows with a positive `calcarea`, and `area_m2` sums those. A caller who computes
+mean parcel size must divide by `area_parcels`, not by `parcels`. In this vintage the
+difference is nearly immaterial (**99.9% of parcels carry geometry**). Both columns ship
+anyway: in a vintage with poorer geometry coverage the difference would matter, and an
+averaged column would hide it.
 
-`government_parcels` counts `ownertype == 'GOVERNMENT'`, and `ownertype_known`
-counts rows where the field is populated at all (81.5% nationally). The pair is
-shipped rather than a bare fraction for the same reason: an unpopulated owner
-type is not a private owner, and a fraction over the wrong denominator is how
-the coverage-inflation trap works in `scenarios/land_stewardship`.
+`government_parcels` counts `ownertype == 'GOVERNMENT'`, and `ownertype_known` counts
+rows where the field is filled at all (81.5% nationally). The pair ships instead of a
+bare fraction for the same reason. An unfilled owner type is not a private owner, and a
+fraction over the wrong denominator is the coverage-inflation trap in
+`scenarios/land_stewardship`.
 
-NO NATIONAL TOTAL IS WRITTEN. Callers sum the rows. A shipped total is a second
-copy of a value whose source is elsewhere, and this repo has found that pattern
-five times.
+THE SCRIPT WRITES NO NATIONAL TOTAL; callers sum the rows. A shipped total is a second
+copy of a value whose source is elsewhere, a pattern this repo has found several times
+(CLAUDE.md, failure mode 4).
 """
 
 from __future__ import annotations

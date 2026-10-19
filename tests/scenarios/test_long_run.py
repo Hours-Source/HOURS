@@ -126,24 +126,13 @@ class TestTrustDepletionStress:
         assert result["outcome"] in VALID_OUTCOMES
 
     def test_ecological_stressors_no_longer_move_this_outcome(self):
-        """
-        RENAMED AND RESTATED 2026-09-08. This was
-        `test_high_degradation_worsens_outcome`, asserting `stressed >= base` on
-        a severity scale — which held by EQUALITY and could not fail.
-
-        Both stressors are structurally inert HERE, and the reason is adopted
-        policy rather than a defect. Phase 4e/4f moved every recurring
-        ecological term to the Ground Use Fee, so the domain is 0.0 and
-        degrading the ecosystem no longer moves a fiscal outcome. And
-        `trust_depletion_stress` builds its state without `deferred_ecological`,
-        so `deferred_eco_growth_rate` could not bite at ANY value — the stock it
-        multiplies is always zero. See
-        `test_simulation.TestTheDeferredEcologicalRate` for where that parameter
-        IS live.
-
-        Pinned as equality so it fails in BOTH directions: if a future change
-        makes ecological condition reach the fiscal path again, this fires and
-        someone re-reads the partition before accepting it.
+        """Both ecological stressors are inert HERE, by adopted policy (2026-09-08).
+        Phases 4e/4f moved every recurring ecological term to GUF, so the domain is 0.0.
+        And `trust_depletion_stress` builds no `deferred_ecological`, so
+        `deferred_eco_growth_rate` multiplies zero;
+        `test_simulation.TestTheDeferredEcologicalRate` covers where it is live. The
+        test asserts equality, so it fails in BOTH directions
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         base = trust_depletion_stress(epsilon=0.40, n_periods=20)
         stressed = trust_depletion_stress(
@@ -161,16 +150,11 @@ class TestTrustDepletionStress:
         )
 
     def test_the_trust_no_longer_depletes_under_the_default_design(self):
-        """RESTATED 2026-09-16: this asserted the floor stays BELOW the opening
-        balance, which was true while the Trust booked the shipped guarantee.
-
-        Under V1 — core's default since 2026-09-16 — the Trust owes only what is
-        on the ledger, and at these inputs the levy more than covers it: the
-        floor is 8,767,388,914 against an opening 8,760,000,000 (35,007,388,914
-        against 35,000,000,000 before the 2026-09-17 reprice), outcome
-        STABLE with no insolvency. A depletion stress that cannot deplete is
-        worth stating plainly rather than leaving as an inverted assertion, and
-        the shipped design is still reachable for the old behaviour.
+        """Under V1, core's default since 2026-09-16, the Trust owes only what is on the
+        ledger, and at these inputs the levy covers it. The floor stays above the
+        opening balance and the outcome is STABLE. A depletion stress that cannot
+        deplete is stated plainly; the shipped design still reproduces the old
+        behaviour.
         """
         from hours_eoh.data import TRUST_BASE_TEH
         result = trust_depletion_stress(n_periods=10)
@@ -256,3 +240,49 @@ class TestAutomationTransitionTrajectory:
         result = automation_transition_trajectory(n_periods=5)
         for row in result["trajectory"]:
             assert row["floor_pp_index"] > 0.0
+
+
+# ===========================================================================
+# The engine and stationarity on one frame
+# ===========================================================================
+
+class TestTheEngineAgreesWithStationarityOnOneFrame:
+    """With its growth switched off, one engine period must read what
+    `stationarity_at` reads at the same ε and frame. The two disagreed by a
+    stranded land fee and a corpus frozen at the start ε
+    ([record](record/fulfilment.md#engine-meets-stationarity))."""
+
+    POP, CAP, AGE, TRUST = 3.0e6, 2.4e10, 0.59, 3.0e10
+    AGES = {"infant": 0.06, "child": 0.14, "working_age": 0.62, "elderly": 0.18}
+
+    @pytest.mark.parametrize("parcels", [1.4e6, 1.0e10], ids=["fee-paid", "fee-capped"])
+    @pytest.mark.parametrize("eps_start", [0.0, 0.33, 0.66])
+    def test_mint_fee_and_guarantee_match(self, eps_start, parcels):
+        """Fails if the engine drops the fee, caps it by another rule, or
+        reads its corpus at a different ε from its complexity per unit."""
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        from hours_eoh.land.collective import per_parcel_fee
+        from hours_eoh.scenarios.stationarity import stationarity_at
+
+        state = make_economy_state(
+            epsilon=eps_start, population=self.POP, capital_stock_teh=self.CAP,
+            capital_age_ratio=self.AGE, age_fractions=self.AGES,
+            trust_balance=self.TRUST, land_hectares=self.POP * 2.0)
+        _, r = simulate_period(
+            state, epsilon_delta=0.33, population_growth_rate=0.0,
+            capital_aging_rate=0.0, use_estate_dissolution=False,
+            ecological_degradation_rate=0.0, guf_assessed=per_parcel_fee(parcels))
+        t = stationarity_at(
+            r["epsilon"], population=self.POP, capital_stock_teh=self.CAP,
+            capital_age_ratio=self.AGE, age_fractions=self.AGES, guf_parcels=None,
+            guf_parcel_count=parcels, trust_start=self.TRUST)["teh"]
+        tr = r["fiscal"]["trust"]
+        fee = r["land_fee"]
+        assert (fee["collected"] < fee["assessed"]) == (parcels > 1.0e9)
+        for engine, static in ((r["teh_created"], t["mint"]),
+                               (tr["levy_inflow"], t["levy"]),
+                               (fee["assessed"], t["guf_uncapped"]),
+                               (fee["collected"], t["guf"]),
+                               (tr["guf_inflow"], t["guf"]),
+                               (tr["total_expenditure"], t["guarantee_owed"])):
+            assert engine == pytest.approx(static, rel=1e-12)

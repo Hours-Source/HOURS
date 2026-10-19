@@ -3,7 +3,7 @@ Tests for hours_eoh.core.workforce
 
 Covers: competency_reserve, competency_check, minimum_hours_allocation,
 automation_failure_scenario, apply_death_redistribution,
-competency_to_knowledge_eoh_delta, domain_eoh_coverage.
+competency_to_knowledge_eoh_delta.
 """
 
 import math
@@ -17,7 +17,6 @@ from hours_eoh.core.workforce import (
     apply_death_redistribution,
     competency_to_knowledge_eoh_delta,
 )
-from hours_eoh.core.conditions import domain_eoh_coverage
 from hours_eoh.core.capital import (
     make_asset,
     maturation_update,
@@ -105,7 +104,8 @@ class TestCompetencyReserve:
     def test_zero_certified_all_domains_at_risk(self):
         """Zero certified workers → all domains at risk."""
         reserve = competency_reserve({}, WORKFORCE_SIZE)
-        assert reserve["n_domains_at_risk"] == 7
+        from hours_eoh.data import ESSENTIAL_DOMAINS
+        assert reserve["n_domains_at_risk"] == len(ESSENTIAL_DOMAINS)   # 8 since care, 2026-10-01
         assert reserve["overall_meets_threshold"] is False
 
     def test_zero_workforce_raises(self):
@@ -524,50 +524,3 @@ class TestCompetencyToKnowledgeEohDelta:
             assert key in result
 
 
-# ===========================================================================
-# domain_eoh_coverage (from conditions, logically part of workforce checks)
-# ===========================================================================
-
-class TestDomainEohCoverage:
-
-    def _reserve(self, certified_per_domain=200, workforce=1000):
-        certified = {d: certified_per_domain for d in ESSENTIAL_DOMAINS}
-        return competency_reserve(certified, workforce)
-
-    def test_adequate_coverage_passes(self):
-        reserve = self._reserve(certified_per_domain=200, workforce=1000)
-        demands = {"healthcare": 1000.0, "water": 500.0}
-        result  = domain_eoh_coverage(reserve, demands, epsilon=0.0)
-        assert result["all_covered"] is True
-        assert result["status"] == "OK"
-
-    def test_zero_demand_always_covered(self):
-        reserve = self._reserve(certified_per_domain=5, workforce=1000)
-        result  = domain_eoh_coverage(reserve, {"healthcare": 0.0}, epsilon=0.40)
-        assert result["per_domain"]["healthcare"]["meets_coverage"] is True
-
-    def test_high_demand_flags_gap(self):
-        reserve = self._reserve(certified_per_domain=1, workforce=1000)
-        demands = {"healthcare": 1_000_000_000.0}
-        result  = domain_eoh_coverage(reserve, demands, epsilon=0.40)
-        assert result["all_covered"] is False
-        assert "healthcare" in result["domains_at_risk"]
-
-    def test_high_epsilon_reduces_capacity(self):
-        """At higher ε, certified workers cover less human EOH → capacity drops."""
-        reserve  = self._reserve(certified_per_domain=100, workforce=1000)
-        demands  = {"water": 50_000.0}
-        low_eps  = domain_eoh_coverage(reserve, demands, epsilon=0.10)
-        high_eps = domain_eoh_coverage(reserve, demands, epsilon=0.90)
-        assert high_eps["per_domain"]["water"]["capacity_eoh"] < low_eps["per_domain"]["water"]["capacity_eoh"]
-
-    def test_unknown_domain_treated_as_zero_certified(self):
-        reserve = self._reserve(certified_per_domain=100, workforce=1000)
-        result  = domain_eoh_coverage(reserve, {"completely_new_domain": 10.0}, epsilon=0.40)
-        assert result["per_domain"]["completely_new_domain"]["certified_count"] == 0.0
-
-    def test_result_keys(self):
-        reserve = self._reserve()
-        result  = domain_eoh_coverage(reserve, {"healthcare": 1000.0})
-        for key in ("per_domain", "domains_at_risk", "all_covered", "status", "epsilon"):
-            assert key in result

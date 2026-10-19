@@ -1,9 +1,9 @@
-"""
-Tests for Path C — the measured top-down thermal residual (research/thermal_path_c.py).
+"""Tests for Path C, the measured top-down thermal residual
+(research/thermal_path_c.py).
 
-Reproduces the handoff's key figures (Φ, ψ*, collective U, decarbonization, ε_max),
-asserts the provenance tiers ship intact, and checks the measured thermal ceiling
-flows into the corridor (F11 → a real collective-level bound).
+The tests reproduce the handoff's key figures (Φ, ψ*, collective U, decarbonization,
+ε_max), check that the provenance tiers ship intact, and check that the measured thermal
+ceiling reaches the corridor (F11: a real collective-level bound).
 """
 
 from __future__ import annotations
@@ -184,11 +184,11 @@ def test_decarbonization_gain_is_linear_in_removable_forcing():
 
 
 def test_decarbonization_gain_saturates_above_the_opening_threshold():
-    """gain = (1−r)·min(F, λ·ΔT_lo)·A_earth. ABOVE the opening threshold the ΔT
-    term drops out and the gain is the full removable forcing; BELOW it the gain
-    is capped by the whole temperature allowance and still rises with ΔT. F3
-    survives either way — there is headroom to recover even where there is no
-    budget today (`binds_now` False, `gain_w` large)."""
+    """gain = (1−r)·min(F, λ·ΔT_lo)·A_earth. ABOVE the opening threshold the ΔT term
+    drops out and the gain is the full removable forcing. BELOW it the whole temperature
+    allowance caps the gain, which still rises with ΔT. F3 survives either way: headroom
+    to recover exists even where no budget does (`binds_now` False, `gain_w` large).
+    """
     at_2k = decarbonization_headroom(2.0, "net_erf")   # below threshold: capped
     at_3k = decarbonization_headroom(3.0, "net_erf")   # above: saturated
     at_4k = decarbonization_headroom(4.0, "net_erf")
@@ -341,3 +341,99 @@ def test_band_rejects_malformed_range():
     for bad in [(0.0, 0.5), (0.6, 0.2), (0.2, 1.0)]:
         with pytest.raises(ValueError):
             global_ceiling(3.0, eps_current_band=bad)
+
+
+def test_f3_defaults_to_the_adopted_threshold():
+    """2026-09-30 (author): the default was a bare 3.0 K while P0 read
+    THERMAL_DT_LO. Bound by name, and the adopted level differs from 3.0 K."""
+    import inspect
+    from hours_eoh.data import THERMAL_DT_LO
+    assert inspect.signature(decarbonization_headroom).parameters["delta_t_lo"].default == THERMAL_DT_LO
+    at_default = decarbonization_headroom()
+    assert at_default["delta_t_lo"] == THERMAL_DT_LO
+    assert at_default["gain_w"] < decarbonization_headroom(3.0)["gain_w"]
+
+
+# ---------------------------------------------------------------------------
+# The threshold is read, not retyped (2026-10-03)
+# ---------------------------------------------------------------------------
+
+class TestTheThresholdIsTheAdoptedOne:
+    """Every default threshold reads THERMAL_DT_LO. F3 was bound to it on 2026-09-30,
+    while five sibling functions and two CLI flags still defaulted to a bare 3.0; moving
+    all seven to 2.0 K failed NO test (mode 1).
+    """
+
+    def test_no_thermal_default_is_a_literal(self):
+        import ast
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parents[1]
+        bad = []
+        for p in [*sorted((root / "hours_eoh").rglob("*.py")), root / "utils" / "thermal_cmd.py",
+                  root / "utils" / "corridor_cmd.py"]:
+            tree = ast.parse(p.read_text(encoding="utf-8"))
+            for n in ast.walk(tree):
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    a = n.args
+                    pairs = list(zip(a.args[len(a.args) - len(a.defaults):], a.defaults))
+                    pairs += [(k, d) for k, d in zip(a.kwonlyargs, a.kw_defaults) if d is not None]
+                    bad += [f"{p.name}:{n.name}" for arg, d in pairs
+                            if arg.arg == "delta_t_lo" and isinstance(d, ast.Constant)]
+                if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and n.func.attr == "add_argument" and n.args
+                        and isinstance(n.args[0], ast.Constant)
+                        and n.args[0].value in ("--delta-t", "--delta-t-lo")):
+                    bad += [f"{p.name}:{n.args[0].value}" for k in n.keywords
+                            if k.arg == "default" and isinstance(k.value, ast.Constant)]
+        assert bad == [], bad
+
+    def test_every_default_reads_the_constant(self):
+        import inspect
+        from hours_eoh.data import THERMAL_DT_LO
+        from hours_eoh.research import thermal_capital as TC
+        for f in (collective_utilization, all_collectives_utilization, global_ceiling,
+                  TC.collective_thermal_from_capital, TC.capital_thermal_ceiling):
+            assert inspect.signature(f).parameters["delta_t_lo"].default == THERMAL_DT_LO, f
+
+    def test_what_the_adopted_threshold_means_for_the_measured_records(self):
+        """Wherever the adopted threshold sits in the unbudgeted zone, every national
+        record reads unbudgeted, and the measured ceiling WARNS for each instead of
+        binding (author, 2026-10-03: no budget is a warning of the state, with a
+        direction).
+        """
+        from hours_eoh.data import THERMAL_DT_LO
+        from hours_eoh.research.corridor import measured_thermal_ceiling
+        zone = determinacy_zone(THERMAL_DT_LO)["zone"]
+        rows = all_collectives_utilization()
+        if zone == "determinate_unbudgeted":
+            assert all(r["regime"] == "unbudgeted" for r in rows)
+            for r in rows:
+                c = measured_thermal_ceiling(r["utilization"], 0.40)
+                assert not c["binding"] and c["epsilon_ceiling"] is None
+        else:
+            assert not all(r["regime"] == "unbudgeted" for r in rows)
+
+    def test_an_unbudgeted_ceiling_warns_and_contact_still_binds(self):
+        from hours_eoh.research.corridor import measured_thermal_ceiling
+        c = measured_thermal_ceiling(float("inf"), 0.41)
+        assert not c["binding"] and c["epsilon_ceiling"] is None
+        assert c["status"].startswith("UNBUDGETED (advisory)")
+        k = measured_thermal_ceiling(1.5, 0.41)
+        assert k["binding"] and k["epsilon_ceiling"] == 0.41
+        assert k["status"].startswith("CONTACT")
+
+    @pytest.mark.parametrize("basis", ["net_erf", "wmghg", "anthro"])
+    def test_the_direction_is_the_forcing_excess(self, basis):
+        """The function computes the warning's direction: the forcing reduction that
+        would open a budget, which vanishes where a budget opens.
+        """
+        from hours_eoh.data import THERMAL_DT_LO, THERMAL_LAMBDA_FEEDBACK
+        from hours_eoh.research.corridor import measured_thermal_ceiling
+        from hours_eoh.research.thermal_path_c import _forcing_value
+        excess = _forcing_value(basis) - THERMAL_LAMBDA_FEEDBACK * THERMAL_DT_LO
+        s = measured_thermal_ceiling(float("inf"), 0.41, basis=basis)["status"]
+        assert f"forcing {excess:.3f} W·m⁻² over" in s and "decarbonise" in s
+        opens = budget_opens_at(basis)
+        at_open = measured_thermal_ceiling(float("inf"), 0.41, delta_t_lo=opens, basis=basis)
+        assert ("forcing 0.000 " in at_open["status"]
+                or "forcing -0.000 " in at_open["status"])

@@ -1,13 +1,14 @@
-"""
-Outline item 8 — does capture in one collective become issuance in all?
+"""Outline item 8: does capture in one collective become issuance in all?
 
-Named for the module rather than mirroring `tests/research/` because there is no
-such directory; `research/` tests live at the top level here.
+The file takes the module's name, because `research/` tests live at the top level and no
+`tests/research/` exists.
 
-These pin a finding that runs AGAINST the architecture's own advertised
-behaviour, so they are written so that the advertised behaviour would fail them:
-if parity ever starts disciplining capture, `test_parity_rewards_capture` breaks
-and the finding is retired rather than quietly outliving its truth.
+These tests pin a finding that ran AGAINST the architecture's advertised behaviour, so
+that behaviour would fail them. If parity ever disciplines capture,
+`test_parity_rewards_capture` breaks, and the finding retires. On 2026-09-30 it retired
+by another route: the federation settles on `registered`, not parity. These tests now
+pin `parity_rate`, the superseded form, and `TestTheAdoptedSettlementIsNeutral` pins the
+adopted one.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from hours_eoh.research.register_federation import (
     parity_response,
     recognition_regimes,
     settlement_offset,
+    settlement_response,
 )
 
 ARC = [0.0, 0.40, 0.90]
@@ -42,9 +44,10 @@ class TestParityRewardsCapture:
 
     @pytest.mark.parametrize("eps", ARC)
     def test_capture_appreciates_the_capturing_unit(self, eps: float) -> None:
-        """THE ONE THAT MUST BE ABLE TO FAIL. If parity ever divides by a real
-        output term rather than by minted TEH, this breaks — and that is the
-        signal to retire the finding, not to update the number."""
+        """THE TEST THAT MUST BE ABLE TO FAIL. If parity ever divides by a real output
+        term, not by minted TEH, this breaks. That is the signal to retire the finding,
+        not to update the number.
+        """
         p = parity_response(epsilon=eps)
         assert p["capture_was_rewarded"] is True
         assert p["parity_captured_over_honest"] > 1.0, (
@@ -60,9 +63,10 @@ class TestParityRewardsCapture:
         assert 1.0 < small < large
 
     def test_the_refusal_direction_is_punished_symmetrically(self) -> None:
-        """A register that admits LESS looks less productive and its unit weakens
-        — so parity penalises a collective for under-registering exactly as it
-        rewards one for over-registering. Both are the same defect."""
+        """A register that admits LESS looks less productive, and its unit weakens.
+        Parity penalises under-registering exactly as it rewards over-registering: one
+        defect.
+        """
         r = parity_response(share_delta=-0.02)
         assert r["parity_captured_over_honest"] < 1.0
 
@@ -81,10 +85,10 @@ class TestTheDisciplineIsInSettlementNotParity:
         assert below and all(r["capture_still_ahead"] for r in below)
 
     def test_a_deficit_inside_the_credit_ceiling_does_nothing_at_all(self) -> None:
-        """The channel domestic capture does not use. Within the ceiling the
-        status is OK and the depreciation factor is exactly 1.0, so a register
-        captured to admit its own population's obligation — TEH earned and spent
-        at home — meets no resistance whatever."""
+        """Domestic capture does not use this channel. Within the ceiling the status is
+        OK and the depreciation factor is exactly 1.0, so a register captured to admit
+        its own population's obligation meets no resistance.
+        """
         s = settlement_offset()
         inside = next(r for r in s["rows"] if r["imbalance_over_reserve"] == 0.5)
         assert inside["status"] == "OK"
@@ -92,10 +96,10 @@ class TestTheDisciplineIsInSettlementNotParity:
         assert inside["capture_still_ahead"] is True
 
     def test_the_crossing_moves_with_the_reserve(self) -> None:
-        """The crossing is not a constant of the framework — it depends on the
-        reserve, the ceiling fraction and a slope `settlement_check` states is
-        proposed rather than calibrated. Quoting one number as the threshold
-        would be quoting a point on a surface."""
+        """The crossing is not a constant of the framework. It depends on the reserve,
+        the ceiling fraction and a slope that `settlement_check` states is proposed, not
+        calibrated. One threshold number would be one point on a surface.
+        """
         a = settlement_offset(debtor_reserve=1.0e9)
         b = settlement_offset(debtor_reserve=1.0e9, imbalance_multiples=(1.6, 1.7, 1.8))
         assert a["crossing_imbalance_over_reserve"] != b["crossing_imbalance_over_reserve"]
@@ -127,3 +131,18 @@ class TestTheTwoRegimes:
         assert "mistake" in limits or "visible" in limits, (
             "it must not read as an argument against federation"
         )
+
+
+class TestTheAdoptedSettlementIsNeutral:
+    """The federation settles on `registered` (2026-09-30). There capture earns no
+    premium and meets no discipline.
+    """
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_capture_is_neutral_on_the_settlement_basis(self, eps: float) -> None:
+        r = settlement_response(epsilon=eps)
+        assert r["settlement_captured_over_honest"] == 1.0
+        assert not r["capture_was_rewarded"] and not r["capture_was_disciplined"]
+
+    def test_parity_still_rewards_it_which_is_why_it_is_not_the_settlement(self) -> None:
+        assert parity_response()["capture_was_rewarded"] is True

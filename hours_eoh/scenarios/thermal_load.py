@@ -10,32 +10,34 @@ civilization is ~510 TW over its radiative allowance and the ledger now carries
 that debt — was not reachable from any default path: not `arc`, not `dashboard`,
 not `simulate`, not any scenario.
 
-This scenario carries it, and reports what carrying it does. The honest answer,
-at shipped calibration, is: almost nothing.
+This scenario carries it, and reports what carrying it does. At shipped
+calibration the honest answer is: almost nothing.
 
-    thermal flow at ε = 0.40, 1M people   ≈ 1.79e6 h/yr  =  1.8 h/person·yr
-    ecological EOH, loaded                ≈ 2.5 h/person·yr
-    personal EOH                          ≈ 1,478 h/person·yr
+    thermal flow at ε = 0.40, 1M people   ≈ 1.79e6 h/yr  =  1.79 h/person·yr
+    ecological EOH, loaded                ≈ 1.79 h/person·yr
+    personal EOH                          ≈ 1,353 h/person·yr
 
-The obligation enters at roughly one part in a thousand of what the model already
-says people owe to entropy. That is not a bug in the thermal layer — it is the
-domain-balance defect (docs/parameter_provenance.md §"Domain balance"): the
-ecological base rate is a documented RELATIVE anchor summed with absolute counts,
-so the domain the obligation lands in is 0.03% of total EOH to begin with.
+(2026-10-18, `thermal_load_arc(arc=(0.40,))`.) The obligation enters at roughly
+one part in a thousand of what the model already says people owe to entropy.
+That is not a bug in the thermal layer. It is the domain-balance defect
+(docs/parameter_provenance.md §"Domain balance"): the ecological base rate is a
+documented RELATIVE anchor summed with absolute counts. So before the obligation
+arrives, the domain it lands in is about one part in a million of total EOH.
 
-The consequence to keep in view: `research/thermal_solvency`'s verdict that the
-fiscal system carries the obligation with a large margin passes because the
-obligation is negligible, not because the fisc is strong. This scenario reports
-the coverage ratio next to the load ratio so the two cannot be read apart.
+Keep this consequence in view. `research/thermal_solvency`'s verdict says the
+fiscal system carries the obligation with a large margin. That verdict passes
+because the obligation is negligible, not because the fisc is strong. This
+scenario reports the coverage ratio next to the load ratio, so nobody can read
+the two apart.
 
 Layer: scenarios/ imports core/ and data.py only. The obligation VALUE is a
-research-tier quantity (research/thermal_drawdown → thermal_solvency), so it
-enters here as a parameter rather than an import; `REFERENCE_THERMAL_FLOW_EOH`
-records the reference figure and where it came from.
+research-tier quantity (research/thermal_drawdown → thermal_solvency). So it
+enters here as a parameter, not an import. `REFERENCE_THERMAL_FLOW_EOH` records
+the reference figure and where it came from.
 
-ε-coherence: exercised across ε ∈ [0, 0.99]; the obligation is ε-invariant by
-construction (measured forcing is a direct observation, not a sensing artifact),
-while the domains it is compared against move with ε.
+ε-coherence: the tests run it across ε ∈ [0, 0.99]. The obligation is
+ε-invariant by construction, because measured forcing is a direct observation,
+not a sensing artifact. The domains it is compared against move with ε.
 """
 
 from __future__ import annotations
@@ -45,7 +47,7 @@ from typing import TypedDict
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import CAPITAL_STOCK_DEFAULT
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, ECOSYSTEM_HEALTH_DEFAULT
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -53,9 +55,11 @@ from hours_eoh.core.fiscal import resolve_trust_balance
 # from research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"] —
 # the drawdown-chain labour requirement at a 2.0 K threshold, allocated by
 # responsibility. Tier D at root (CDR_LABOR_HOURS_PER_TONNE = 0.6); recorded here
-# so the scenario is runnable without reaching into research/.
+# so the scenario is runnable without reaching into research/. BOUND BY TEST to
+# that call (tests/scenarios/test_thermal_load.py), since scenarios/ cannot
+# import research/ — the copy was rounded and nothing checked it (mode 4).
 REFERENCE_THERMAL_FLOW_EOH: float = 1_789_175.0
-REFERENCE_POPULATION: float = 1_000_000.0
+REFERENCE_POPULATION: float = REFERENCE_FRAME_POPULATION
 
 
 class ThermalLoadRow(TypedDict):
@@ -83,7 +87,10 @@ def thermal_load_arc(
     arc: tuple[float, ...] = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99),
     trust_balance: float | None = None,
     capital_stock: float | None = None,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
+    land_hectares: float | None = None,
 ) -> list[ThermalLoadRow]:
     """
     Carry a thermal obligation across the ε arc and report what it moves.
@@ -94,20 +101,22 @@ def thermal_load_arc(
         load_ratio        = ecological_loaded / ecological_baseline
         thermal_share     = thermal_obligation / total_EOH
 
-    The two ratios are the point. `load_ratio` is large (≈ 3.5× at defaults) —
-    the obligation more than triples the ecological domain. `thermal_share` is
-    tiny (< 0.1%) — because that domain is a rounding error in the total. A
-    reader shown only the first would conclude the thermal layer had transformed
-    the ledger; a reader shown only the second would conclude it was pointless.
-    Both are true and they belong in the same table.
+    The two ratios are the point. `load_ratio` is very large (≈ 1,163× at
+    defaults, 2026-10-18; it read 3.5× before the 2026-08-17 frame fix,
+    `record/thermal.md`). `thermal_share` is tiny (about 0.1%), because that
+    domain is a rounding error in the total. A reader shown only the first
+    would conclude the thermal layer had transformed the ledger. A reader shown
+    only the second would conclude it was pointless. Both are true, and they
+    belong in the same table.
 
     units: EOH in hours/year; ratios dimensionless; per-capita in h/person·yr.
-    ε-behavior: the obligation is ε-invariant by construction (measured forcing
-    is an observation, not a sensing artifact), and with `ecosystem_health` held
-    fixed the ecological baseline is too — so `load_ratio` is flat across the arc
-    at 3.50×. `thermal_share_of_total` drifts down only because total EOH grows
-    with ε (infrastructure and knowledge rise). Vary `ecosystem_health` to move
-    the baseline; the obligation will not move with it.
+    ε-behavior: the obligation is ε-invariant by construction, because
+    measured forcing is an observation, not a sensing artifact. With
+    `ecosystem_health` held fixed the ecological baseline is invariant too, so
+    `load_ratio` is flat across the arc. `thermal_share_of_total` drifts down
+    only because total EOH grows with ε (infrastructure and knowledge rise).
+    Vary `ecosystem_health` to move the baseline; the obligation does not move
+    with it.
 
     Args:
         thermal_obligation: Annual obligation in EOH-hours (≥ 0).
@@ -116,6 +125,14 @@ def thermal_load_arc(
         trust_balance: Trust corpus for the fiscal arm.
         capital_stock: Capital stock (TEH).
         ecosystem_health: Ecosystem state ∈ [0, 1].
+        age_fractions: The population's age mix, to every obligation call and
+            the fisc (2026-10-14); None → the shipped mix. It moves
+            `thermal_share_of_total` through the total, not the load ratio.
+        capital_age_ratio: The stock's age, to the same calls; the default is
+            the value all four already read, so omitting it is bit-identical.
+        land_hectares: The frame's land, fixed, to the same calls (2026-10-14).
+            It moves the ecological domain the load ratio is read against.
+            None → population × LAND_HECTARES_PER_CAPITA, as before.
 
     Returns:
         list[ThermalLoadRow], one per ε in `arc`.
@@ -123,12 +140,12 @@ def thermal_load_arc(
     Raises:
         ValueError: if thermal_obligation < 0 or population <= 0.
 
-    Worked example (defaults, ε = 0.40, 1M people):
+    Worked example (defaults, ε = 0.40, 1M people; 2026-10-18):
         thermal_eoh          1,789,175 h/yr   →  1.79 h/person·yr
-        ecological baseline    714,286 h/yr   →  0.71 h/person·yr
-        load_ratio                 3.51       (the domain more than triples)
-        thermal_share_of_total     0.0011     (the ledger barely notices)
-        personal_share_of_total    0.91
+        ecological baseline      1,540 h/yr   →  0.0015 h/person·yr
+        load_ratio               1,163        (the domain grows a thousandfold)
+        thermal_share_of_total     0.0012     (the ledger barely notices)
+        personal_share_of_total    0.88
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
     if thermal_obligation < 0.0:
@@ -155,18 +172,24 @@ def thermal_load_arc(
         base = total_eoh(epsilon=eps, population=population,
                          capital_stock=cap_at_eps,
                          ecosystem_health=ecosystem_health,
+                         age_distribution=age_fractions, ecological_area_hectares=land_hectares,
+                         capital_age_ratio=capital_age_ratio,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
         loaded = total_eoh(epsilon=eps, population=population,
                            capital_stock=cap_at_eps,
                            ecosystem_health=ecosystem_health,
                            thermal_obligation=thermal_obligation,
+                           age_distribution=age_fractions, ecological_area_hectares=land_hectares,
+                           capital_age_ratio=capital_age_ratio,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
         pipeline = eoh_to_teh_pipeline(eps, population=population,
                                        capital_stock=cap_at_eps,
                                        ecosystem_health=ecosystem_health,
                                        thermal_obligation=thermal_obligation,
+                                       age_distribution=age_fractions, ecological_area_hectares=land_hectares,
+                                       capital_age_ratio=capital_age_ratio,
                                        ecological_standing_response="domain",
                          ecological_health_response="domain")
         teh_created = float(pipeline.get("teh_created", 0.0))
@@ -176,10 +199,12 @@ def thermal_load_arc(
             trust_balance=trust_balance,
             labor_income=teh_created,
             capital_stock_teh=cap_at_eps,
-            capital_age_ratio=0.5,
+            capital_age_ratio=capital_age_ratio,
             ecosystem_health=ecosystem_health,
             thermal_obligation=thermal_obligation,
             eco_eoh_override=loaded["ecological"],
+            age_fractions=age_fractions,
+            ecological_area_hectares=land_hectares,
         )
         eco_base = base["ecological"]
         eco_loaded = loaded["ecological"]
@@ -252,20 +277,22 @@ def thermal_load_verdict(
     """
     Roll `thermal_load_arc` into a single reportable verdict.
 
-    `negligible_in_ledger` is the flag that matters and it is deliberately harsh:
-    it is True when the obligation never reaches `negligible_threshold` (0.1% by
-    default) of total EOH anywhere on the arc. At shipped calibration it is True,
-    and a solvency verdict computed against a negligible obligation should be
-    read as "the obligation is small", not "the fisc is strong".
+    `negligible_in_ledger` is deliberately harsh. It is True when the
+    obligation never reaches `negligible_threshold` (0.1% by default) of total
+    EOH anywhere on the arc. At shipped calibration it is now False: the share
+    peaks at about 0.13% at ε=0, so the verdict reads MARGINAL (2026-10-18). The
+    obligation did not grow; the personal reprice shrank the denominator. Read a
+    solvency verdict against so small an obligation as "the obligation is
+    small", not "the fisc is strong".
 
-    `coverage_below_one_at` is the second finding and it cuts the other way. The
-    levy take covers the loaded ecological requirement 0.17× at ε=0 and 0.66× at
-    ε=0.20 — the obligation is negligible in the ledger and STILL unaffordable at
-    low automation, because labour income is what funds it and there is little of
-    it. Coverage crosses 1 between ε=0.20 and 0.40 and reaches ≈10.7× at ε=0.99.
-    The unloaded arc runs ≈3.5× higher at every point (0.59 → 37.5), which is the
-    right comparison for any previously-quoted margin: those figures were taken
-    without the obligation being carried.
+    `coverage_below_one_at` is the second finding, and it cuts the other way.
+    At ε=0 the levy take covers only about 0.36× of the loaded ecological
+    requirement (2026-10-18). The obligation is small in the ledger and STILL
+    unaffordable at low automation, because labour income funds it and there is
+    little of it. Coverage crosses 1 between ε=0 and 0.20 and rises steeply
+    after that. The unloaded arc runs about a thousand times higher at every
+    point. That is the right comparison for any previously-quoted margin,
+    because those figures did not carry the obligation.
 
     Args:
         thermal_obligation: Annual obligation in EOH-hours.

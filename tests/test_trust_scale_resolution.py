@@ -66,8 +66,10 @@ SCANNED = ("hours_eoh", "utils")
 FRAMELESS = {
     ("hours_eoh/research/contestability.py", "min_levy_for_pi"):
         "takes epsilon/trust/capital/g_priv — no population of any name",
-    ("hours_eoh/scenarios/shocks.py", "demographic_shock"):
-        "the shock arrives as a fractional magnitude, not a population",
+    # `scenarios/shocks.demographic_shock` was exempt here until 2026-09-30
+    # ("the shock arrives as a fractional magnitude"). It now takes the
+    # pre-shock population and resolves its Trust there, so `compound_shock`
+    # no longer hands a frameless leg a Trust resolved at another scale.
 }
 
 

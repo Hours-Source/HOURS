@@ -1,20 +1,20 @@
 """
 The food conservation test — did automation ELIMINATE food labour, or relocate it?
 
-The handoff calls this "the single highest-value test now available", and it is
-the sharpest test the framework has of its own central claim. Automation is
-supposed to reduce entropy obligations, not merely move who discharges them. Food
-is where that can be checked, because both ends of the ε arc are measured on
-comparable units: LSMS-ISA gives unassisted smallholder cultivation at ε ≈ 0.05,
-ATUS plus the O*NET/BLS registry give the US at ε ≈ 0.9.
+The handoff calls this "the single highest-value test now available", and it is the
+sharpest test the framework has of its own central claim. Automation should reduce
+entropy obligations, not merely move who discharges them. Food is where a reader can
+check that, because both ends of the ε arc have measurements in comparable units:
+LSMS-ISA gives unassisted smallholder cultivation at ε ≈ 0.05, ATUS plus the O*NET/BLS
+registry give the US at ε ≈ 0.9.
 
 THE TRAP, AND WHY A SINGLE TOTAL IS THE WRONG INSTRUMENT
----------------------------------------------------------
-In the US, personal EOH did not disappear — most of it moved onto the registered
-ledger. A US household spends well under an hour a day preparing food because
-farming, milling, transport and most processing happen inside paid employment.
-Reading ATUS household time alone as "US food EOH" would understate it enormously
-and manufacture a spuriously steep P(ε). So the registered term must be added:
+--------------------------------------------------------
+In the US, personal EOH did not disappear — most of it moved onto the registered ledger.
+A US household spends well under an hour a day preparing food because farming, milling,
+transport and most processing happen inside paid employment. Reading ATUS household time
+alone as "US food EOH" would understate it enormously and manufacture a spuriously steep
+P(ε). So the test must add the registered term:
 
     H_food_total(ε) = unpaid household food time + food-system employment ÷ population
 
@@ -24,36 +24,35 @@ number covers PRODUCTION ONLY and the US total covers production, processing and
 service. Compared stage by stage the answer is not ambiguous at all, and it is
 not the same answer at every stage — which is the actual finding.
 
-WHAT IS COUNTED, AND WHAT IS NOT
----------------------------------
-The paid term is a strict LOWER BOUND, and knowing that is what makes the result
-usable. Counted: agriculture (SOC 45 less forestry and logging), food processing
-(SOC 51-3), food preparation and serving (SOC 35). Not counted, for want of
-industry-level data this repo does not carry: food wholesale and retail, food
-transport, food manufacturing outside 51-3, packaging, and the agricultural input
-industries. **And OEWS excludes the self-employed**, so proprietor farmers are
-missing entirely — against ~919k counted wage-and-salary agricultural workers that
-is a large omission pointing one way.
+WHAT THE TEST COUNTS, AND WHAT IT DOES NOT
+------------------------------------------
+The paid term is a strict LOWER BOUND, and knowing that is what makes the result usable.
+Counted: agriculture (SOC 45 less forestry and logging), food processing (SOC 51-3),
+food preparation and serving (SOC 35). Not counted, for want of industry-level data this
+repo does not carry: food wholesale and retail, food transport, food manufacturing
+outside 51-3, packaging, and the agricultural input industries. **And OEWS excludes the
+self-employed**, so proprietor farmers are missing entirely — against ~919k counted
+wage-and-salary agricultural workers that is a large omission pointing one way.
 
 Every uncounted term RAISES the US number. `uncounted_headroom()` converts that
 from a caveat into a quantity.
 
 THE CONFOUND THAT REMAINS
---------------------------
-The baskets are not held fixed. The US food basket carries variety, year-round
-availability, food safety regulation and out-of-home service that the LSMS basket
-does not. Equal hours therefore do not mean equal output, and this test cannot
-settle whether the extra hours buy extra sufficiency or are the extraction term
-by another name. Handoff open decision #1 governs; nothing here resolves it.
+-------------------------
+The baskets do not stay fixed. The US food basket carries variety, year-round
+availability, food safety regulation and out-of-home service that the LSMS basket does
+not. Equal hours therefore do not mean equal output, and this test cannot settle whether
+the extra hours buy extra sufficiency or are the extraction term by another name.
+Handoff open decision #1 governs; nothing here resolves it.
 
 The LSMS side is also climate-specific — rainfed tropical smallholder cultivation,
 seven Sub-Saharan countries. See `reference/personal_basket.LSMS_AGRO_ECOLOGY`.
 
 Layer: scenarios/ imports reference/ only — pure, no I/O beyond shipped extracts.
 
-ε-coherence: this is a two-point comparison between measured epochs, not a
-function of ε. It is deliberately NOT dressed as an arc: there is no measurement
-between ε ≈ 0.05 and ε ≈ 0.9, and interpolating would invent one.
+ε-coherence: this is a two-point comparison between measured epochs, not a function of
+ε. It is deliberately NOT an arc: no measurement exists between ε ≈ 0.05 and ε ≈ 0.9,
+and interpolating would invent one.
 
 Reference: the personal-obligation handoff §2, §3.3, §3.5;
 the personal-floor note Finding D.
@@ -174,25 +173,23 @@ def hours_per_worker_year(year: int | None = None) -> float:
         h_worker = (paid hours per person 15+ × population_15_plus)
                    / total employment
 
-    where the numerator is the 15+ paid-hours AGGREGATE and total employment is
-    the registry's covered employment grossed up by
-    `REGISTRY_EMPLOYMENT_COVERAGE`. Both sides are measured, so no annual-hours
-    convention is imported.
+    where the numerator is the 15+ paid-hours AGGREGATE and total employment is the
+    registry's covered employment grossed up by `REGISTRY_EMPLOYMENT_COVERAGE`. Both
+    sides are measurements, so the function imports no annual-hours convention.
 
     units: hours per worker per year.
 
-    Worked example: 2025 — 2,258.4 h/person15+·yr × 278.0M ÷ 334.9M workers…
-    resolving to **1,874.4284 h/worker·yr**. A chosen 1,800 would have been
-    defensible and is not needed.
+    Worked example: 2025 — 2,258.4 h/person15+·yr × 278.0M ÷ 334.9M workers… resolving
+    to **1,874.4284 h/worker·yr**. A chosen 1,800 would have been defensible, and the
+    function does not need it.
 
-    IT NO LONGER TAKES A POPULATION, AND THAT IS A FIX (2026-08-31). It used to
-    accept `total_population`, convert the 15+ hours DOWN to a per-capita figure
-    with it, and then multiply the same population back in — a round trip that
-    cancelled exactly. The answer was 1,874.4284 at every population, so a caller
-    reframing to another country got the same number while believing they had
-    reframed it: the frame-seam shape this repo has found seven times. Found by
-    `tests/test_parameter_wiring`; the value is unchanged, because a cancelling
-    parameter cannot have been affecting it.
+    IT NO LONGER TAKES A POPULATION, AND THAT IS A FIX (2026-08-31). It used to accept
+    `total_population`, convert the 15+ hours DOWN to a per-capita figure with it, and
+    then multiply the same population back in — a round trip that cancelled exactly. The
+    answer was 1,874.4284 at every population, so a caller reframing to another country
+    got the same number while believing they had reframed it: the frame-seam shape this
+    repo has found seven times. `tests/test_parameter_wiring` found it. The value did
+    not change, because a cancelling parameter could not have affected it.
 
     THE FRAME IS NOW WHERE IT BELONGS. This ratio is population-free by
     construction — hours per worker does not depend on how many non-workers
@@ -243,7 +240,7 @@ def food_system_employment() -> dict[str, float]:
 
 def unpaid_food_hours(
     year: int | None = None,
-    total_population: float = REFERENCE_POPULATION_US,
+    total_population: float | None = None,
 ) -> dict[str, float]:
     """
     Measured US unpaid food labour per capita, by stage.
@@ -267,7 +264,7 @@ def unpaid_food_hours(
 
 def conservation_test(
     year: int | None = None,
-    total_population: float = REFERENCE_POPULATION_US,
+    total_population: float | None = None,
 ) -> ConservationReport:
     """
     THE TEST, stage by stage — the handoff's §3.3, done at the granularity the
@@ -293,7 +290,12 @@ def conservation_test(
     year = atus_time_use.latest_year() if year is None else year
     per_worker = hours_per_worker_year(year)
     employment = food_system_employment()
+    # Unpaid ATUS hours convert at the survey year's own Census share unless a
+    # population is supplied; paid BLS employment divides by the national
+    # figure (its 2024 vintage) — 2026-10-15, the vintage gap closed.
     unpaid = unpaid_food_hours(year, total_population)
+    if total_population is None:
+        total_population = REFERENCE_POPULATION_US
     lsms = {
         "production": LSMS_CROP_PRODUCTION_HOURS,
         "processing": LSMS_PROCESSING_HOURS,
@@ -363,8 +365,8 @@ def uncounted_headroom(
 
     units: hours per capita per year, per unit of employment share.
 
-    Worked example: 1% of US employment ≈ 1.675M workers ≈ 9.4 h/person·yr — so
-    the entire uncounted food-system tail would have to exceed ~34% of national
+    Worked example (2026-10-18): 1% of US employment ≈ 1.675M workers ≈ 9.2 h/person·yr,
+    so the entire uncounted food-system tail would have to exceed ~36% of national
     employment to close the production gap, which it plainly does not.
     """
     if not 0.0 <= employment_share <= 1.0:
@@ -396,13 +398,13 @@ def unpaid_food_series() -> dict:
     faked: only the ATUS side is a series, and it is returned as one.
 
     units: hours **per person aged 15+** per year — the ATUS native unit, NOT per
-    capita. This is deliberate and it is a trap worth naming. Converting a
-    historical series to per capita needs a matching total-population series, and
-    this repo carries only `REFERENCE_POPULATION_US`, a single recent figure.
-    Holding that fixed across the window silently divides by a constant while the
-    15+ population grows 225.3M → 278.0M, which alone manufactures a spurious
-    +23% and turned a measured −26% into −8%. Everything else in this module is
-    per capita because it is evaluated at ONE year, where the bridge is valid.
+    capita. This is deliberate and it is a trap worth naming. Converting a historical
+    series to per capita needs a matching total-population series, and this repo carries
+    only `REFERENCE_POPULATION_US`, a single recent figure. Holding that fixed across
+    the window silently divides by a constant while the 15+ population grows 225.3M →
+    278.0M, which alone manufactures a spurious +23% and turned a measured −26% into
+    −8%. Everything else in this module is per capita, because it reads ONE year, where
+    the bridge is valid.
 
     ε-behavior: none — calendar time, not the arc.
 

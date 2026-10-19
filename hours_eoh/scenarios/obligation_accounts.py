@@ -1,6 +1,6 @@
 """
-The three accounts: what is OWED, what DELIVERING it costs, what is owed FROM
-THE PAST.
+The three accounts: what a collective OWES, what DELIVERING it costs, and what it owes
+FROM THE PAST.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -18,10 +18,9 @@ co-equal domains. Measured, they are not co-equal and never have been: personal
 is 91–97% of the total at every ε. More importantly they are not the same KIND
 of quantity, and adding them hides the difference:
 
-    OBLIGATION   what is owed, independent of how it is met. Personal EOH is
-                 biologically anchored — food, water, shelter, care, health —
-                 and the civilisational knowledge corpus is renewed whatever
-                 the capital stock. Neither exists because we built something.
+    OBLIGATION what the collective owes, whatever meets it. Biology anchors personal EOH
+    (food, water, shelter, care, health), and the civilisation renews its knowledge
+    corpus whatever the capital stock. Neither exists because we built something.
 
     DELIVERY     what meeting the obligation COSTS. Infrastructure EOH is the
                  entropy debt of the apparatus; apparatus knowledge is the
@@ -30,34 +29,34 @@ of quantity, and adding them hides the difference:
                  (`abatement_fraction`, Block II). A delivery cost that exceeds
                  what it abates is an overbuild, not an obligation.
 
-    STOCK        what is owed from the past. Thermal, restoration and visible
-                 deferred ecological obligation are accumulated damage, not a
-                 recurring requirement. The Phase 4 partition already moved
+    STOCK what the collective owes from the past. Thermal, restoration and visible
+    deferred ecological obligation are accumulated damage; none of them recurs. The
+    Phase 4
+    partition already moved
                  everything recurring in the ecological domain to GUF, so under
                  the shipped defaults the ecological domain IS this account.
 
-THE HEADLINE THE SUM HIDES. Delivery grows against a nearly flat obligation:
-it is a low single-digit percentage of the obligation at ε=0 and the largest
-term on the arc by ε=0.99, while the obligation itself moves only a few percent
-end to end. Essentially all growth in total EOH is delivery cost, and a four-way
-sum hides that by adding it to the obligation. **The levels are not restated
-here — call `accounts_arc()`.** They have drifted three times (2026-09-01,
--09-08, -09-09) and every restatement in this file went stale within days; the
-SHAPE is the claim, and `delivery_crossover()` is what tests it.
+THE HEADLINE THE SUM HIDES. Delivery grows against a nearly flat obligation. It is zero
+at ε=0, where the canonical arc holds no capital, and grows to a large fraction of the
+obligation by ε=0.99. The obligation itself moves only a few percent end to end.
+Essentially all growth in total EOH is delivery cost, and a four-way sum hides that by
+adding it to the obligation. **The levels are not restated here — call
+`accounts_arc()`.** They have drifted three times (2026-09-01, -09-08, -09-09) and every
+restatement in this file went stale within days; the SHAPE is the claim, and
+`delivery_crossover()` is what tests it.
 
-**THE CROSSOVER CLAIM IS WITHDRAWN (2026-09-01), AND IT IS THE CLEANEST CASE OF
-WHY A PLACEHOLDER MATTERS.** This module originally read 100.3% at ε=0.99 —
-"the apparatus costs more entropy than the obligation it serves" — and that was
-true at the calibration of the day. Then `AGE_WEIGHT_CHILD` took the MTUS
-self-maintenance measurement for ages 6–14 (1.5 → 1.82, raising the obligation)
-and the knowledge fixed point re-anchored −9.94% with it (cutting the apparatus
-term). Both push the ratio DOWN and it no longer crosses 1.0. The SHAPE
-survives — delivery grows by orders of magnitude while the obligation grows by
-single-digit percent — and the level did not. **The growth FACTOR is no longer
-quotable either:** since the capital path landed (`1ee3fad`) the canonical
-capital stock is 0 at ε=0, so delivery starts at exactly 0.0 and the ratio it
-grows by is undefined. That is the third time a level in this file went stale
-and the reason none is written out any more.
+**THE CROSSOVER CLAIM IS WITHDRAWN (2026-09-01), AND IT IS THE CLEANEST CASE OF WHY A
+PLACEHOLDER MATTERS.** This module originally read 100.3% at ε=0.99 — "the apparatus
+costs more entropy than the obligation it serves" — and that was true at the calibration
+of the day. Then `AGE_WEIGHT_CHILD` took the MTUS self-maintenance measurement for ages
+6–14 (1.5 → 1.82, raising the obligation) and the knowledge fixed point re-anchored
+−9.94% with it (cutting the apparatus term). Both push the ratio DOWN and it no longer
+crosses 1.0. The SHAPE survives — delivery grows by orders of magnitude while the
+obligation grows by single-digit percent — and the level did not. **The growth FACTOR is
+no longer quotable either:** since the capital path landed (`1ee3fad`) the canonical
+capital stock is 0 at ε=0, so delivery starts at exactly 0.0 and the ratio it grows by
+is undefined. That is the third time a level in this file went stale, and the reason
+this file writes none out any more.
 
 WHAT THIS CORRECTS IN THE EXISTING SPLIT. Block III already gives
 `total_eoh(basis="gross"|"final")` — base vs overhead — and this is NOT merely
@@ -66,10 +65,10 @@ thermal obligation of 1e8 raises `total_base` by 1e8 and reads as though the
 system owed more going forward. Legacy damage is not a forward obligation, and
 separating the third account is what fixes that.
 
-WHAT THIS DOES NOT SETTLE. The accounts are a presentation; ε is unchanged and
-so is every fiscal result. Whether the reframe should be ADOPTED — whether
-`total_eoh` should return this shape, and whether the corridor should bind on
-delivery/obligation — is a charter decision and is not taken here.
+WHAT THIS DOES NOT SETTLE. The accounts are a presentation; they change neither ε nor
+any fiscal result. A charter decision, which this module does not take: whether to ADOPT
+the reframe, so that `total_eoh` returns this shape and the corridor binds on
+delivery/obligation.
 
 Layer: scenarios/ — imports core/ and data; imported by neither.
 """
@@ -80,6 +79,7 @@ from typing import Any
 
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     ARC_REPORTING_POINTS,
     CARE_AUTOMATION_FLOOR,
     PERSONAL_AUTOMATION_FLOORS,
@@ -149,11 +149,10 @@ def obligation_accounts(epsilon: float = 0.40, **state: Any) -> dict:
     rises with the capital stock the arc builds; stock is carried and is 0.0 on
     every shipped path because no stock ships by default.
 
-    Worked example (canonical arc, ε=0.40, default 1M frame): delivery is an
-    order of magnitude below the obligation and stock is 0.0, because no stock
-    ships by default. **The three levels are deliberately not written out** —
-    they moved with the capital path (`1ee3fad`) and with two calibrations
-    before it. Run the function.
+    Worked example (canonical arc, ε=0.40, default 1M frame): delivery is an order of
+    magnitude below the obligation and stock is 0.0, because no stock ships by default.
+    **This docstring deliberately writes out no levels.** They moved with the capital
+    path (`1ee3fad`) and with two calibrations before it. Run the function.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -168,7 +167,7 @@ def obligation_accounts(epsilon: float = 0.40, **state: Any) -> dict:
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     d = total_eoh(epsilon=epsilon, **state)
@@ -208,17 +207,18 @@ def accounts_arc(
     **state: Any,
 ) -> list[dict]:
     """
-    The three accounts across the arc — the table the four-domain sum hides.
+        The three accounts across the arc — the table the four-domain sum hides.
 
-    units: EOH/year, plus dimensionless ratios.
+        units: EOH/year, plus dimensionless ratios.
 
-SHAPE, not levels (canonical, default frame): delivery/obligation is
-    monotone increasing in ε and remains below 1.0 at ε=0.99, while the
-    obligation itself moves by single-digit percent over the whole arc — so
-    essentially all of the growth in total EOH is delivery cost. **The ratio
-    series is not restated here.** Every previous restatement of it in this
-    module drifted (see the module docstring); `delivery_crossover()` is the
-    test of the claim, and this function returns the series.
+    SHAPE, not levels (canonical, default frame): delivery/obligation is
+        monotone increasing in ε and remains below 1.0 at ε=0.99, while the
+        obligation itself moves by single-digit percent over the whole arc — so
+        essentially all of the growth in total EOH is delivery cost. **This docstring
+        does not restate the ratio series.** Every previous restatement of it in this
+        module drifted (see the module docstring); `delivery_crossover()` is the
+        test of the claim, and this function returns the series.
+
     """
     return [obligation_accounts(e, **state) for e in points]
 
@@ -233,15 +233,15 @@ def delivery_crossover(tol: float = 1e-4, **state: Any) -> dict:
 
     units: dimensionless ε.
 
-    Found by bisection on the arc rather than solved analytically, because the
-    knowledge apparatus fraction (1 − 1/cpu) and the canonical capital path are
-    both non-linear in ε.
+    Found by bisection on the arc, not solved analytically, because the knowledge
+    apparatus fraction (1 − 1/cpu) and the canonical capital path are both non-linear in
+    ε.
 
-    THERE IS NO CROSSOVER AT THE CURRENT CALIBRATION — this returns None, and
-    that is a result rather than a gap. Delivery peaks at 0.90 of the
-    obligation. The function is kept because the crossover DID exist before
-    `AGE_WEIGHT_CHILD` took its measurement on 2026-09-01, and a search that
-    can only report "yes" is not a search.
+    THERE IS NO CROSSOVER AT THE CURRENT CALIBRATION — this returns None, and that is a
+    result rather than a gap. Delivery stays below the obligation; `ratio_at_top`
+    reports how close it ends. The function stays because the crossover DID exist before
+    `AGE_WEIGHT_CHILD` took its measurement on 2026-09-01, and a search that can only
+    report "yes" is not a search.
 
     THE CROSSOVER WOULD NOT BE A FAILURE, and this function does not call it
     one. It is where the apparatus's own entropy debt equals the obligation it
@@ -255,7 +255,7 @@ def delivery_crossover(tol: float = 1e-4, **state: Any) -> dict:
         dict with `crossover_epsilon` (None if it never crosses in [0, 0.99]),
         and the ratio at each end of the arc.
     """
-    lo, hi = 0.0, 0.99
+    lo, hi = 0.0, EPSILON_ARC_MAX
     if obligation_accounts(hi, **state)["delivery_over_obligation"] < 1.0:
         crossover = None
     else:
@@ -282,8 +282,8 @@ def delivery_crossover(tol: float = 1e-4, **state: Any) -> dict:
 
 def automation_uniformity_check(epsilon: float = 0.99) -> dict:
     """
-    Three statements this repo makes about whether care can be automated, and
-    whether they agree. They do not.
+    Three statements this repo makes about whether machines can take care, and whether
+    they agree. They do not.
 
     Governing comparison, at automation level ε:
 
@@ -296,18 +296,19 @@ def automation_uniformity_check(epsilon: float = 0.99) -> dict:
 
     units: dimensionless human-labour fractions.
 
-    THE CONTRADICTION. `CARE_AUTOMATION_FLOOR`'s own tag block says relational
-    care "cannot be automated at any ε — a commitment about what care IS", and
-    Block II reaches the same conclusion independently: care is the least
-    abatable component and 84.4% of the residual at full abatement. But
-    `human_eoh_per_domain` applies the same (1 − ε) to every domain, and care is
-    62.1% of personal EOH by the basket's own shares. So the fiscal layer models
-    care as un-automatable while the generation layer automates it at the full
-    rate — two accounts of one quantity, the `psi` vs `psi_applied` shape.
+    THE CONTRADICTION. `CARE_AUTOMATION_FLOOR`'s own tag block says relational care
+    "cannot be automated at any ε — a commitment about what care IS", and Block II
+    reaches the same conclusion independently: care is the least abatable component and
+    84.4% of the residual at full abatement. But `human_eoh_per_domain` applies the same
+    (1 − ε) to every domain, and care is 62.1% of personal EOH by the basket's own
+    shares. So the fiscal layer models care as un-automatable while the generation layer
+    automates it at the full rate. Those are two accounts of one quantity, the `psi` vs
+    `psi_applied` shape.
 
-    Worked example (ε=0.99): uniform gives a human fraction of 0.0100; the
-    fiscal floor gives care 0.1585; weighted by care's 62.1% share the implied
-    personal human fraction is 0.1022 — **10.2× the uniform figure.**
+    Worked example (ε=0.99, 2026-10-18): uniform gives a human fraction of 0.0100. The
+    fiscal floor (0.2799) gives care 0.2871, and weighted by care's 62.1% share the
+    implied personal human fraction is 0.1820, **18.2× the uniform figure** (10.2× when
+    the care floor was 0.15).
 
     REPORTING ONLY. Resolving it means per-component automation rates, which is
     a change to `human_eoh_per_domain` and a theory-flagged decision.
@@ -315,7 +316,7 @@ def automation_uniformity_check(epsilon: float = 0.99) -> dict:
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     s_care = PERSONAL_EOH_COMPONENTS["care"]["share"]
@@ -346,14 +347,14 @@ def automation_uniformity_check(epsilon: float = 0.99) -> dict:
 
 
 def anchor_sensitivity(
-    observed_hours_per_capita: float = 937.3,
+    observed_hours_per_capita: float | None = None,
     shipped_base: float | None = None,
 ) -> dict:
     """
     What fixing the care contradiction would cost the knowledge anchor.
 
-    `KNOWLEDGE_EOH_BASE` is set by a fixed point (`knowledge_base.
-    epsilon_ref_fixed_point`) that solves the anchor and the base together:
+    A fixed point sets `KNOWLEDGE_EOH_BASE` (`knowledge_base. epsilon_ref_fixed_point`),
+    solving the anchor and the base together:
 
         base(ε_ref) ──► total_eoh ──► ε_residual(observed) ──► ε_ref …
 
@@ -370,38 +371,43 @@ def anchor_sensitivity(
 
     units: ε dimensionless; base in hours at KNOWLEDGE_REFERENCE_POPULATION.
 
-    ADOPTED 2026-09-01. This measured the cost BEFORE the flip; the flip has
-    since been taken, so `non_uniform_reproduces_shipped` is now the True one.
-    It is retained rather than retired because it is what makes the adopted
-    anchor reproducible from first principles — and because a search that can
-    only confirm the current state is not a search.
+    ADOPTED 2026-09-01. This measured the cost BEFORE the flip. The author has since
+    taken the flip, so `non_uniform_reproduces_shipped` is now the True one. It stays,
+    not retired, because it makes the adopted anchor reproducible from first principles,
+    and because a search that can only confirm the current state is not a search.
 
-    WHY THIS WAS MEASURED BEFORE PHASE 2 AND NOT AFTER. The anchor has been
-    re-derived six times and every previous move was tiny — +0.13%, +0.00047%,
-    0.00% — precisely because the domains it balances against are tiny. This
-    would be the first move against the 91–97% domain, and the question is
-    whether "small" still holds. It does not: the base moves **−16.4%**.
+    WHY THE MEASUREMENT CAME BEFORE PHASE 2 AND NOT AFTER. The anchor has been
+    re-derived six times and every previous move was tiny — +0.13%, +0.00047%, 0.00% —
+    precisely because the domains it balances against are tiny. This would be the first
+    move against the 91–97% domain, and the question is whether "small" still holds. It
+    does not: the base moves **−16.4%**.
 
-    Worked example (937.3 h/person·yr, US paid labour): ε* 0.386618 → 0.423227,
-    base 523,614,562.88 → 437,917,083.98. Human labour at ε=0.99 goes 28.8 →
-    148.8 h/person·yr, a factor of **5.16** — the difference between "labour has
-    effectively ended" and "most of a month of care work per person per year".
+    `observed_hours_per_capita` None reads `personal_floor.paid_labour_anchor()`.
 
-    NO LONGER A LOWER BOUND FOR THE REASON IT WAS. This read only care until
-    2026-09-03; it now reads every entry in `PERSONAL_AUTOMATION_FLOORS`, so it
-    tracks whatever has been adopted. It remains a lower bound on the FULL
-    treatment while shelter and health carry no floor.
+    Worked example (937.3 h/person·yr, US paid labour, at 335M): ε* 0.386618 → 0.423227,
+    base 523,614,562.88 → 437,917,083.98. Human labour at ε=0.99 goes 28.8 → 148.8
+    h/person·yr, a factor of **5.16**: the difference between "labour has effectively
+    ended" and "most of a month of care work per person per year". That measurement came
+    before the flip. On 2026-10-18 the two branches read 23.3 and 307.7 h/person·yr at
+    ε=0.99, a factor of 13.2.
 
-    (Historical note, kept because the reasoning still holds.) Only care was
-    floored here, using the fiscal
-    layer's own floor and the basket's own share. `PERSONAL_EOH_COMPONENTS` gives
-    health an abatability of 0.60 and nutrition 0.85, so a fuller treatment
-    floors more components, raises required labour further, and moves the anchor
-    further in the same direction.
+    NO LONGER A LOWER BOUND FOR THE REASON IT WAS. This read only care until 2026-09-03.
+    It now reads every entry in `PERSONAL_AUTOMATION_FLOORS`, so it tracks whatever the
+    author adopts. It remains a lower bound on the FULL treatment while shelter and
+    health carry no floor.
 
-    REPORTING ONLY. Nothing is written back; this exists so Phase 2 is committed
-    to on a measured blast radius rather than an estimate.
+    (Historical note, kept because the reasoning still holds.) Only care was floored
+    here, using the fiscal layer's own floor and the basket's own share.
+    `PERSONAL_EOH_COMPONENTS` gives health an abatability of 0.60 and nutrition 0.85. So
+    a fuller treatment floors more components, raises required labour further, and moves
+    the anchor further in the same direction.
+
+    REPORTING ONLY. This writes nothing back. It exists so the commitment to Phase 2
+    rests on a measured blast radius, not an estimate.
     """
+    if observed_hours_per_capita is None:
+        from hours_eoh.scenarios.personal_floor import paid_labour_anchor
+        observed_hours_per_capita = paid_labour_anchor()
     from hours_eoh.core.trajectory import canonical_physical_state
     from hours_eoh.data import KNOWLEDGE_EOH_BASE, SKILL_TRANSMISSION_RATE
 
@@ -422,7 +428,7 @@ def anchor_sensitivity(
     floors = dict(PERSONAL_AUTOMATION_FLOORS)
 
     def _domains(eps: float, base: float) -> dict:
-        st = canonical_physical_state(eps)
+        st = canonical_physical_state(eps, population=pop)
         return total_eoh(
             population=pop,
             capital_stock=st["capital_stock_teh"],
@@ -451,7 +457,7 @@ def anchor_sensitivity(
     def _residual(base: float, uniform: bool) -> float | None:
         if _required(0.0, base, uniform) < observed_hours_per_capita:
             return None
-        lo, hi = 0.0, 0.99
+        lo, hi = 0.0, EPSILON_ARC_MAX
         if _required(hi, base, uniform) > observed_hours_per_capita:
             return hi
         for _ in range(120):
@@ -508,6 +514,7 @@ def anchor_sensitivity(
         }
 
     move = base_n / base_u - 1.0
+    floored = sorted(PERSONAL_AUTOMATION_FLOORS)
     return {
         "observed_hours_per_capita": observed_hours_per_capita,
         "epsilon_uniform":     eps_u,
@@ -527,14 +534,15 @@ def anchor_sensitivity(
             "uniform":     _required(0.99, KNOWLEDGE_EOH_BASE, True),
             "non_uniform": _required(0.99, KNOWLEDGE_EOH_BASE, False),
         },
-        "move_is_a_lower_bound": True,
+        "move_is_a_lower_bound": len(floored) < len(PERSONAL_EOH_COMPONENTS),
         "verdict": (
-            f"Flooring care alone moves the knowledge anchor "
+            f"Flooring {' and '.join(floored)} moves the knowledge anchor "
             f"{move:+.2%} (ε* {eps_u:.6f} → {eps_n:.6f}). "
-            f"Every previous re-anchor was +0.13% or smaller, because the "
-            f"domains it balanced against were tiny; this is the first move "
-            f"against the 91–97% domain and it is two to four orders of "
-            f"magnitude larger. It is a LOWER bound — only care is floored."
+            + (f"It is a LOWER bound: {len(floored)} of "
+               f"{len(PERSONAL_EOH_COMPONENTS)} personal components carry a floor, "
+               "and flooring more moves the anchor further the same way."
+               if len(floored) < len(PERSONAL_EOH_COMPONENTS) else
+               "Every personal component carries a floor, so the move is complete.")
         ),
     }
 
@@ -544,13 +552,12 @@ def _growth_phrase(first: float, last: float) -> str:
     Growth from `first` to `last` as a percentage, or a phrase when there is no
     percentage to state.
 
-    DELIVERY IS EXACTLY ZERO AT ε = 0 since the capital-path decision
-    (2026-09-09): the canonical arc holds no built apparatus at subsistence, so
-    both delivery components — infrastructure and the knowledge apparatus — are
-    0.0 there. Growth from zero has no percentage, and printing one meant a
-    ZeroDivisionError rather than a wrong number, which is the better failure of
-    the two. The partition still reconciles at ε = 0; only this sentence about it
-    could not be written.
+    DELIVERY IS EXACTLY ZERO AT ε = 0 since the capital-path decision (2026-09-09): the
+    canonical arc holds no built apparatus at subsistence, so both delivery components —
+    infrastructure and the knowledge apparatus — are 0.0 there. Growth from zero has no
+    percentage, and printing one meant a ZeroDivisionError rather than a wrong number,
+    which is the better failure of the two. The partition still reconciles at ε = 0;
+    only this sentence about it has no value to state.
     """
     if first == 0.0:
         return "from nothing" if last > 0.0 else "flat at zero"

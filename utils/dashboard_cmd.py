@@ -13,6 +13,8 @@ from hours_eoh.core.dashboard import system_dashboard
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.simulation import make_economy_state, simulate_period
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
     ESSENTIAL_DOMAINS,
     MEANINGFUL_ACTIVITY_TEH_BASE,
@@ -30,7 +32,7 @@ from hours_eoh.core.fiscal import resolve_trust_balance
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
     p = sub.add_parser("dashboard", help="System health snapshot at a given ε")
     p.add_argument("--epsilon", type=float, default=0.40, metavar="ε")
-    p.add_argument("--population", type=float, default=1_000_000.0)
+    p.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
     # balance resolves against --population, so the inheritance travels with
     # the frame. Supplying the flag states YOUR balance and it is used as given.
@@ -40,7 +42,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     # reads the arc rather than a fixed 2e9 at every ε. Supplying the flag
     # states YOUR stock and it is used as given.
     p.add_argument("--capital-stock", type=float, default=None)
-    p.add_argument("--ecosystem-health", type=float, default=0.70)
+    p.add_argument("--ecosystem-health", type=float, default=ECOSYSTEM_HEALTH_DEFAULT)
     p.add_argument("--measured", action="store_true",
                    help="Source Condition II from the measured O*NET/BLS registry "
                         "(751 occupations, repriced to ε) instead of DEFAULT_SEGMENTS")
@@ -69,16 +71,15 @@ def _build_kwargs(eps: float, population: float, trust_balance: float | None,
                   capital_stock: float, ecosystem_health: float,
                   thermal_obligation: float = 0.0,
                   certified_fraction: float = DECLARED_CERTIFIED_FRACTION) -> dict:
-    """
-    The dashboard's accounts, computed rather than invented (2026-09-12).
+    """The dashboard's accounts, computed, not invented (2026-09-12).
 
-    Until then the ledger, the Trust and the EOH totals were stand-ins built from
-    literals (destroyed = 0.85 × created, expenditure = 0.90 × earnings, total
-    EOH = population × base × 1.5), so Conditions I and III passed by
-    construction and the EOH indicators read a total up to 1.6× off the model's.
-    Now: the EOH side comes from the pipeline on the stated frame, and the ledger
-    and Trust from ONE simulated period on the same frame — the only engine in
-    the package that tracks both. Only certified competency is declared.
+    Before, the ledger, the Trust and the EOH totals were stand-ins built from literals
+    (destroyed = 0.85 × created, expenditure = 0.90 × earnings, total EOH = population ×
+    base × 1.5). So Conditions I and III passed by construction, and the EOH indicators
+    read a total up to 1.6× off the model's. Now the EOH side comes from the pipeline on
+    the stated frame. The ledger and Trust come from ONE simulated period on the same
+    frame, the only engine in the package that tracks both. Only certified competency is
+    declared.
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
     p = EohParams()
@@ -151,6 +152,9 @@ def _build_kwargs(eps: float, population: float, trust_balance: float | None,
         # the `skill_decay_rate` literal: a caller that reaches around the
         # shared path is where a superseded default survives.
         eco_eoh_override=float(pipeline["eoh_by_domain"]["ecological"]),
+        # The same pipeline, so Condition IV's hours and the floor's observed ε
+        # are read at this command's state, thermal obligation included.
+        pipeline=pipeline,
     )
 
 

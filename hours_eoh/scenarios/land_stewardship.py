@@ -27,43 +27,41 @@ Two readings, from the same measured inputs:
   ecosystem-only   0.18 h/ha·yr over forest-use land and federal parks.
   with amenity     7.3 h/ha·yr over those plus urban groundskeeping.
 
-CORRECTED 2026-08-28. These lines used to read "BELOW the anchor's implied 0.37
-h/ha·yr — the anchor is not too low here, it is too HIGH." That comparison was
-against the PRE-Phase-4b implied intensity, which divided the whole contiguous
-US obligation by a million-person population. Against a frame-consistent anchor
-the ecosystem scope reads ~222× ABOVE, so the claim was inverted, and the
-hypothesis it appeared to refute was in fact supported on every class. The
-reversal was recorded in CLAUDE.md on 2026-08-17 and this module was not
-updated — the verdict string shipped the retracted reading for eleven days.
-The ratio is now computed live rather than restated in prose.
+CORRECTED 2026-08-28. These lines used to read "BELOW the anchor's implied 0.37 h/ha·yr
+— the anchor is not too low here, it is too HIGH." That comparison was against the
+PRE-Phase-4b implied intensity, which divided the whole contiguous US obligation by a
+million-person population. Against a frame-consistent anchor the ecosystem scope reads
+~222× ABOVE, so the claim was inverted, and the hypothesis it appeared to refute was in
+fact supported on every class. CLAUDE.md recorded the reversal on 2026-08-17, and nobody
+updated this module: the verdict string shipped the retracted reading for eleven days.
+The module now computes the ratio live instead of restating it in prose.
 
-A factor of 50 separates the two area-weighted means, and 510 separates the two
-land classes themselves. The only thing that moves between them is whether 1.33M
-landscaping, tree-care and vegetation workers count as ecological stewardship.
-See `reference.land_stewardship` for the argument both ways. Reporting one number
-would conceal that the scope question, not the measurement, is what is
-unresolved.
+A factor of 50 separates the two area-weighted means, and 510 separates the two land
+classes themselves. The only thing that moves between them is whether 1.33M landscaping,
+tree-care and vegetation workers count as ecological stewardship. See
+`reference.land_stewardship` for the argument both ways. One number would conceal that
+the scope question, not the measurement, is what remains open.
 
 WHAT THIS DOES NOT SETTLE
---------------------------
-Coverage is 30.3% of US land area by the amenity reading and 27.3% without it.
-The largest unpriced class — 107.6 Mha of rural parks and wildlife areas — is
-precisely the land most likely to carry real stewardship labour, and it is
-excluded rather than costed at zero. So the priced mean is NOT an estimate of
-the US stewardship intensity; it is a lower bound over the part that has a
-costed path, and `coverage` must be read before it is compared to anything.
+-------------------------
+Coverage is 30.3% of US land area by the amenity reading and 27.3% without it. The
+largest unpriced class — 107.6 Mha of rural parks and wildlife areas — is precisely the
+land most likely to carry real stewardship labour, and the floor excludes it instead of
+costing it at zero. So the priced mean is NOT an estimate of the US stewardship
+intensity. It is a lower bound over the part that has a costed path, and a reader must
+check `coverage` before comparing it to anything.
 
-This is the same discipline `personal_floor` applies at 6.9% basket coverage,
-and for the same reason: at low coverage the residual is dominated by the
-repo's own incompleteness, so a number fitted to it would be a fitted residual
-wearing a measurement's clothes.
+This is the same discipline `personal_floor` applies at partial basket coverage, and for
+the same reason: at low coverage the residual is dominated by the repo's own
+incompleteness, so a number fitted to it would be a fitted residual wearing a
+measurement's clothes.
 
-THE ANCHOR IS KEYED TO NOTHING — WHICH IS THE DEFECT, STATED EXACTLY
+NOTHING KEYS THE ANCHOR, AND THAT IS THE DEFECT, STATED EXACTLY
 ---------------------------------------------------------------------
-`ecological_eoh(ecosystem_health, ...)` takes no area and no population. It
-returns `base_rate / health` (+ spike, deferred, thermal) — 609,756 h/yr at
-canonical health, for a collective of one million or of three hundred and
-thirty-five million, on one hectare or on a billion.
+`ecological_eoh(ecosystem_health, ...)` takes no area and no population. It returns
+`base_rate / health` (+ spike, deferred, thermal) — 609,756 h/yr at canonical health,
+for a collective of one million or of three hundred and thirty-five million, on one
+hectare or on a billion.
 
 That makes ecological the ONLY domain with no extensive quantity behind it:
 
@@ -82,16 +80,15 @@ of AREA and the anchor has no area term at all.
 a synthesised per-hectare figure, not a measured one, and it moves with
 population for a quantity that should not depend on population.
 
-CONSEQUENCE FOR THE COMPARISON. `floor_from_census(census, population=...)`
-divides that fixed anchor by whatever denominator it is handed:
-`population=US_REFERENCE_POPULATION` would deflate it 335× and report a ratio of ~8,600×
-that means nothing.
+CONSEQUENCE FOR THE COMPARISON. `floor_from_census(census, population=...)` divides that
+fixed anchor by whatever denominator the caller hands it:
+`population=US_REFERENCE_POPULATION` would deflate it ~340× and report a ratio of
+~8,600× that means nothing.
 
-The comparable quantity is INTENSITY (h/ha·yr), which is population-free. This
-module therefore calls `floor_from_census` at `REFERENCE_POPULATION` — where the
-anchor is defined — and reports US per-capita figures from its own arithmetic,
-clearly separated. Anyone reusing `floor_from_census` on a census at a different
-scale needs to know this.
+The comparable quantity is INTENSITY (h/ha·yr), which is population-free. This module
+therefore calls `floor_from_census` at `REFERENCE_POPULATION`, where the anchor is
+defined. It reports US per-capita figures from its own arithmetic, clearly separated.
+Anyone reusing `floor_from_census` on a census at a different scale needs to know this.
 
 Population is not irrelevant to the obligation, but it does not belong in the
 rate. Load per hectare does drive stewardship demand — more people on the same
@@ -108,13 +105,14 @@ Reference: `data.ECOLOGICAL_BASE_RATE` resolves_by; `scenarios/ecological_floor.
 
 from __future__ import annotations
 
-from hours_eoh.core.eoh_generation import ecological_statutory_floor
+from hours_eoh.core.eoh_generation import ecological_statutory_floor, personal_eoh
 from hours_eoh.data import (
     AGENCY_STEWARDSHIP_ROLE_MIX,
     AMENITY_STEWARDSHIP_WEIGHT,
     LAND_HECTARES_PER_CAPITA,
     PRACTICE_EQUIPMENT_WIDTHS_FT,
     US_MAINLAND_HECTARES,
+    US_MAINLAND_POPULATION,
     US_REFERENCE_POPULATION,
 )
 from hours_eoh.reference.land_stewardship import (
@@ -136,6 +134,7 @@ from hours_eoh.reference.land_stewardship import (
     derive_allocations,
     hours_per_acre,
     load_land_use,
+    land_hectares_by_class,
     load_stewardship_employment,
     parks_split,
     total_land_hectares,
@@ -323,14 +322,15 @@ def stewardship_census(
     """
     The land census in `ecological_statutory_floor` intake shape.
 
-    Returns `[{"biome", "area_hectares", "hours_per_hectare_year"}, ...]` over
-    ALL nine US land-use classes — priced classes carry a float, unpriced carry
-    `None` so the floor EXCLUDES them rather than costing them at zero.
+    Returns `[{"biome", "area_hectares", "hours_per_hectare_year"}, ...]` over ALL the
+    US land-use classes. Priced classes carry a float, and unpriced ones carry `None`,
+    so the floor EXCLUDES them instead of costing them at zero.
 
     units: hectares and hours per hectare per year.
 
-    Worked example: nine rows, two priced under the default scope, covering
-    276.9 Mha of the 915.1 Mha US total → coverage 0.303.
+    Worked example (2026-10-18): ten rows, three priced under the default scope,
+    covering 348.5 Mha of the 915.1 Mha US total → coverage 0.381. Before the federal
+    parks were priced it read two of nine, 276.9 Mha, coverage 0.303.
     """
     return [
         {
@@ -408,7 +408,7 @@ def _verdict(
         f"scope={scope}: measured stewardship intensity is {measured:.3f} h/ha·yr "
         f"over the {floor['coverage'] * 100:.1f}% of US land area that has a "
         f"costed path, against the anchor's implied {anchor_intensity:.3f} — "
-        f"a factor of {ratio:.2f}× {direction}. Reaching a 1% ecological share "
+        f"a factor of {ratio:.2f}× {direction}. Reaching a {one_pc['target_share']:.0%} ecological share "
         f"needs {one_pc['required_hours_per_hectare_year']:.1f} h/ha·yr. "
         f"{len(floor['unpriced'])} land classes covering "
         f"{sum(u['area_hectares'] for u in floor['unpriced']) / 1e6:.1f} Mha are "
@@ -439,9 +439,9 @@ def agency_report() -> dict:
     declared census mean — so pricing it LOWERS the mean (0.585 → 0.498) while
     raising coverage (0.303 → 0.381).
 
-    The class was not priced on the raw figure, and this is why. A directional
-    claim that does not survive its own measurement is the cheapest kind of
-    error to make and the easiest to propagate.
+    That is why the census did not price the class on the raw figure. A directional
+    claim that does not survive its own measurement is the cheapest kind of error to
+    make and the easiest to propagate.
 
     Worked example: 27,104 NPS+FWS staff × 0.2263 = 6,133 stewardship workers ×
     1,874.4 h ÷ 71,629,358 ha = 0.161 h/ha·yr.
@@ -524,11 +524,10 @@ def practice_hours_per_hectare(practice: str) -> dict:
     treated land*, not per hectare of cropland. Multiplying it by the census's
     152.7 Mha would assert that every acre of US cropland is cover-cropped.
 
-    Worked example: 340 Cover Crop is one drilled seeding pass plus one
-    termination pass — 0.123–0.342 h/acre, i.e. **0.303–0.845 h/ha·yr** on
-    cover-cropped ground. For scale, the census reads 0.182 h/ha·yr on forest
-    and 0.161 on federal parks, so a cover-cropped acre is tended comparably or
-    somewhat harder than working forest.
+    Worked example: 340 Cover Crop is one drilled seeding pass plus one termination pass
+    — 0.123–0.342 h/acre, i.e. **0.303–0.845 h/ha·yr** on cover-cropped ground. For
+    scale, the census reads 0.182 h/ha·yr on forest and 0.161 on federal parks. So a
+    cover-cropped acre takes about as much tending as working forest, or somewhat more.
 
     Raises:
         KeyError: on an unknown practice.
@@ -579,14 +578,13 @@ def field_capacity_report() -> dict:
     Census of Agriculture reports cover-crop acres directly, on a five-year
     cycle, and it is the instrument named in `CROPLAND_ADOPTION_RESOLVES_BY`.
 
-    AND THE UNKNOWN IS NOW BOUNDED ABOVE, which is the strongest form of not
-    knowing. Adoption cannot exceed 1, so the class's contribution cannot exceed
-    the practice rate times the whole 152.7 Mha: **0.27–0.74× the entire current
-    census**. Universal cover-cropping of every acre of US cropland would not
-    even double the measured floor. At realistic adoption — the Census of
-    Agriculture's cover-crop share has run 5–7% — it is 1–5%. So the missing
-    input moves the answer within a known range rather than transforming it,
-    and cropland is NOT where the domain-balance gap is hiding.
+    AND THE UNKNOWN NOW HAS AN UPPER BOUND, which is the strongest form of not knowing.
+    Adoption cannot exceed 1, so the class's contribution cannot exceed the practice
+    rate times the whole 152.7 Mha: **0.27–0.74× the entire current census**. Universal
+    cover-cropping of every acre of US cropland would not even double the measured
+    floor. At realistic adoption — the Census of Agriculture's cover-crop share has run
+    5–7% — it is 1–5%. So the missing input moves the answer within a known range rather
+    than transforming it, and cropland is NOT where the domain-balance gap is hiding.
 
     Reports; changes nothing. Cropland stays unpriced.
     """
@@ -624,7 +622,8 @@ def field_capacity_report() -> dict:
             f"on working forest — so a treated acre is tended comparably or "
             f"somewhat harder. The route yields the RIGHT QUANTITY in the RIGHT "
             f"UNITS from physics alone, which four earlier instruments did not. "
-            f"It still cannot price the 152.7 Mha, because hours per hectare of "
+            f"It still cannot price the "
+            f"{land_hectares_by_class()['Total cropland'] / 1e6:.1f} Mha of cropland, because hours per hectare of "
             f"TREATED land is not hours per hectare of cropland and the adoption "
             f"fraction is unknown — but that unknown is now BOUNDED: adoption "
             f"cannot exceed 1, so the class contributes at most "
@@ -642,7 +641,7 @@ def frame_report() -> dict:
 
     Governing comparison:
 
-        ha_per_capita(US)  = US_MAINLAND_HECTARES / US_REFERENCE_POPULATION
+        ha_per_capita(US)  = US_MAINLAND_HECTARES / US_MAINLAND_POPULATION
         burden(h/person·yr) = ha_per_capita × measured intensity
 
     against the shipped `LAND_HECTARES_PER_CAPITA`, a planetary average whose own
@@ -657,21 +656,22 @@ def frame_report() -> dict:
 
     units: hectares per person; labour-hours per person per year.
 
-    Worked example: 765,495,267 ha ÷ 335M = 2.285 ha/person, against the global
-    default 1.65 — the contiguous US carries **38.5% more land per person** than
+    Worked example: 765,495,267 ha ÷ 339.6M = 2.254 ha/person, against the global
+    default 1.65 — the contiguous US carries **36.6% more land per person** than
     the planetary average. At the declared amenity weight the measured intensity
     is 0.585 h/ha·yr, so the burden is ~1.34 h/person·yr over priced land.
 
     Reports; changes nothing.
     """
-    us_ha_pc = US_MAINLAND_HECTARES / US_REFERENCE_POPULATION
+    us_ha_pc = US_MAINLAND_HECTARES / US_MAINLAND_POPULATION
     ratio = us_ha_pc / LAND_HECTARES_PER_CAPITA
     rep = census_report()
     intensity = rep["measured_hours_per_hectare"]
+    personal_pc = personal_eoh(population=US_MAINLAND_POPULATION) / US_MAINLAND_POPULATION
 
     return {
         "us_mainland_hectares": US_MAINLAND_HECTARES,
-        "us_population": US_REFERENCE_POPULATION,
+        "us_population": US_MAINLAND_POPULATION,
         "us_hectares_per_capita": us_ha_pc,
         "shipped_hectares_per_capita": LAND_HECTARES_PER_CAPITA,
         "ratio_to_shipped": ratio,
@@ -688,9 +688,13 @@ def frame_report() -> dict:
             f"identical ground. At the declared amenity weight that is "
             f"{us_ha_pc * intensity:.2f} h/person·yr if every hectare were "
             f"priced, against {us_ha_pc * intensity * rep['coverage']:.2f} over "
-            f"the {rep['coverage'] * 100:.1f}% that is. Both are far below the "
-            f"personal domain's ~1,475 h/person·yr, which is the domain-balance "
-            f"defect restated in per-capita terms."
+            f"the {rep['coverage'] * 100:.1f}% that is. "
+            + (f"Both are below the personal domain's {personal_pc:,.0f} "
+               "h/person·yr, which is the domain-balance defect restated in "
+               "per-capita terms."
+               if us_ha_pc * intensity < personal_pc else
+               f"Priced in full it exceeds the personal domain's {personal_pc:,.0f} "
+               "h/person·yr, so the domain-balance defect does not show per capita.")
         ),
     }
 
@@ -699,11 +703,10 @@ def allocation_band(scope: str = "ecosystem") -> dict:
     """
     The three allocation policies side by side — the corners, not a fitted point.
 
-    Same discipline as `reference.care_demand.rivalry_exponent`, whose ρ is not
-    identified and whose callers are told to read the corners rather than
-    substitute a middle value. How much of an advisory occupation's year lands
-    on any given land class is not measured by anything, so this reports the
-    range the answer sits in and refuses to pick inside it.
+    Same discipline as `reference.care_demand.rivalry_exponent`: its ρ is not
+    identified, and its callers must read the corners instead of a middle value. Nothing
+    measures how much of an advisory occupation's year lands on a given land class. So
+    this reports the range the answer sits in and refuses to pick inside it.
 
     units: labour-hours per hectare per year.
 
@@ -749,23 +752,22 @@ def anchor_crossing_weight(allocation: str = "held_out") -> float:
     The amenity weight at which the census exactly equals the anchor — solved,
     not read off a grid.
 
-    Governing equation. Above w=0 the priced area is fixed (forest + urban), so
-    the intensity is linear in w:
+    Governing equation. Above w=0 the priced area stays fixed (forest + urban), so the
+    intensity is linear in w:
 
         (fixed_hours + w · amenity_hours) / priced_area = anchor
         w* = (anchor · priced_area − fixed_hours) / amenity_hours
 
-    where `fixed` is every priced non-amenity class. Derived from the census
-    rather than from named classes: it was written against forest and urban
-    alone and silently stopped being right the moment parks became priceable.
+    where `fixed` is every priced non-amenity class. Derived from the census, not from
+    named classes. The first version used forest and urban alone and silently stopped
+    being right when parks became priceable.
 
     units: dimensionless weight.
 
-    Worked example: with forest, federal parks and urban priced, w* = 0.0364.
-    Grid-reading this was wrong by a whole grid cell, which is why it is solved:
-    a crossing point that moves with the sample grid is not a property of the
-    model. It also moves whenever a class becomes priceable, which is why it is
-    computed and never stored.
+    Worked example: with forest, federal parks and urban priced, w* = 0.0364. A grid
+    reading was wrong by a whole grid cell, so the function solves it. A crossing point
+    that moves with the sample grid is not a property of the model. It also moves
+    whenever a class becomes priceable, so the function computes it and never stores it.
     """
     rows = stewardship_intensities("with_amenity", allocation=allocation)
 
@@ -804,16 +806,17 @@ def amenity_curve(
 
     units: labour-hours per hectare per year against a dimensionless weight.
 
-    Worked example: at w=0 the census reads 0.182 h/ha·yr (forest only); at
-    w=0.5, 4.66; at w=1.0, 9.15. The anchor (0.3695) is crossed at **w* =
-    0.0228** — solving `(forest_h + w·urban_h) / priced_area = anchor`. So
-    admitting even 2.3% of groundskeeping labour puts the census above the
-    anchor, and that is itself the finding: the result is not sensitive to WHERE
-    on the curve you sit, only to whether you are at the origin.
+    Worked example: at w=0 the census reads 0.182 h/ha·yr (forest only); at w=0.5, 4.66;
+    at w=1.0, 9.15. The anchor (0.3695) is crossed at **w* = 0.0228** — solving
+    `(forest_h + w·urban_h) / priced_area = anchor`. When this was written, admitting
+    even 2.3% of groundskeeping labour put the census above the anchor. Since parks
+    became priceable, the solved crossing weight is negative (−0.023 on 2026-10-18): the
+    census sits about 220× above the anchor with no amenity labour at all. So the weight
+    sets only the magnitude, not the sign.
 
-    Note the discontinuity at w=0: coverage steps 0.273 → 0.303 the moment any
-    amenity labour is admitted, because the urban class becomes priced. The
-    intensity is linear in w above that step, not through it.
+    Note the discontinuity at w=0: coverage steps 0.352 → 0.381 (2026-10-18) as soon as
+    any amenity labour enters, because the urban class becomes priced. The intensity is
+    linear in w above that step, not through it.
     """
     rows = []
     for w in weights:
@@ -849,10 +852,9 @@ def scope_comparison() -> dict:
     """
     Both readings side by side — the scope question made visible.
 
-    The single most important output of this module. `ecosystem` and
-    `with_amenity` differ by roughly five hundred fold on identical measured
-    inputs, and which one is right is a definitional question the data cannot
-    settle.
+    The single most important output of this module. `ecosystem` and `with_amenity`
+    differ about 41-fold on identical measured inputs (`spread_factor`, 2026-10-18), and
+    which one is right is a definitional question the data cannot settle.
     """
     reports = {s: census_report(s) for s in SCOPES}
     eco = reports["ecosystem"]["measured_hours_per_hectare"]

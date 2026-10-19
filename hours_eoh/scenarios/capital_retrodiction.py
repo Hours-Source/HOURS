@@ -18,22 +18,22 @@ people work. `record/thermal.md` concluded the machine profiles were
 judgements nobody had declared, and the BEA stock tables confirm the input the
 estimate used was already right:
 
-    doctrine     1.79x   current-cost vs historical-cost, ONE physical stock
+    doctrine     1.78x   current-cost vs historical-cost, ONE physical stock
     convention   1.45x   wages/compensation x 2,080/derived hours
     scope        ~2.5x   productive capital vs every fixed asset
 
-Any two compound past 3×. Across the defensible interior the US reads ε ≈ 0.4–0.6.
+Any two compound past 3×. Across the defensible interior the US reads ε ≈ 0.4–0.5
+(2026-10-18, `retrodiction_report()['interior_epsilon']`; ≈ 0.4–0.6 on 2026-09-09).
 
-**THE CONVERSION RATE IS AN INTAKE FIELD WITH NO DEFAULT, AND THAT IS THE
-DESIGN.** `currency_per_teh` is required everywhere in this module. It is
-specific to a currency, a year, a wage series and an hours convention, so a
-shipped value would be a fifth undeclared judgement — and worse, it would bury
-the one this framework most needs visible. Converting a currency-denominated
-stock into TEH IS the valuation step: §2 argues a census needs no convention
-while a valuation transmits doctrine undamped, and requiring the rate at the API
-boundary is that argument enforced rather than restated. `conversion_band()`
-gives a feasibility range for sanity-checking a supplied rate. It is not a
-default and nothing here falls back to it.
+**THE CONVERSION RATE IS AN INTAKE FIELD WITH NO DEFAULT, AND THAT IS THE DESIGN.**
+Every function in this module requires `currency_per_teh`. It is specific to a currency,
+a year, a wage series and an hours convention, so a shipped value would be a fifth
+undeclared judgement — and worse, it would bury the one this framework most needs
+visible. Converting a currency-denominated stock into TEH IS the valuation step: §2
+argues a census needs no convention while a valuation transmits doctrine undamped, and
+requiring the rate at the API boundary is that argument enforced rather than restated.
+`conversion_band()` gives a feasibility range for sanity-checking a supplied rate. It is
+not a default and nothing here falls back to it.
 
 Layer: scenarios/ — imports from core/, reference/ and research/, never the reverse.
 """
@@ -41,32 +41,41 @@ Layer: scenarios/ — imports from core/, reference/ and research/, never the re
 from __future__ import annotations
 
 import csv
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 from hours_eoh.reference.capital_inventory import (
-    BEA_POPULATION, BEA_YEAR, DOCTRINE_RATIOS, MEASURED_AGES, SCOPES,
-    UNALLOCATED, UNALLOCATED_USD_B,
-    capital_by_profile, scope_total, what_this_cannot_settle,
+    AGE_ROWS, BEA_POPULATION, BEA_YEAR, DOCTRINE_RATIOS, SCOPES,
+    PROFILE_MAP, UNALLOCATED, UNALLOCATED_USD_B,
+    capital_by_profile, depreciation_series, scope_total, what_this_cannot_settle,
 )
-from hours_eoh.data import CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX
+from hours_eoh.data import (
+    AGE_EFFICIENCY_BETA_EQUIPMENT, AGE_EFFICIENCY_BETA_STRUCTURES,
+    CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_MACHINE_PROFILES, DEP_RATE, EPSILON_ARC_MAX,
+    FORMATION_DEPRECIATION_RATE,
+)
+from hours_eoh.core.civilization import age_efficiency, condition_from_age_ratio
 from hours_eoh.research.thermal_capital import epsilon_current_from_inventory
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 
 __all__ = [
     "conversion_band", "epsilon_from_inventory", "retrodiction_grid",
     "doctrine_spread", "unallocated_sensitivity", "retrodiction_report",
+    "stock_age_ratio", "DEPRECIATION_SCOPES", "measured_depreciation_rate",
+    "profile_depreciation_rates", "depreciation_report",
 ]
 
 _REGISTRY = Path(__file__).resolve().parents[1] / "reference" / "data" / "multiplier_registry_v5.csv"
 
-#: Age used when the inventory carries no measured age for a profile. The
-#: measured class ages in `MEASURED_AGES` cover equipment, structures and IPP;
-#: profiles mix classes, so a profile-level age is a weighted question the
-#: inventory does not answer. Structures dominate every scope by value, so the
-#: structures age is the honest fallback and is stated rather than assumed.
-_FALLBACK_AGE_KEY: str = "private_structures"
+#: THE AGES THE INVENTORY IS READ AT (2026-10-04). Each profile's age over its
+#: life comes from its own BEA rows (`AGE_ROWS`: average age over BEA service
+#: life, current cost — the physical reading whatever doctrine values the
+#: stock), replacing one class age (private structures, 28.6 yr) applied to
+#: every profile. `civilization` divides age by the PROFILE's design life, so
+#: the age passed is ratio × that life: the ratio arrives intact and the
+#: placeholder lives cancel. A supplied inventory is someone else's stock, so
+#: it is read at `CAPITAL_AGE_RATIO_DEFAULT` and says so.
 
 #: ε at or above which a reading counts as SATURATED — the §7 retrodiction
 #: falsifier's own threshold. 0.99 and not 1.0 because the arc's declared
@@ -88,16 +97,15 @@ def conversion_band() -> dict:
 
     units: units of the inventory's currency per TEH.
 
-    **THIS IS A SANITY BAND, NOT A DEFAULT.** Nothing in this module falls back
-    to it. The four rows are four CONVENTIONS, not an error bar: wages against
-    total compensation, and the 2,080-hour convention against the derived
-    work-year. A supplied rate outside the band implies something unusual about
-    the collective's wage structure and is worth questioning; a rate inside it
-    is not thereby correct.
+    **THIS IS A SANITY BAND, NOT A DEFAULT.** Nothing in this module falls back to it.
+    The four rows are four CONVENTIONS, not an error bar: wages against total
+    compensation, and the 2,080-hour convention against the derived work-year. A
+    supplied rate outside the band implies something unusual about the collective's wage
+    structure and is worth questioning. A rate inside it is not correct for that reason
+    alone.
 
-    The compensation multiple is NOT in this repo — it is a published BLS ratio —
-    and its absence is the argument: the rate cannot be derived here, only
-    bounded.
+    The compensation multiple is NOT in this repo (it is a published BLS ratio), and its
+    absence is the argument: this module can bound the rate but not derive it.
     """
     with _REGISTRY.open(newline="", encoding="utf-8") as fh:
         rows = [r for r in csv.DictReader(fh)
@@ -142,6 +150,8 @@ def epsilon_from_inventory(
     population: float = BEA_POPULATION,
     *,
     inventory: Mapping[str, float] | None = None,
+    age_ratios: Mapping[str, float] | None = None,
+    conditions: Mapping[str, float] | None = None,
 ) -> dict:
     """
     ε derived from a capital inventory at a SUPPLIED conversion rate.
@@ -160,17 +170,25 @@ def epsilon_from_inventory(
         doctrine: "current_cost" or "historical_cost" — the third.
         population: the frame the inventory is counted over.
         inventory: YOUR OWN inventory, keyed by machine profile, in the same
-            currency the rate converts from. `None` (default) reads the shipped
-            BEA table, so the US path is unchanged. Supplying one is what lets a
+            currency the rate converts from. `None` (default) reads the shipped BEA
+            table, so the US path stays the same. Supplying one is what lets a
             non-US institution run this instrument.
 
             IT ARRIVES UNDECLARED, AND THE RESULT SAYS SO. The shipped table is
-            36 rows each carrying a `basis`, plus 2 exclusions each carrying a
+            37 rows each carrying a `basis`, plus 3 exclusions each carrying a
             `reason`, and `TestTheJudgementsStayDeclared` checks them. A supplied
             mapping has none of that — the mapping from your national accounts
             onto the machine profiles is YOUR judgement, and the framework cannot
-            see it. `inventory_source` in the returned dict reports which table
-            produced the figure so the two can never be confused.
+            see it. `inventory_source` in the returned dict reports which table produced
+            the figure, so nobody can confuse the two.
+        age_ratios: YOUR stock's age over its life, by machine profile
+            (2026-10-04). Unstated, the shipped table reads its BEA ages and a
+            supplied inventory `CAPITAL_AGE_RATIO_DEFAULT`; `age_source` says
+            which.
+        conditions: YOUR stock's productive condition, by profile, in [0, 1].
+            Unstated, the shipped table reads BLS age-efficiency on its BEA
+            rows, and a supplied inventory derives it from its age on the same
+            curve (`civilization.condition_from_age_ratio`).
 
     Raises:
         ValueError: on a non-positive rate, an unknown scope or doctrine, an
@@ -203,11 +221,14 @@ def epsilon_from_inventory(
         if negative:
             raise ValueError(f"inventory values must be >= 0, negative at {negative}")
         by_profile, source = {k: float(v) for k, v in inventory.items()}, "supplied"
-    age = MEASURED_AGES[_FALLBACK_AGE_KEY]
-    desc = {
-        name: {"teh_value": usd_b * 1e9 / currency_per_teh, "age": age, "condition": 0.85}
-        for name, usd_b in by_profile.items() if usd_b > 0.0
-    }
+    ratios, derived, age_source = _ages(scope, inventory is not None, age_ratios)
+    if conditions is not None:
+        unknown = sorted(set(conditions) - set(CAPITAL_MACHINE_PROFILES))
+        bad = sorted(k for k, v in conditions.items() if not 0.0 <= float(v) <= 1.0)
+        if unknown or bad:
+            raise ValueError(f"conditions: unknown profiles {unknown}, outside [0, 1] at {bad}")
+        derived = {**(derived or {}), **{k: float(v) for k, v in conditions.items()}}
+    desc = _describe(by_profile, currency_per_teh, ratios, derived)
     total_teh = sum(d["teh_value"] for d in desc.values())
     eps = epsilon_current_from_inventory(desc, population)
     return {
@@ -223,7 +244,10 @@ def epsilon_from_inventory(
         "capital_usd_b":    sum(by_profile.values()),
         "capital_teh":      total_teh,
         "teh_per_capita":   total_teh / population,
-        "age_years":        age,
+        "age_ratio":        sum(d["teh_value"] * ratios[n] for n, d in desc.items()) / total_teh,
+        "age_ratio_by_profile": {n: ratios[n] for n in desc},
+        "condition_by_profile": {n: _condition_of(d, n) for n, d in desc.items()},
+        "age_source":       age_source,
         "epsilon":          eps,
         # REPORTED PER CALL, not only per grid. The shipped grid is guarded by
         # `test_no_cell_of_the_declared_grid_saturates` AND by a can-fire test; a
@@ -232,6 +256,80 @@ def epsilon_from_inventory(
         # too low for their inventory) as a finding about their economy.
         "saturated":        eps >= _SATURATION_EPSILON,
     }
+
+
+def _row_efficiency(row: Mapping[str, Any]) -> float:
+    """One BEA row's productive condition: BLS age-efficiency at its mean age
+    over its mid service life, β by BEA class (IPP takes equipment's)."""
+    beta = (AGE_EFFICIENCY_BETA_STRUCTURES if row["class"] == "structures"
+            else AGE_EFFICIENCY_BETA_EQUIPMENT)
+    return age_efficiency(row["age"] / (0.5 * sum(row["life"])), beta)
+
+
+def _ages(scope: str, supplied: bool,
+          stated: Mapping[str, float] | None = None
+          ) -> tuple[dict[str, float], dict[str, float] | None, str]:
+    """Each machine profile's age over its life, and its condition: as stated (a profile
+    left out takes `CAPITAL_AGE_RATIO_DEFAULT`); else from its BEA rows on the shipped
+    inventory (a profile with no row carrying a life takes the scope's),
+    `CAPITAL_AGE_RATIO_DEFAULT` for a supplied one. Conditions are None where the data
+    gives only a ratio: `civilization` then derives them from the age it receives, on
+    the same curve.
+    """
+    if stated is not None:
+        unknown = sorted(set(stated) - set(CAPITAL_MACHINE_PROFILES))
+        bad = sorted(k for k, v in stated.items() if not 0.0 <= float(v))
+        if unknown or bad:
+            raise ValueError(f"age_ratios: unknown profiles {unknown}, negative at {bad}")
+        return ({n: float(stated.get(n, CAPITAL_AGE_RATIO_DEFAULT)) for n in CAPITAL_MACHINE_PROFILES},
+                None, "supplied: age_ratios")
+    if supplied:
+        return ({n: CAPITAL_AGE_RATIO_DEFAULT for n in CAPITAL_MACHINE_PROFILES}, None,
+                "default: CAPITAL_AGE_RATIO_DEFAULT — a supplied inventory's ages are not known")
+    whole = stock_age_ratio(scope)
+    profile_of = {r["line"]: r["profile"] for r in PROFILE_MAP
+                  if r["scope"] in SCOPES[scope]["includes"]}
+    age_sum: dict[str, float] = {}
+    cond_sum: dict[str, float] = {}
+    weight: dict[str, float] = {}
+    for row in AGE_ROWS:
+        name = profile_of.get(row["line"])
+        if name is None or row["life"] is None or row["age"] is None:
+            continue
+        w = row["usd_b"]
+        age_sum[name] = age_sum.get(name, 0.0) + w * row["age"] / (0.5 * sum(row["life"]))
+        cond_sum[name] = cond_sum.get(name, 0.0) + w * _row_efficiency(row)
+        weight[name] = weight.get(name, 0.0) + w
+    return ({n: age_sum[n] / weight[n] if weight.get(n) else whole["ratio"]
+             for n in CAPITAL_MACHINE_PROFILES},
+            {n: cond_sum[n] / weight[n] if weight.get(n) else whole["condition"]
+             for n in CAPITAL_MACHINE_PROFILES},
+            f"measured: BEA {BEA_YEAR} average age over BEA service life, by profile; "
+            "condition on BLS's age-efficiency curve")
+
+
+def _describe(by_profile: Mapping[str, float], currency_per_teh: float,
+              ratios: Mapping[str, float], conditions: Mapping[str, float] | None) -> dict:
+    """The inventory as `civilization` reads it — each profile at its age
+    (ratio × the profile's design life, so the placeholder lives cancel) and,
+    where measured, its condition."""
+    out = {}
+    for n, usd_b in by_profile.items():
+        if usd_b <= 0.0:
+            continue
+        d: dict[str, float] = {"teh_value": usd_b * 1e9 / currency_per_teh,
+                               "age": ratios[n] * CAPITAL_MACHINE_PROFILES[n]["design_life"]}
+        if conditions is not None and n in conditions:
+            d["condition"] = conditions[n]
+        out[n] = d
+    return out
+
+def _condition_of(d: Mapping[str, float], name: str) -> float:
+    """The condition `civilization` reads for one entry: stated, or derived
+    from its age on the same curve."""
+    if "condition" in d:
+        return float(d["condition"])
+    return condition_from_age_ratio(d["age"] / max(CAPITAL_MACHINE_PROFILES[name]["design_life"], 1.0))
 
 
 def retrodiction_grid(
@@ -282,22 +380,21 @@ def unallocated_sensitivity(currency_per_teh: float, scope: str = "government") 
     """
     What the one placed-not-measured line is worth. units: dimensionless ε.
 
-    Government equipment carries no by-type breakdown outside defence in any BEA
-    Fixed Assets table, so it is assigned to a single profile. This moves the
-    whole amount to each profile in turn and reports the span — bounding the gap
-    rather than closing it, because the bound is the result.
+    Outside defence, government equipment has no by-type breakdown in any BEA Fixed
+    Assets table, so the module assigns it to a single profile. This moves the whole
+    amount to each profile in turn and reports the span. It bounds the gap and does not
+    close it, because the bound is the result.
     """
     base = capital_by_profile(scope)
     amount = UNALLOCATED_USD_B
     placed = "computing_ai"
-    age = MEASURED_AGES[_FALLBACK_AGE_KEY]
+    ratios, conditions, _ = _ages(scope, False)
     out: dict[str, float] = {}
     for target in base:
         moved = dict(base)
         moved[placed] = moved.get(placed, 0.0) - amount
         moved[target] = moved.get(target, 0.0) + amount
-        desc = {n: {"teh_value": v * 1e9 / currency_per_teh, "age": age, "condition": 0.85}
-                for n, v in moved.items() if v > 0.0}
+        desc = _describe(moved, currency_per_teh, ratios, conditions)
         out[target] = epsilon_current_from_inventory(desc, BEA_POPULATION)
     lo, hi = min(out.values()), max(out.values())
     return {
@@ -317,9 +414,9 @@ def retrodiction_report(currency_per_teh: float | None = None) -> dict:
     """
     The whole grid with its caveats attached, and a verdict computed from it.
 
-    `currency_per_teh` is optional HERE and only here: passing None reports
-    across the band rather than at a point, which is the honest default for a
-    report. It is still never defaulted to a value.
+    `currency_per_teh` is optional HERE and only here: passing None reports across the
+    band rather than at a point, which is the honest default for a report. It still
+    never has a default value.
     """
     band = conversion_band()
     grid = retrodiction_grid()
@@ -347,4 +444,211 @@ def retrodiction_report(currency_per_teh: float | None = None) -> dict:
         "point_estimate":    None,
         "verdict":           verdict,
         "adopted":           False,
+    }
+
+
+def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -> dict:
+    """
+    THE STOCK'S AGE AS A FRACTION OF ITS LIFE — `capital_age_ratio`, measured
+    (2026-10-04). Until now every reading of it was a default: a bare 0.50 in
+    core, frozen from the first commit, or the canonical arc's 0.30.
+
+    Value-weighted mean of BEA average age over BEA service life, row by row
+    (`AGE_ROWS`) — the same weighting `civilization.machine_eoh_from_capital`
+    uses (TEH-weighted age / design life). A RATIO, so no currency enters: the
+    rate that would turn dollars into TEH cancels.
+
+    THE DIRECTION OF ITS ERROR: NET (depreciated) stock weights BEA's ages, so an old
+    asset counts for less than in a physical count, and the ratio errs LOW. Current cost
+    is the doctrine that matches a physical age (each vintage at its real quantity,
+    today's prices); historical cost weights by nominal outlay, which inflation tilts
+    younger. The function returns both.
+
+    Args:
+        scope: one of `SCOPES` — what counts as capital.
+        doctrine: "current_cost" (Tables 2.9 / 7.7) or "historical_cost"
+            (2.10; PRIVATE ONLY — BEA publishes no historical-cost government
+            age, so the government lines are reported as not covered).
+
+    Returns: ratio (at each row's mid life), low / high (each row at its
+        longest / shortest BEA life), mean_age_years, share_past_life (stock
+        older than its mid life), coverage (share of the scope's stock with both
+        an age and a life — WITHIN PRIVATE assets when `private_only`, the
+        government rows then listed in `excluded` at their current-cost size),
+        and the excluded rows with BEA's reason.
+    """
+    if scope not in SCOPES:
+        raise ValueError(f"scope must be one of {sorted(SCOPES)}, got {scope!r}")
+    if doctrine not in ("current_cost", "historical_cost"):
+        raise ValueError(
+            f"doctrine must be 'current_cost' or 'historical_cost', got {doctrine!r}")
+    admitted = {r["line"] for r in PROFILE_MAP if r["scope"] in SCOPES[scope]["includes"]}
+    hist = doctrine == "historical_cost"
+    used, excluded, total = [], [], 0.0
+    classes: list[str] = []
+    conds: list[float] = []
+    for row in AGE_ROWS:
+        if row["line"] not in admitted:
+            continue
+        weight = row.get("usd_b_hist") if hist else row["usd_b"]
+        age = row.get("age_hist") if hist else row["age"]
+        if weight is None:
+            excluded.append({"bea": row["bea"], "type": row["type"],
+                             "usd_b_current_cost": row["usd_b"],
+                             "reason": "no historical-cost table for government assets"})
+            continue
+        total += weight
+        if age is None or row["life"] is None:
+            excluded.append({"bea": row["bea"], "type": row["type"], "usd_b": weight,
+                             "reason": row["life_basis"]})
+            continue
+        used.append((weight, age, row["life"]))
+        classes.append(row["class"])
+        conds.append(_row_efficiency({**row, "age": age}))
+    covered = sum(w for w, _, _ in used)
+    if covered <= 0.0:
+        raise ValueError(f"no row in scope {scope!r} carries both an age and a life")
+
+    def mean(f: Callable[[float, tuple[int, int]], float]) -> float:
+        return sum(w * f(a, life) for w, a, life in used) / covered
+
+    mid = lambda life: 0.5 * (life[0] + life[1])  # noqa: E731
+    return {
+        "scope": scope, "doctrine": doctrine, "year": BEA_YEAR,
+        "private_only": hist,
+        "ratio": mean(lambda a, life: a / mid(life)),
+        "low": mean(lambda a, life: a / life[1]),
+        "high": mean(lambda a, life: a / life[0]),
+        "mean_age_years": mean(lambda a, life: a),
+        # Productive condition on BLS's age-efficiency curve, and the
+        # structures share that blends the two curves (2026-10-04).
+        "condition": sum(w * c for (w, _, _), c in zip(used, conds)) / covered,
+        "structures_share": sum(w for (w, _, _), k in zip(used, classes)
+                                if k == "structures") / covered,
+        "share_past_life": sum(w for w, a, life in used if a > mid(life)) / covered,
+        "coverage": covered / total,
+        "excluded": excluded,
+    }
+
+
+#: THE AGGREGATE BEA LINES THAT BRACKET EACH SCOPE (2026-10-08). `SCOPES` admits
+#: detailed lines one by one (with exclusions and an unallocated remainder); the
+#: aggregate tables carry private nonresidential ("productive"), plus government
+#: NONDEFENCE (all government less national defence — government residential
+#: included), plus private residential. In 2024 these stocks run 0.8–2.1% above
+#: `scope_total` (`stock_vs_inventory_scope`). `fixed` is every fixed asset,
+#: defence included — a comparator line, not one of `SCOPES`.
+DEPRECIATION_SCOPES: dict[str, dict[str, tuple[str, ...]]] = {
+    "productive":  {"add": ("private_nonres",), "less": ()},
+    "government":  {"add": ("private_nonres", "government"), "less": ("defense",)},
+    "residential": {"add": ("private_nonres", "government", "private_res"),
+                    "less": ("defense",)},
+    "fixed":       {"add": ("fixed",), "less": ()},
+}
+
+
+def measured_depreciation_rate(scope: str = "government", year: int = BEA_YEAR) -> dict:
+    """
+    THE US STOCK'S DEPRECIATION RATE, MEASURED — BEA current-cost depreciation
+    over the year divided by the MEAN of the opening and closing net stock
+    (the stock the year's depreciation was taken from). Also returned on the
+    closing stock alone (`rate_on_yearend_stock`), which reads slightly lower
+    while the stock grows.
+
+    A RATIO OF TWO DOLLAR FIGURES IN ONE YEAR'S PRICES, so no currency-per-TEH
+    conversion enters. And it settles the AGGREGATION the profiles could not
+    (`profile_depreciation_rates`): BEA depreciates each asset type at its own
+    rate and sums the dollars, so this is the stock-weighted mean of rates.
+
+    NOT SETTLED HERE: which scope the Trust's capital is. `DEP_RATE` is "the
+    capital the Trust represents"; the scopes span 0.05–0.09 in 2024.
+
+    Args:
+        scope: one of `DEPRECIATION_SCOPES`.
+        year: 1926–2024 (1925 has no opening stock).
+    """
+    if scope not in DEPRECIATION_SCOPES:
+        raise ValueError(f"scope must be one of {sorted(DEPRECIATION_SCOPES)}, got {scope!r}")
+    rows = {int(r["year"]): r for r in depreciation_series()}
+    if year not in rows or year - 1 not in rows:
+        raise ValueError(f"year must be in {min(rows) + 1}–{max(rows)}, got {year}")
+    parts = DEPRECIATION_SCOPES[scope]
+
+    def total(r: Mapping[str, float], field: str) -> float:
+        return (sum(r[f"{line}_{field}"] for line in parts["add"])
+                - sum(r[f"{line}_{field}"] for line in parts["less"]))
+
+    opening, closing = total(rows[year - 1], "stock"), total(rows[year], "stock")
+    dep = total(rows[year], "depreciation")
+    return {
+        "scope": scope, "year": year,
+        "rate": dep / (0.5 * (opening + closing)),
+        "rate_on_yearend_stock": dep / closing,
+        "implied_life_years": 0.5 * (opening + closing) / dep,
+        "depreciation_usd_b": dep, "net_stock_usd_b": closing,
+    }
+
+
+def profile_depreciation_rates(tier: str = "standard") -> dict[str, float]:
+    """
+    The three aggregations of `CAPITAL_MACHINE_PROFILES` design lives that
+    `record/provenance.md#depreciation-derivation-does-not-reproduce` ran, live:
+    TEH-weighted mean of rates, the reciprocal of the TEH-weighted mean life,
+    and the unweighted mean of rates. A 2.1× spread from the method alone.
+    """
+    w = {k: float(v["tiers"][tier]["teh_per_capita"]) for k, v in CAPITAL_MACHINE_PROFILES.items()}
+    life = {k: float(v["design_life"]) for k, v in CAPITAL_MACHINE_PROFILES.items()}
+    total = sum(w.values())
+    return {
+        "weighted_mean_of_rates": sum(w[k] / life[k] for k in w) / total,
+        "reciprocal_of_weighted_life": total / sum(w[k] * life[k] for k in w),
+        "unweighted_mean_of_rates": sum(1.0 / life[k] for k in w) / len(w),
+    }
+
+
+def depreciation_report(year: int = BEA_YEAR) -> dict:
+    """
+    The shipped depreciation rates against BEA's measured ones — REPORTING
+    ONLY; no constant changes here (§5: re-fitting is an author decision).
+
+    `DEP_RATE`'s own `errs:` field calls UNDERSTATING depreciation the unsafe
+    direction (it flatters the Trust's durability and its dividend). This says,
+    per scope, whether each shipped value sits below BEA's figure for `year` —
+    and over the whole series, where the rate was lowest and highest.
+    """
+    years = [int(r["year"]) for r in depreciation_series()][1:]
+    by_scope: dict[str, dict] = {}
+    for scope in DEPRECIATION_SCOPES:
+        here = measured_depreciation_rate(scope, year)
+        if scope in SCOPES and year == BEA_YEAR:
+            here["stock_vs_inventory_scope"] = (
+                here["net_stock_usd_b"] / scope_total(scope))
+        series = [(y, measured_depreciation_rate(scope, y)["rate"]) for y in years]
+        lo, hi = min(series, key=lambda t: t[1]), max(series, key=lambda t: t[1])
+        by_scope[scope] = {**here, "series_low": lo[1], "series_low_year": lo[0],
+                           "series_high": hi[1], "series_high_year": hi[0]}
+    shipped = {"DEP_RATE": DEP_RATE, "FORMATION_DEPRECIATION_RATE": FORMATION_DEPRECIATION_RATE}
+    profiles = profile_depreciation_rates()
+    below = {name: [s for s, r in by_scope.items() if value < r["rate"]]
+             for name, value in {**shipped, **profiles}.items()}
+    lo_s = min(by_scope.values(), key=lambda r: r["rate"])
+    hi_s = max(by_scope.values(), key=lambda r: r["rate"])
+    return {
+        "year": year,
+        "by_scope": by_scope,
+        "shipped": shipped,
+        "profiles": profiles,
+        "below_measured": below,
+        "verdict": (
+            f"BEA {year}: depreciation runs {lo_s['rate']:.4f} ({lo_s['scope']}) to "
+            f"{hi_s['rate']:.4f} ({hi_s['scope']}) of the stock it is taken from. "
+            + "; ".join(f"{n} {v:.4f} is below {len(below[n])} of {len(by_scope)} lines "
+                        f"({len(SCOPES)} scopes and all fixed assets)"
+                        for n, v in shipped.items())
+            + f". The profiles' aggregations ({', '.join(f'{v:.4f}' for v in profiles.values())}) "
+            "are not the stock's — BEA sums asset-level rates, which ends the "
+            "aggregation dispute; which SCOPE is the Trust's capital is not settled here. "
+            "Understating depreciation is the unsafe direction by DEP_RATE's own errs field."
+        ),
+        "reporting_only": True,
     }

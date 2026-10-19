@@ -11,9 +11,9 @@ F is total effective radiative forcing, N the Earth energy imbalance, ΔT the GM
 anomaly. All three are in IGCC 2025a, so this moves λ from recalled to derived.
 
 λ IS NOT ONE NUMBER — the point of this module. The energy-budget estimate is the
-HISTORICAL feedback, which runs high relative to the EQUILIBRIUM feedback because
-warming has so far been concentrated where feedbacks are more stabilising (the
-pattern effect). Each pairs with exactly one budget frame:
+HISTORICAL feedback. It runs high against the EQUILIBRIUM feedback, because warming has
+so far concentrated where feedbacks stabilise more (the pattern effect). Each pairs with
+exactly one budget frame:
 
     equilibrium λ  →  equilibrium budget  λ·ΔT_max − F   (commitment accounting)
     historical λ   →  a transient reading, which the framework REJECTS: it shows a
@@ -31,9 +31,9 @@ Derived values (full provenance in reference/data/climate_feedback.json):
     pattern effect +0.182 — positive as expected, an independent check that the
                    derivation behaves
 
-The shipped 1.2 turns out to be CONSERVATIVE for the framework: a lower λ means a
-smaller budget and a larger obligation, so the pre-existing constant was not
-flattering the result.
+The shipped 1.2 turns out to be CONSERVATIVE for the framework. A lower λ means a
+smaller budget and a larger obligation, so the pre-existing constant did not flatter the
+result.
 
 Layer: research/ — reads shipped reference data; not imported by core/.
 """
@@ -80,7 +80,7 @@ class LambdaChoice(TypedDict):
 
 def lambda_for_frame(frame: Frame = "equilibrium") -> LambdaChoice:
     """
-    The λ appropriate to a budget frame, with the band it must be quoted against.
+    The λ for a budget frame, with the band any quote of it must carry.
 
     "equilibrium" returns the shipped 1.2. Its tier is unchanged, but its POSITION
     is now known rather than assumed: it sits below the AR6-implied 1.310 and well
@@ -115,7 +115,8 @@ def lambda_for_frame(frame: Frame = "equilibrium") -> LambdaChoice:
             tier=h["tier"],
             pairs_with="a transient reading of the budget, which this framework rejects",
             caveat=("derived from the historical energy budget and biased high by the pattern "
-                    "effect; in the equilibrium budget it inflates the allowance ~6x"),
+                    "effect; in the equilibrium budget it inflates the allowance several-fold "
+                    "(`lambda_sensitivity` gives the ratio at a threshold)"),
         )
     raise ValueError(f"unknown frame: {frame!r}")
 
@@ -166,9 +167,9 @@ def lambda_sensitivity(
     """
     The budget across the plausible λ range — a FIRST-CLASS output, not a footnote.
 
-    λ is the second-largest lever after ΔT_max, and the budget does not merely
-    shift across its range, it changes several-fold. Any ψ*-derived figure
-    published without this band overstates how well the allowance is known.
+    λ is the second-largest lever after ΔT_max, and the budget does not merely shift
+    across its range, it changes several-fold. Any ψ*-derived figure published without
+    this band overstates how well anyone knows the allowance.
 
     Returns one row per λ of interest — shipped default, AR6-implied, both ends of
     the AR6 likely range, and the derived historical value flagged as
@@ -226,8 +227,8 @@ def determinacy_map(
     """
     The determinacy map carrying BOTH uncertain axes — forcing and λ.
 
-    A budget exists iff λ·ΔT_max > F. Determinacy requires the WHOLE parameter
-    box to agree, so the thresholds are set by its corners:
+    A budget exists iff λ·ΔT_max > F. Determinacy requires the WHOLE parameter box to
+    agree, so its corners set the thresholds:
 
         determinately UNBUDGETED   ΔT ≤ F_lo / λ_hi   (the most favourable corner
                                                        still yields no budget)
@@ -244,15 +245,16 @@ def determinacy_map(
     giving 1.32 K GMST / 1.96 K TXx and a 3.90 K band. Report it alongside where
     a verdict sits close to a boundary.
 
-    Observed land TXx is already ~1.8 K, so even on the likely range the margin
-    between where the world is and the strongest determinate claim is about
-    0.65 K — and on the very-likely range it is 0.16 K. The single-axis map's
-    3.21 K claim was resting on a λ held fixed at a value nobody had assessed.
+    Observed land TXx is already ~1.8 K. So even on the likely range the margin between
+    where the world is and the strongest determinate claim is about 0.65 K, and on the
+    very-likely range it is 0.16 K. The single-axis map's 3.21 K claim was resting on a
+    λ held fixed at a value nobody had assessed.
 
-    λ DOMINATES. Holding one axis fixed at its centre, forcing alone contributes
-    1.25 K of indeterminate width and λ alone 2.57 K — λ is worth ~2.1× as much.
-    Narrowing λ therefore buys about twice the determinacy that narrowing the
-    forcing estimate would, which is where assessment effort should go.
+    λ MATCHES OR DOMINATES. Holding one axis fixed at its centre, forcing alone
+    contributes 1.25 K of indeterminate width. λ alone contributes 1.28 K on AR6's
+    likely range (the default, 1.03×) and 2.57 K on the very-likely range (2.1×), read
+    2026-10-18 from `attribution`. So narrowing λ buys at least as much determinacy as
+    narrowing the forcing estimate, and about twice as much on the wide range.
 
     units: K (GMST) and K (land TXx via C6). Bands default to the shipped IGCC
     forcing p05/p95 and the AR6 likely ECS range; pass narrower ones to see what
@@ -365,19 +367,17 @@ def thermal_verdict(
     THE HEADLINE. What the framework can determinately say at this threshold —
     and, where it cannot, saying so instead of returning a number.
 
-    Every ψ*-derived figure the thermal layer produces is conditional on a
-    (λ, F) pair. Reporting one without its determinacy verdict presents a point
-    estimate from inside a band where the sign itself is undetermined. Leading
-    with determinacy inverts that: the zone comes first, and the numbers are
-    released only where they mean something.
+    Every ψ*-derived figure the thermal layer produces is conditional on a (λ, F) pair.
+    One of them without its determinacy verdict is a point estimate from inside a band
+    where even the sign is open. Leading with determinacy inverts that: the zone comes
+    first, and the function releases numbers only where they mean something.
 
         determinate UNBUDGETED   every (λ, F) in the box gives no budget. The
                                  framework's strongest available claim: all
                                  net-additive dissipation is overshoot, and the
                                  overage is reportable.
-        INDETERMINATE            the box spans both regimes. `budget_tw` is None
-                                 by design — not missing, but withheld, because
-                                 asserting either sign would exceed the data.
+        INDETERMINATE            the box spans both regimes. `budget_tw` is None by
+        design: not missing but withheld, because either sign would exceed the data.
         determinate BUDGETED     every corner yields a budget; it is reportable
                                  as a lower bound.
 
@@ -463,12 +463,12 @@ def planck_feedback(t_emission: float = EARTH_EMISSION_TEMPERATURE_K) -> float:
     `WORLD_POPULATION`, `SLU_HECTARES` and `REFERENCE_FRAME_POPULATION` — a
     number governing the model while living in a comment.
 
-    THE BLACKBODY VALUE IS NOT THE PLANCK FEEDBACK, and the gap is the point.
-    3.761 assumes a single emitting surface at 255 K. The real Planck response
-    integrates over the atmospheric temperature profile and is ≈3.2 — the prose
-    figure. So this is an UPPER bound on the Planck term, and therefore a
-    conservative upper bound on λ itself: it errs in the direction of allowing
-    MORE λ than physics does, which is the safe direction for a gate.
+    THE BLACKBODY VALUE IS NOT THE PLANCK FEEDBACK, and the gap is the point. 3.761
+    assumes a single emitting surface at 255 K. The real Planck response integrates over
+    the atmospheric temperature profile and is ≈3.2 — the prose figure. So this is an
+    UPPER bound on the Planck term, and therefore a conservative upper bound on λ
+    itself. It errs toward allowing MORE λ than physics does, which is the safe
+    direction for a gate.
     """
     if t_emission <= 0.0:
         raise ValueError(f"t_emission must be > 0 K, got {t_emission}")
@@ -487,17 +487,16 @@ def lambda_admissibility(
         λ_total = λ_Planck − (water vapour + lapse rate + albedo + cloud)
         ⇒  λ_total < λ_Planck        whenever net feedbacks are amplifying
 
-    Every assessed feedback except lapse rate is amplifying, and the net is
-    robustly amplifying across every generation of assessment. So the Planck
-    term is a CEILING on λ, and a λ at or above it would imply net stabilising
-    feedbacks stronger than the blackbody response — not a tuning question but a
-    physical impossibility.
+    Every assessed feedback except lapse rate is amplifying, and the net is robustly
+    amplifying across every generation of assessment. So the Planck term is a CEILING on
+    λ. A λ at or above it would imply net stabilising feedbacks stronger than the
+    blackbody response: not a tuning question but a physical impossibility.
 
-    WHY IT MATTERS HERE. λ is, in this repo's own words, "THE most leveraged
-    parameter after delta_T_lo: every threshold is F/λ, linear in 1/λ". It is
-    carried as a chosen value inside an assessed range with no physical anchor
-    of any kind. This supplies the one anchor that exists — not to narrow the
-    range, which physics cannot do, but to say where the range CANNOT go.
+    WHY IT MATTERS HERE. λ is, in this repo's own words, "THE most leveraged parameter
+    after delta_T_lo: every threshold is F/λ, linear in 1/λ". It is a chosen value
+    inside an assessed range, with no physical anchor of any kind. This supplies the one
+    anchor that exists — not to narrow the range, which physics cannot do, but to say
+    where the range CANNOT go.
 
     Returns the bound, the margin, and `implied_net_feedback` — the amplifying
     feedback strength the shipped λ implies, which is the quantity a reader can

@@ -34,17 +34,10 @@ KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 
 
 class TestMeasuredWorkforceIsTheDefault:
-    """THE PIN THAT WAS MISSING, and its absence is the finding.
-
-    Swapping the default workforce from the synthetic `DEFAULT_SEGMENTS` to the
-    measured O*NET/BLS registry moved the Condition II mean 2.100 → 1.9964
-    (−4.93%) and **the full suite stayed green**. The quantity the multiplier
-    block exists to govern was pinned nowhere — the same shape as the
-    `GUF_PSI_NORM` fee-curve peak, found the same way, a week apart.
-
-    Two things are asserted, and the second is the one that matters:
-    the level, so the swap cannot silently reverse; and that the measured mean
-    sits inside the band on its OWN evidence rather than on the band's.
+    """Swapping the default workforce from `DEFAULT_SEGMENTS` to the measured O*NET/BLS
+    registry moved the Condition II mean 2.100 → 1.9964 (−4.93%), and the suite stayed
+    green. These tests pin the level, and that the measured mean sits inside the band on
+    its OWN evidence ([record](record/provenance.md#chain-audit-three-closures)).
     """
 
     def test_default_is_the_measured_registry_not_the_synthetic_tiers(self):
@@ -58,19 +51,10 @@ class TestMeasuredWorkforceIsTheDefault:
         )
 
     def test_measured_mean_is_bound_to_the_registry(self):
-        """MEAN_MULTIPLIER_REFERENCE is bound by TEST, not by expression.
-
-        `data.py` sits below `reference/` and cannot import it — the same
-        constraint `AGE_WEIGHT_ELDERLY` and `GUF_ECO_KAPPA_CARBON` are bound
-        under. So this fails whichever side moves alone: an O*NET/BLS vintage
-        refresh that changes the registry mean, or an edit to the constant that
-        is not backed by one.
-
-        It matters more than a usual freeze check because this constant is now
-        the default `mean_multiplier` in eleven core functions — the EOH→TEH
-        pipeline, teh_created, three fiscal functions, both price functions,
-        the simulation engine and condition_ii. It is the rate at which all TEH
-        is minted.
+        """A test binds MEAN_MULTIPLIER_REFERENCE to the registry, because data.py
+        cannot import `reference/`. It fails if either side moves alone. The constant is
+        the default `mean_multiplier` across core (pipeline, fiscal, prices,
+        simulation): the rate at which all TEH is minted.
         """
         from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
         from hours_eoh.reference.onet_multipliers import registry_segments
@@ -80,16 +64,11 @@ class TestMeasuredWorkforceIsTheDefault:
         )
 
     def test_the_operating_mean_is_not_the_band_target(self):
-        """The check and the thing checked must not be the same number.
-
-        Until 2026-08-16 eleven core functions defaulted to a bare 2.10 — which
-        is M_BAND_TARGET, a NORMATIVE charter decision, standing in for the
-        measured rate at which TEH is minted. Condition II then verified a
-        measured economy against a target it had been seeded with.
-
-        The two are now distinct, and this test exists to keep them that way.
-        If a future edit makes them equal again it is either a coincidence worth
-        stating explicitly or the same error returning.
+        """The check and the thing checked must not be the same number. Until 2026-08-16
+        core defaulted to a bare 2.10, the normative M_BAND_TARGET, so Condition II
+        checked the economy against the target it was seeded with
+        ([record](record/provenance.md#shadow-constants-wrong-denominator)). If the two
+        become equal again, say why.
         """
         from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE, M_BAND_TARGET
 
@@ -100,13 +79,10 @@ class TestMeasuredWorkforceIsTheDefault:
         )
 
     def test_the_measured_mean_is_inside_the_band_on_its_own_evidence(self):
-        """`in_band: True` meant strictly less before this change than after.
-
-        DEFAULT_SEGMENTS' means were reverse-engineered so the weighted mean
-        landed on 2.10 — the band's own ceiling — so the check could not fail
-        and told you nothing. The measured mean is not built from the band and
-        lands 0.104 BELOW the target, inside [1.8, 2.1] because the measured
-        workforce happens to be, which is a result rather than a construction.
+        """DEFAULT_SEGMENTS' means were set so the weighted mean landed on 2.10, the
+        band's own ceiling, so `in_band: True` could not fail. The measured mean is not
+        built from the band and lands 0.104 below the target, inside [1.8, 2.1]: a
+        result, not a construction.
         """
         measured = population_weighted_mean_multiplier()
         check = multiplier_band_check(measured)
@@ -124,9 +100,10 @@ class TestMeasuredWorkforceIsTheDefault:
 class TestMultiplierSystem:
 
     def test_synthetic_segments_still_reproduce_their_calibrated_mean(self):
-        """DEFAULT_SEGMENTS is retired, not deleted: it is the comparison the
-        measured default is measured against, and reproducing a pre-2026-08-16
-        figure means passing it explicitly."""
+        """DEFAULT_SEGMENTS is retired, not deleted, because the measured default is
+        compared against it. To reproduce a figure from before 2026-08-16, pass it
+        explicitly.
+        """
         mean = population_weighted_mean_multiplier(DEFAULT_SEGMENTS)
         assert mean == pytest.approx(2.10, abs=0.01), (
             f"Default segments should produce mean ≈ 2.10, got {mean:.4f}"
@@ -671,40 +648,17 @@ class TestAssessTier:
 
 
 class TestEpochAlphaWeightsShape:
-    """
-    THE SHAPE OF THE ε-RESPONSE — the thing `epoch_alpha_weights` exists to do,
-    and the thing nothing tested (found 2026-08-27).
-
-    THE EXISTING TESTS CANNOT FAIL. Three assertions covered this function:
-    the coefficients sum to ALPHA_SCALE, they are all positive, and there are
-    four of them. Every one is enforced BY CONSTRUCTION, not by the constants:
+    """These tests pin the SHAPE of the ε-response, which is what `epoch_alpha_weights`
+    exists to give. The earlier tests could not fail: the sum, the positivity and the
+    count are all enforced by construction, as the code shows:
 
         alphas   = [max(_ALPHA_FACTOR_MIN, a) for a in (...)]   # positivity
         absolute = tuple(a / total * ALPHA_SCALE for a in alphas)  # the sum
 
-    Dividing by the total and multiplying by ALPHA_SCALE makes the sum an
-    IDENTITY. Demonstrated rather than argued: setting all eight α constants to
-    absurd values (_ALPHA_TRAINING_BASE=99, _ALPHA_DEMAND_BASE=−7,
-    _ALPHA_SCARCITY_GROWTH=−11, …) leaves the sum at exactly 5.0 and every
-    weight positive at ε ∈ {0, 0.4, 0.99}. All three tests still passed.
-
-    So all eight α coefficients — Workstream A's own epoch-adaptive assessment
-    function, and eight of the repo's 57 shadow constants — were completely
-    unpinned, together with all four shape claims their docstring makes. This is
-    failure mode 1 (the unpinned quantity) reached through failure mode 6 (an
-    assertion that cannot fire): the tests read as coverage and tested the
-    normalizer.
-
-    NOTE `epoch_alpha_weights` is DEPRECATED in favour of the geometric map, and
-    that replacement IS properly pinned — `test_reference_multiplier` asserts
-    `epoch_factor_weights`' impact rise, its ε=0.40 anchor and its clamping. A
-    deprecated function with unfalsifiable tests is nonetheless worth fixing
-    rather than deleting: it is still exported, still consumes eight named
-    constants, and its passing tests are counted as coverage of them.
-
-    These tests pin the four claims the docstring makes. They are SHAPE
-    assertions (monotonicity, the location of a peak, an ordering), not levels,
-    because the levels are calibration and will move.
+    With all eight α constants set to absurd values, all three tests still passed (found
+    2026-08-27). The function is deprecated but still exported and run by the
+    `multiplier` CLI. The assertions are shapes, not levels, because the levels are
+    calibration ([record](record/verification.md#test-suite-audited-pin-coverage)).
     """
 
     ARC = [0.0, 0.2, 0.4, 0.6, 0.8, 0.99]
@@ -764,20 +718,16 @@ class TestEpochAlphaWeightsShape:
         (0.99, (1.98, 1.06, 1.71, 0.25)),
     ])
     def test_the_docstring_example_values_are_true(self, eps, expected):
-        """
-        The docstring publishes worked values. This repo has had doc figures go
-        stale four separate times, so the published numbers are pinned to the
-        code that produces them.
+        """The function's docstring publishes worked values, and this test pins them to
+        the code that produces them.
         """
         got = epoch_alpha_weights(eps)
         assert got == pytest.approx(expected, abs=0.01)
 
     def test_the_sum_invariant_is_an_identity_and_that_is_recorded(self):
-        """
-        STATING THE CHECKER'S GAP, per the repo's own rule. The sum-to-
-        ALPHA_SCALE assertion above is worth keeping — it guards the normalizer
-        — but it is NOT evidence about the α constants, and this test says so in
-        a form that fails if the normalization is ever removed.
+        """STATED GAP: the sum-to-ALPHA_SCALE assertion guards the normalizer, not the α
+        constants. This test says so in a form that fails if the normalization is ever
+        removed.
         """
         import hours_eoh.core.multipliers as M
 

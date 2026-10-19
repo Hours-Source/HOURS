@@ -5,7 +5,6 @@ Covers: deferred_maintenance_crisis, care_registration_delay.
 """
 
 import pytest
-from hours_eoh.scenarios.maintenance import _IRREVERSIBILITY_MULTIPLE
 from hours_eoh.scenarios.maintenance import (
     deferred_maintenance_crisis,
     care_registration_delay,
@@ -78,7 +77,7 @@ class TestCareRegistrationDelay:
 
     def test_teh_deficit_non_negative(self):
         result = care_registration_delay(epsilon=0.60, delay_epsilon=0.15)
-        assert result["teh_deficit_per_worker"] >= 0.0
+        assert result["care_teh_deficit_per_care_hour"] >= 0.0
 
     def test_outcome_is_valid(self):
         for delay in (0.0, 0.10, 0.30):
@@ -92,27 +91,13 @@ class TestCareRegistrationDelay:
 
 
 class TestTheIrreversibilityThreshold:
-    """
-    `_IRREVERSIBILITY_MULTIPLE`, pinned — AND TWO DEFECTS IT UNCOVERED
-    (2026-08-28).
-
-    It is a shadow constant in `scenarios/maintenance.py` that a +7% move left
-    undetected. Asking WHY it was undetectable found that its output never
-    reached the caller at all:
-
-      1. `failure_boundary`, documented as "year of irreversibility", RETURNED
-         `crisis_year` — a value already returned under its own key. The
-         quantity the field names was computed and discarded.
-      2. `outcome` came from the compounding ratio alone, so at 20 years of zero
-         maintenance the function returned **outcome=STABLE** beside a
-         recommendation reading "Deferred maintenance exceeds 5× annual EOH at
-         year 5. Rebuilding required." The machine-readable field contradicted
-         the human-readable one.
-
-    Both are the reported-value-is-not-the-computed-value failure this repo has
-    hit before (`psi` vs `psi_applied`). Neither failed a test, because nothing
-    asserted either field against a neglected asset — which is exactly what an
-    unpinned constant lets happen downstream of itself.
+    """The year of irreversibility, pinned. The search for why
+    `_IRREVERSIBILITY_MULTIPLE` (retired 2026-10-04) moved undetected found two defects
+    (2026-08-28). `failure_boundary` returned `crisis_year`, so the year it names was
+    computed and discarded. And `outcome` read STABLE after 20 years of zero
+    maintenance, beside a recommendation to rebuild. Both are the reported-value failure
+    (`psi` against `psi_applied`)
+    ([record](record/fulfilment.md#irreversibility-derived)).
     """
 
     def test_the_failure_year_is_actually_returned(self):
@@ -151,15 +136,96 @@ class TestTheIrreversibilityThreshold:
             years.append(r["failure_boundary"] or 10**6)
         assert years == sorted(years), f"worse neglect must fail sooner: {years}"
 
-    def test_failure_is_declared_at_the_declared_multiple(self):
-        """Binds the constant to the behaviour rather than restating 5.0."""
-        annual = 1_000_000.0
-        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=annual,
+    def test_failure_is_declared_at_the_derived_crossover(self):
+        """The year of irreversibility is the first year the condition ratio falls below
+        `rebuild_crossover_ratio`, read from the functions (2026-10-04). The 5× backlog
+        multiple is gone.
+        """
+        from hours_eoh.core.capital import asset_condition_trajectory
+        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
                                         fulfillment_fraction=0.0, years=30)
-        fy = r["failure_boundary"]
-        assert fy is not None
-        row = next(t for t in r["trajectory"] if t["year"] == fy)
-        assert row["total_obligation"] > annual * _IRREVERSIBILITY_MULTIPLE
-        prev = [t for t in r["trajectory"] if t["year"] == fy - 1]
-        if prev:
-            assert prev[0]["total_obligation"] <= annual * _IRREVERSIBILITY_MULTIPLE
+        fy, x = r["failure_boundary"], r["rebuild_crossover"]
+        assert fy is not None and 0.0 < x < 1.0
+        cond = asset_condition_trajectory(1.0, 1.0, 0.0, fy)
+        full = asset_condition_trajectory(1.0, 1.0, 1.0, fy)
+        ratio = [c["condition"] / f["condition"] for c, f in zip(cond, full)]
+        assert ratio[fy - 1] < x and all(q >= x for q in ratio[:fy - 1])
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_an_older_stock_crosses_sooner_across_the_arc(self, eps):
+        """Age reaches the clock through upkeep intensity: an older stock costs
+        more to keep relative to its value, so rebuilding wins sooner."""
+        years = [deferred_maintenance_crisis(eps, 1e6, 0.5, 60, capital_age_ratio=a)
+                 ["failure_boundary"] for a in (0.0, 0.3, 0.75)]
+        assert None not in years and years == sorted(years, reverse=True), years
+
+
+class TestDeferralAgainstTheOverbuildFloor:
+    """On a frame (2026-10-03), each year is read against the overbuild floor:
+    compounding joins upkeep, and the neglected stock abates at its condition ratio. An
+    unframed result carries none of this.
+    """
+
+    @staticmethod
+    def _run(fraction, years, population=1e6, eps=0.40):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
+        k = resolve_capital_stock(None, eps, population=population)
+        annual = total_eoh(epsilon=eps, population=population, capital_stock=k)["infrastructure"]
+        return deferred_maintenance_crisis(eps, annual, fraction, years,
+                                           population=population, capital_stock_teh=k)
+
+    def test_unframed_is_unchanged(self):
+        r = deferred_maintenance_crisis(0.40, 100_000.0, 0.85, 10)
+        assert not any(k.startswith(("overbuild", "writedown")) for k in r)
+        assert "overbuild_margin" not in r["trajectory"][0]
+
+    def test_it_can_fire_and_can_not_fire(self):
+        """Mode 9, both questions: chronic under-service for a decade still
+        pays; full neglect crosses the write-down threshold and then the floor."""
+        mild, neglect = self._run(0.85, 10), self._run(0.0, 30)
+        assert mild["overbuild_year"] is None and mild["overbuild_outcome"] == "STABLE"
+        assert neglect["failure_boundary"] is not None and neglect["overbuild_year"] is not None
+        assert neglect["overbuild_outcome"] in ("DEGRADED", "CRISIS")
+        assert neglect["outcome"] != "STABLE"
+
+    def test_the_overbuild_reading_is_frame_invariant(self):
+        runs = [(p, self._run(0.5, 30, population=p)) for p in (1e5, 1e6, 1e7)]
+        assert len({(r["overbuild_year"], r["failure_boundary"], r["outcome"]) for _, r in runs}) == 1
+        per = [r["overbuild_margin_after"] / p for p, r in runs]
+        assert max(per) == pytest.approx(min(per), rel=1e-9)
+
+    def test_a_worn_stock_does_less_of_the_work(self):
+        """Capacity reaches the labour test. Under full neglect the worn machines carry
+        less, so the overbuild reading is CRISIS, not the DEGRADED that an unworn ε
+        gave.
+        """
+        r = self._run(0.0, 30)
+        assert r["capacity_after"] == r["trajectory"][-1]["capacity"] < 0.01
+        assert r["overbuild_outcome"] == "CRISIS"
+
+    def test_the_frame_is_both_or_neither(self):
+        with pytest.raises(ValueError):
+            deferred_maintenance_crisis(0.40, 100_000.0, 0.85, 10, population=1e6)
+
+
+class TestTheDegradedRatio:
+    """One value with the dashboard since 2026-10-03, settable."""
+
+    def test_it_can_be_set(self):
+        assert deferred_maintenance_crisis(0.40, 1e9, 0.85, 10)["outcome"] == "STABLE"
+        assert deferred_maintenance_crisis(0.40, 1e9, 0.85, 10,
+                                           degraded_compounding=0.04)["outcome"] == "DEGRADED"
+        with pytest.raises(ValueError):
+            deferred_maintenance_crisis(0.40, 1e9, 0.85, 10, degraded_compounding=0.9)
+
+    @pytest.mark.parametrize("asset_type", sorted(__import__("hours_eoh.data", fromlist=["ASSET_TYPES"]).ASSET_TYPES))
+    def test_the_dead_band_the_data_note_states(self, asset_type):
+        """data.py's COMPOUNDING_WARN note says the ratio stays under 0.10 below the
+        threshold age and reaches COMPOUNDING_CRIT in one step. So the DEGRADED ratio
+        cannot fire alone in [0.10, 0.50]. If an asset profile changes so it can, the
+        note is stale.
+        """
+        from hours_eoh.data import COMPOUNDING_CRIT
+        tr = deferred_maintenance_crisis(0.40, 1e9, 0.5, 300, asset_type=asset_type)["trajectory"]
+        crit = next(x["year"] for x in tr if x["compounding_ratio"] >= COMPOUNDING_CRIT)
+        assert max(x["compounding_ratio"] for x in tr if x["year"] < crit) <= 0.10

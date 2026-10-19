@@ -154,6 +154,14 @@ AGE_WEIGHT_CHILD: float = 1.82
 #   relative to working age. The ONE band where both terms are measured:
 #   207.1 min/day self-maintenance + 30.5 care = 237.5 against working age's
 #   160.2, giving 1.4824, adopted at 1.48.
+# note: THE MEASUREMENT IT WAS ADOPTED FROM WAS DEFECTIVE (found 2026-10-02).
+#   ATUS codes eldercare recipients aged 80–84 as 80 (TEAGE_EC, 2024 data
+#   dictionary): the 80 cell was divided by the age-80 population alone, and
+#   ages 81–84 found no cell in the band average and dropped out (6.09M
+#   people). Corrected, the band reads 1.4680 (→ 1.47) and
+#   AGE_CARE_SHARE_ELDERLY 0.120525. NOT re-adopted here: 27 pins move and the knowledge-base fixed
+#   point with them (total EOH −0.15 to −0.25%), so it is the author's call.
+#   Both sides are pinned until then.
 # note: measured 2026-08-10 from ATUS 2021–25 pooled with Census 2025
 #   denominators (scenario run care_curve), replacing a shipped 2.5 that was
 #   asserted. Bound to the measurement by test rather than by expression —
@@ -190,7 +198,8 @@ AGE_WEIGHT_ELDERLY: float = 1.48
 # errs: LOW for the elderly share — 30.5 min/day is a mean over 35 years of age
 #   and EXCLUDES the institutional population by construction, which is where
 #   the terminal-window load concentrates. The two ATUS routes for this figure
-#   disagree 7.1x (`care_demand.elderly_route_disagreement`), unreconciled.
+#   disagree ~5.5x (`care_demand.elderly_route_disagreement` returns it; 7.1x
+#   before the 80–84 bin was corrected, 2026-10-02), unreconciled.
 AGE_CARE_SHARE_INFANT: float = 1.000000
 AGE_CARE_SHARE_CHILD: float = 0.887261
 AGE_CARE_SHARE_WORKING_AGE: float = 0.043861
@@ -203,10 +212,12 @@ AGE_CARE_SHARE_ELDERLY: float = 0.128292
 #   an adult: an adult receiving care is doing so because of impairment, and the
 #   load tracks morbidity — which is where an actuarial table plugs in and where
 #   the compression/expansion question lives.
-# note: THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share,
-#   dependant care is ~83% of measured care and frailty care ~12% (the balance
-#   is working-age care, itself frailty-keyed). An LTC actuarial table therefore
-#   settles about an eighth of care; it does not settle care.
+# note: THE SPLIT IS 89/11 BY VOLUME, NOT 50/50. Weighted by population share,
+#   dependant care is ~89% of measured care and frailty care ~11%: elderly ~5%
+#   and working-age ~6%, both frailty-keyed (re-read 2026-10-17). It read 83/12
+#   when written on 2026-09-04, a figure the tree at that commit does not
+#   reproduce (both routes read ~88/12 there). An LTC actuarial table therefore
+#   settles about a ninth of care; it does not settle care.
 # decided_by: AWol 2026-09-04 — a classification, not a measurement. No dataset
 #   says which driver a band belongs to; the age ranges do.
 AGE_CARE_KEY_INFANT: str = "dependant"
@@ -268,9 +279,10 @@ CAPACITY_MEASUREMENT_BAND: tuple[int, int] = (18, 69)
 #   nothing moves; what changes is that the assertion is now visible, and that
 #   a demographic shock moves supply and demand together instead of only one.
 # confidence: 15 — the ORDERING is defensible (an infant supplies nothing, a
-#   working-age adult is the numeraire) and the LEVELS for child and elderly are
-#   not measured at all. They are set to 0.0 to preserve the shipped arithmetic,
-#   not because zero was measured.
+#   working-age adult is the numeraire). The SHIPPED child and elderly levels
+#   are not the measured ones: they are set to preserve the shipped arithmetic,
+#   not because zero was measured. The measured levels exist since 2026-10-08
+#   (note below) and are not adopted; whether this figure moves is the author's.
 # errs: LOW — a zero here understates supply, which makes every feasibility test
 #   HARDER to pass. That is the safe direction: the failure to avoid is a model
 #   that reports a population as self-sustaining when it is not. A 12-year-old
@@ -302,12 +314,23 @@ CAPACITY_MEASUREMENT_BAND: tuple[int, int] = (18, 69)
 #   documented as a LOWER bound, so demand is understated too by an unmeasured
 #   amount. A one-sided fix that dissolves the finding is the outcome
 #   `tests/test_measured_capacity.py` warns against by name.
-# resolves_by: entropy-resistance labour BY AGE BAND — paid work plus unpaid
-#   domestic work plus childcare, the same three fields `measured_capacity`
-#   counts, tabulated for under-18 and over-64 rather than pooled over 18-69.
-#   MTUS carries the underlying diaries; the shipped extract does not carry that
-#   cut. Settling the elderly weight needs only the band split, which is a
-#   narrower ask than the child weight.
+# resolves_by: A DEMAND-SIDE MEASUREMENT OF THE OVER-69 OBLIGATION, or the
+#   author adopting the measured supply side alone. The supply-side cut this
+#   field asked for — the three `measured_capacity` fields by age band — ships
+#   since 2026-10-08 (note below); what holds the weights is the objection that
+#   AGE_WEIGHT_ELDERLY is a lower bound. Under-15s stay unmeasured: no US MTUS
+#   sample surveys them.
+# note: THE CUT NOW SHIPS, 2026-10-08 — `mtus_capacity_by_age.csv`, the same
+#   file, weight and three fields by single year of age (it reproduces
+#   `measured_capacity` over 18-69 for all 50 samples). On US2024 against the
+#   US census: over-69s supply 0.489 of c and 15-17s 0.264, which would make the
+#   child weight 0.070 and the elderly 0.647, and the adult share 0.733 against
+#   0.659. NOT ADOPTED: 85% of the over-69 hours are unpaid domestic work
+#   (159.1 of 186.5 min/day), the household activity the demand side counts with
+#   `AGE_WEIGHT_ELDERLY` still a lower bound —
+#   the one-sided fix the alignment declined. Call
+#   `feasibility.measured_capacity_weights()`; see
+#   record/personal.md#capacity-weights-measured.
 AGE_CAPACITY_WEIGHT_INFANT: float = 0.0
 AGE_CAPACITY_WEIGHT_CHILD: float = 0.0
 AGE_CAPACITY_WEIGHT_WORKING_AGE: float = 1.0
@@ -350,6 +373,8 @@ AGE_CAPACITY_WEIGHT_ELDERLY: float = 0.3083
 #   actually needs — a caller wanting the population split should read
 #   AGE_GROUP_FRACTIONS and see the `instance` tag telling them to supply
 #   their own.
+# resolves_by: n/a — it inherits the standing of each AGE_* constant it assembles —
+#   AGE_CAPACITY_WEIGHT_* placeholders among them — and the debt is counted there.
 AGE_GROUPS: dict[str, dict] = {
     name: {
         "range": AGE_GROUP_RANGES[name],
@@ -414,7 +439,8 @@ ASSET_TYPES: dict[str, dict] = {
 # tiers: shorthand specs per named tier.
 #   teh_per_capita: TEH value per person (scaled by population at call time).
 #   default_age: assumed age in years when tier is used without explicit age.
-#   default_condition: assumed condition ∈ [0,1] when tier is used without explicit condition.
+#   (condition: none per tier since 2026-10-04 — it follows from default_age on
+#   civilization's age-efficiency curve; it was a hand-set copy of a curve.)
 #
 # Calibration rationale:
 #   A civilization with all types at "standard" tier totals ~2000 TEH/person
@@ -445,16 +471,49 @@ ASSET_TYPES: dict[str, dict] = {
 #   zero-versus-adequate maintenance. NOT the ASCE report-card grades, which
 #   are an aggregate letter and cannot resolve a per-period rate.
 ASSET_FULL_NEGLECT_DECAY:      float = 0.20  # condition drop per period at zero maintenance
+# tag: placeholder | units: condition ∈ [0, 1]
+# form: the condition below which an asset is written down — "the maintenance
+#   labour required to restore function exceeds the labour required to
+#   rebuild" (`core.capital.writedown_trigger`). NAMED 2026-10-04: it was a bare
+#   0.20 default in `writedown_trigger` and copied into
+#   `eoh_dynamics.maintenance_strategy_compare` with a comment saying it matched.
+# resolves_by: the same FHWA NBI panel as ASSET_FULL_NEGLECT_DECAY — the
+#   condition rating at which structures are replaced rather than repaired.
+# confidence: 5 — nothing in it is measured; it was a bare default. Where an
+#   asset's upkeep against its value is known the write-down point is DERIVED
+#   instead (`capital.rebuild_crossover_ratio`, the maintenance scenario's one
+#   clock); this generic value governs only `writedown_trigger`'s default and
+#   `eoh_dynamics.maintenance_strategy_compare`.
+ASSET_WRITEDOWN_CONDITION:     float = 0.20
 # tag: placeholder | units: fraction of condition per period
 # form: the over-maintenance arm of the same response —
 #   condition += surplus × RESTORE_RATE × condition, bounded above by the
-#   initial condition. See ASSET_FULL_NEGLECT_DECAY for the pair and for why
+#   MAINTAINED path via `asset_condition_trajectory` (what full upkeep would
+#   have left — 2026-10-04; it was the current condition, so nothing ever
+#   restored); `asset_condition` alone still caps at its `initial_condition`. See ASSET_FULL_NEGLECT_DECAY for the pair and for why
 #   the 4x asymmetry between them is the defensible part.
 # resolves_by: as for ASSET_FULL_NEGLECT_DECAY — FHWA NBI condition ratings
 #   against maintenance expenditure. FIELD: the rating change for structures
 #   maintained ABOVE their assessed need, which is the rarer half of that
 #   panel and the reason this arm is the weaker of the two.
 ASSET_OVER_MAINT_RESTORE_RATE: float = 0.05  # condition restore per unit surplus maintenance
+# tag: normative | units: multiple of the period's maintenance demand
+# decided_by: how much upkeep a period can usefully absorb above its demand —
+#   the most surplus effort the restore arm credits. It sets the fastest
+#   catch-up, and with it the rebuild crossover (`capital.rebuild_crossover_ratio`).
+#   Named 2026-10-04 from a bare 2.0 in `asset_condition`.
+ASSET_MAX_MAINTENANCE_QUALITY: float = 2.0
+# tag: placeholder | units: fraction of condition per year
+# form: an asset's unavoidable wear under FULL maintenance — the maintained
+#   path `asset_condition_trajectory` carries, and the ceiling restoration
+#   climbs to. Split 2026-10-04 from HUMAN_CAPITAL_NATURAL_DECAY, which the
+#   asset functions read although it names a person's functional decline;
+#   same value, so nothing moved — the two are now free to differ.
+# resolves_by: the FHWA NBI panel named for ASSET_FULL_NEGLECT_DECAY — FIELD:
+#   the year-on-year rating change for structures under ADEQUATE maintenance.
+# confidence: 5 — not measured; inherited from the human-capital rate it was
+#   read through, which is itself a placeholder.
+ASSET_NATURAL_WEAR_RATE:       float = 0.005
 # tag: placeholder | units: EOH capacity per year; EOH capacity per TEH^exponent; dimensionless
 # form: core/capital.maturation_update —
 #     capacity_delta = BASE_GROWTH × years
@@ -503,10 +562,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.15,
         "design_life": 40,
         "tiers": {
-            "minimal":  {"teh_per_capita":   80, "default_age": 35, "default_condition": 0.58},
-            "basic":    {"teh_per_capita":  160, "default_age": 25, "default_condition": 0.72},
-            "standard": {"teh_per_capita":  380, "default_age": 15, "default_condition": 0.82},
-            "advanced": {"teh_per_capita":  950, "default_age":  8, "default_condition": 0.92},
+            "minimal":  {"teh_per_capita":   80, "default_age": 35},
+            "basic":    {"teh_per_capita":  160, "default_age": 25},
+            "standard": {"teh_per_capita":  380, "default_age": 15},
+            "advanced": {"teh_per_capita":  950, "default_age":  8},
         },
     },
     "water_treatment": {
@@ -515,10 +574,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.18,
         "design_life": 50,
         "tiers": {
-            "minimal":  {"teh_per_capita":   40, "default_age": 40, "default_condition": 0.60},
-            "basic":    {"teh_per_capita":   80, "default_age": 25, "default_condition": 0.73},
-            "standard": {"teh_per_capita":  180, "default_age": 20, "default_condition": 0.83},
-            "advanced": {"teh_per_capita":  450, "default_age": 10, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   40, "default_age": 40},
+            "basic":    {"teh_per_capita":   80, "default_age": 25},
+            "standard": {"teh_per_capita":  180, "default_age": 20},
+            "advanced": {"teh_per_capita":  450, "default_age": 10},
         },
     },
     # --- Healthcare ---
@@ -529,10 +588,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.22,
         "design_life": 20,
         "tiers": {
-            "minimal":  {"teh_per_capita":   60, "default_age": 18, "default_condition": 0.65},
-            "basic":    {"teh_per_capita":  120, "default_age": 12, "default_condition": 0.76},
-            "standard": {"teh_per_capita":  280, "default_age":  8, "default_condition": 0.85},
-            "advanced": {"teh_per_capita":  700, "default_age":  4, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":   60, "default_age": 18},
+            "basic":    {"teh_per_capita":  120, "default_age": 12},
+            "standard": {"teh_per_capita":  280, "default_age":  8},
+            "advanced": {"teh_per_capita":  700, "default_age":  4},
         },
     },
     # --- Food and ecology ---
@@ -543,10 +602,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.18,
         "design_life": 15,
         "tiers": {
-            "minimal":  {"teh_per_capita":   20, "default_age": 12, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":   45, "default_age":  8, "default_condition": 0.74},
-            "standard": {"teh_per_capita":   90, "default_age":  5, "default_condition": 0.84},
-            "advanced": {"teh_per_capita":  225, "default_age":  2, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":   20, "default_age": 12},
+            "basic":    {"teh_per_capita":   45, "default_age":  8},
+            "standard": {"teh_per_capita":   90, "default_age":  5},
+            "advanced": {"teh_per_capita":  225, "default_age":  2},
         },
     },
     "environmental_monitoring": {
@@ -557,10 +616,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.00,
         "design_life": 12,
         "tiers": {
-            "minimal":  {"teh_per_capita":    4, "default_age": 10, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":    8, "default_age":  7, "default_condition": 0.76},
-            "standard": {"teh_per_capita":   18, "default_age":  4, "default_condition": 0.87},
-            "advanced": {"teh_per_capita":   45, "default_age":  2, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":    4, "default_age": 10},
+            "basic":    {"teh_per_capita":    8, "default_age":  7},
+            "standard": {"teh_per_capita":   18, "default_age":  4},
+            "advanced": {"teh_per_capita":   45, "default_age":  2},
         },
     },
     # --- Industrial and logistics ---
@@ -571,10 +630,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.02,
         "design_life": 20,
         "tiers": {
-            "minimal":  {"teh_per_capita":   40, "default_age": 18, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":   80, "default_age": 12, "default_condition": 0.74},
-            "standard": {"teh_per_capita":  180, "default_age":  8, "default_condition": 0.84},
-            "advanced": {"teh_per_capita":  450, "default_age":  4, "default_condition": 0.94},
+            "minimal":  {"teh_per_capita":   40, "default_age": 18},
+            "basic":    {"teh_per_capita":   80, "default_age": 12},
+            "standard": {"teh_per_capita":  180, "default_age":  8},
+            "advanced": {"teh_per_capita":  450, "default_age":  4},
         },
     },
     "transportation": {
@@ -584,10 +643,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.06,
         "design_life": 30,
         "tiers": {
-            "minimal":  {"teh_per_capita":   40, "default_age": 25, "default_condition": 0.63},
-            "basic":    {"teh_per_capita":   80, "default_age": 18, "default_condition": 0.74},
-            "standard": {"teh_per_capita":  180, "default_age": 12, "default_condition": 0.83},
-            "advanced": {"teh_per_capita":  450, "default_age":  6, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   40, "default_age": 25},
+            "basic":    {"teh_per_capita":   80, "default_age": 18},
+            "standard": {"teh_per_capita":  180, "default_age": 12},
+            "advanced": {"teh_per_capita":  450, "default_age":  6},
         },
     },
     # --- Knowledge and computing ---
@@ -598,10 +657,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.01,
         "design_life": 6,
         "tiers": {
-            "minimal":  {"teh_per_capita":   20, "default_age": 5, "default_condition": 0.60},
-            "basic":    {"teh_per_capita":   45, "default_age": 3, "default_condition": 0.76},
-            "standard": {"teh_per_capita":  100, "default_age": 2, "default_condition": 0.88},
-            "advanced": {"teh_per_capita":  250, "default_age": 1, "default_condition": 0.96},
+            "minimal":  {"teh_per_capita":   20, "default_age": 5},
+            "basic":    {"teh_per_capita":   45, "default_age": 3},
+            "standard": {"teh_per_capita":  100, "default_age": 2},
+            "advanced": {"teh_per_capita":  250, "default_age": 1},
         },
     },
     "software": {
@@ -611,10 +670,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.01,
         "design_life": 8,
         "tiers": {
-            "minimal":  {"teh_per_capita":   10, "default_age": 6, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":   25, "default_age": 4, "default_condition": 0.74},
-            "standard": {"teh_per_capita":   60, "default_age": 2, "default_condition": 0.86},
-            "advanced": {"teh_per_capita":  150, "default_age": 1, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":   10, "default_age": 6},
+            "basic":    {"teh_per_capita":   25, "default_age": 4},
+            "standard": {"teh_per_capita":   60, "default_age": 2},
+            "advanced": {"teh_per_capita":  150, "default_age": 1},
         },
     },
     # --- Built environment ---
@@ -625,10 +684,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.08,
         "design_life": 60,
         "tiers": {
-            "minimal":  {"teh_per_capita":   80, "default_age": 50, "default_condition": 0.68},
-            "basic":    {"teh_per_capita":  160, "default_age": 30, "default_condition": 0.77},
-            "standard": {"teh_per_capita":  380, "default_age": 20, "default_condition": 0.84},
-            "advanced": {"teh_per_capita":  950, "default_age": 10, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   80, "default_age": 50},
+            "basic":    {"teh_per_capita":  160, "default_age": 30},
+            "standard": {"teh_per_capita":  380, "default_age": 20},
+            "advanced": {"teh_per_capita":  950, "default_age": 10},
         },
     },
     "generic_infra": {
@@ -638,31 +697,54 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.02,
         "design_life": 40,
         "tiers": {
-            "minimal":  {"teh_per_capita":   12, "default_age": 35, "default_condition": 0.63},
-            "basic":    {"teh_per_capita":   30, "default_age": 25, "default_condition": 0.74},
-            "standard": {"teh_per_capita":   54, "default_age": 15, "default_condition": 0.83},
-            "advanced": {"teh_per_capita":  135, "default_age":  8, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   12, "default_age": 35},
+            "basic":    {"teh_per_capita":   30, "default_age": 25},
+            "standard": {"teh_per_capita":   54, "default_age": 15},
+            "advanced": {"teh_per_capita":  135, "default_age":  8},
         },
     },
 }
 
 # ---------------------------------------------------------------------------
-# Capital condition derivation constants (used in civilization.py)
-# Linear decay: condition = 1.0 - COND_DECAY_SLOPE × (age/design_life),
-# floored at COND_DECAY_FLOOR so end-of-life assets remain operational
-# (full write-down is a separate explicit event via execute_writedown).
+# Capital condition from age (used in civilization.py) — the BLS age-efficiency
+# curve since 2026-10-04: efficiency = (1 − x) / (1 − β·x), x = age / service
+# life, floored at COND_DECAY_FLOOR so an asset still in service keeps a share
+# of its capacity (full write-down is a separate event via execute_writedown).
 # ---------------------------------------------------------------------------
-# tag: placeholder | units: fraction of condition (slope over full design life; floor level) | family: COND_DECAY_*
-# form: linear decay to a floor. Physics in one respect — an end-of-life asset
-#   is degraded but still operational, so the floor must be above zero (full
-#   write-down is a separate explicit event via execute_writedown). The
-#   linearity is a simplification; real condition curves are convex.
+# tag: convention | units: dimensionless — the hyperbolic shape parameter | family: AGE_EFFICIENCY_BETA_*
+# form: BLS's age-efficiency function for productive capital stocks,
+#   S_t = (L − t) / (L − β·t): efficiency relative to a new asset, slow loss
+#   early and fast late. It measures PRODUCTIVE EFFICIENCY, not price — the
+#   quantity `condition` is in `machine_eoh_from_capital`, where it multiplies
+#   what a unit of capital does. BLS Handbook of Methods, "Industry
+#   productivity — calculation" (bls.gov/opub/hom/inp/calculation.htm), read
+#   2026-10-04: "assumed to be 0.5 for equipment and 0.75 for structures".
+# note: REPLACED the linear COND_DECAY_SLOPE (0.70 lost over a design life, a
+#   placeholder whose own note said "real condition curves are convex"). BLS is
+#   silent on IPP; software and R&D take the equipment β — a judgement, stated.
+#   BLS applies the curve over a normal distribution of service lives and
+#   retires to zero; applied here at a stock's MEAN age with a floor, so the
+#   derived condition errs HIGH (a concave curve at the mean overstates the
+#   mean of the curve), in the same direction as BEA's net-stock-weighted ages.
+AGE_EFFICIENCY_BETA_EQUIPMENT:  float = 0.5
+AGE_EFFICIENCY_BETA_STRUCTURES: float = 0.75
+# tag: placeholder | units: fraction of condition
+# form: the condition of an asset still in service at or past the end of its
+#   life — the floor must be above zero (write-down is a separate event).
 # resolves_by: measured condition ratings against age by asset class. Bridge
-#   inventories publish exactly this (the NBIS condition data behind
-#   INFRA_TREATMENT_HOURS_* is the same source), so this is reconcilable
-#   against data the repo already reaches for elsewhere.
-COND_DECAY_SLOPE: float = 0.70   # fractional condition lost over full design life
+#   inventories publish exactly this (FHWA NBI, the source behind
+#   INFRA_TREATMENT_HOURS_*). Under BLS the curve reaches zero at end of life
+#   over a DISTRIBUTION of lives; this floor stands in for that distribution.
 COND_DECAY_FLOOR: float = 0.30   # minimum condition for an asset still in service
+# tag: measured | units: share of value, current cost
+# form: structures' share of the US stock that carries both an age and a BEA
+#   service life ('government' scope, current cost, 2024) — the blend between
+#   the two BLS curves for a stock whose mix is not stated
+#   (`civilization.condition_from_age_ratio`). Frozen here because data.py
+#   cannot import the scenario layer; a test holds it to `stock_age_ratio`.
+# note: the unclassed path reads the US mix, as the default age reads the US
+#   age (CAPITAL_AGE_RATIO_DEFAULT): one economy standing in for one not stated.
+CAPITAL_STRUCTURES_SHARE_DEFAULT: float = 0.788
 
 # Environmental monitoring saturation constant: at this many TEH per capita
 # of environmental_monitoring capital, monitoring_capability reaches 1.0.
@@ -679,20 +761,26 @@ ENV_MONITORING_SATURATION_TEH_PER_CAPITA: float = 500.0
 # ---------------------------------------------------------------------------
 # Essential domains for Condition IV (Distributed Competency)
 # Mission Statement: §"Condition IV" — agriculture, construction, energy,
-# water, healthcare, manufacturing, and logistics.
+# water, healthcare, manufacturing, and logistics; and CARE (author, 2026-10-01).
 # ---------------------------------------------------------------------------
 # provenance-block: Labor and Condition IV
 # tag: normative | units: list of domain names
 # form: physics-adjacent — a civilization does have a set of functions whose
-#   failure is not survivable, so the CATEGORY is structural. Which seven, and
-#   the fact that there are seven, is not.
-# decided_by: a criticality analysis for the jurisdiction being modelled —
-#   national critical-infrastructure sector designations are the nearest
-#   external analogue, and they do not agree with each other on the list
-#   either.
+#   failure is not survivable, so the CATEGORY is structural. Which domains,
+#   and how many, is not.
+# note: CARE ADDED 2026-10-01 (author: "add care as an eighth essential
+#   domain"). Care is 62% of the personal obligation and the least abatable
+#   component; with no domain of its own it was set against healthcare, and
+#   at the Condition IV minimum that left the agents' own needs without
+#   competent hands over most of the upper arc. Its paid counterparts are SOC
+#   31 (healthcare support) and 39 (personal care) in `reference/obligation_work`.
+# decided_by: the author (2026-10-01, care) on the Mission Statement's seven —
+#   a criticality analysis for the jurisdiction being modelled. National
+#   critical-infrastructure sector designations are the nearest external
+#   analogue, and they do not agree with each other on the list either.
 ESSENTIAL_DOMAINS: list[str] = [
     "agriculture", "construction", "energy", "water",
-    "healthcare", "manufacturing", "logistics",
+    "healthcare", "manufacturing", "logistics", "care",
 ]
 # tag: placeholder | units: fraction of workforce certified per essential domain
 # resolves_by: an observed relationship between practitioner density and
@@ -701,6 +789,7 @@ ESSENTIAL_DOMAINS: list[str] = [
 #   itself the tell. Workforce composition series plus outage post-mortems
 #   would settle it.
 COMPETENCY_THRESHOLD: float = 0.155  # 15.5% of workforce, per Mission Statement
+
 
 # Minimum annual labor obligation supporting Condition IV
 # tag: placeholder | units: hours per year
@@ -1147,6 +1236,8 @@ CARE_REG_SATURATION: float = 0.95
 # note: docs/parameter_provenance.md's Registration table once listed
 #   start_share 0.30 and inflection 0.55 against the 0.05 and 0.45 shipped here;
 #   caught by the 2026-08 migration and corrected in the generated table.
+# resolves_by: n/a — it inherits the CARE_REG_* constants' standing; the debt
+#   is counted on each of them, not again here.
 CARE_SIGMOID_DEFAULTS: dict[str, float] = {
     "start_share":  CARE_REG_START_SHARE,
     "inflection":   CARE_REG_INFLECTION,
@@ -1201,6 +1292,8 @@ PRODUCTION_REG_RATE: float = 20.0
 PRODUCTION_REG_INFLECTION: float = 0.10
 # tag: derived | units: composite of the PRODUCTION_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the PRODUCTION_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 PRODUCTION_SIGMOID_DEFAULTS: dict[str, float] = {
     "base":        PRODUCTION_REG_BASE,
     "growth":      PRODUCTION_REG_GROWTH,
@@ -1239,6 +1332,8 @@ STEWARDSHIP_REG_RATE: float = 10.0
 STEWARDSHIP_REG_INFLECTION: float = 0.40
 # tag: derived | units: composite of the STEWARDSHIP_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the STEWARDSHIP_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 STEWARDSHIP_SIGMOID_DEFAULTS: dict[str, float] = {
     "base":        STEWARDSHIP_REG_BASE,
     "growth":      STEWARDSHIP_REG_GROWTH,
@@ -1278,6 +1373,8 @@ PERSONAL_REG_RATE: float = 7.0
 PERSONAL_REG_INFLECTION: float = 0.65
 # tag: derived | units: composite of the PERSONAL_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the PERSONAL_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 PERSONAL_SIGMOID_DEFAULTS: dict[str, float] = {
     "start_share":  PERSONAL_REG_START_SHARE,
     "saturation":   PERSONAL_REG_SATURATION,
@@ -1318,6 +1415,8 @@ KNOWLEDGE_REG_RATE: float = 5.0
 KNOWLEDGE_REG_INFLECTION: float = 0.70
 # tag: derived | units: composite of the KNOWLEDGE_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the KNOWLEDGE_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 KNOWLEDGE_SIGMOID_DEFAULTS: dict[str, float] = {
     "base":        KNOWLEDGE_REG_BASE,
     "saturation":  KNOWLEDGE_REG_SATURATION,
@@ -1556,9 +1655,13 @@ PERSONAL_ABATABILITY_CARE: float = 0.25
 #   `scenarios/component_shares` reads care at 25.7% of observed personal time
 #   against the desk 62.1%, which is a bound (marketised care leaves unpaid
 #   time use) and not a replacement.
-# resolves_by: per-component pointers are on each line below. a_max = Σ share
-#   × abatability = 0.4483 is DERIVED from this table, so it is not a free
-#   parameter; the table is where the judgement lives.
+# resolves_by: per-component pointers are on each line below — INSIDE the dict
+#   literal, where the provenance scanner does not read them, so this field is
+#   the only pointer any gate sees and it delegates to text nothing checks.
+#   Recorded rather than repaired by copying the pointers up here, which would
+#   be two accounts of one quantity. a_max = Σ share × abatability = 0.4483 is
+#   DERIVED from this table, so it is not a free parameter; the table is where
+#   the judgement lives.
 
 PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     # share:       fraction of the personal obligation (from the desk estimate)
@@ -1573,9 +1676,62 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     "health":    {"share": 208.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_HEALTH},
     #   resolves_by: GBD disease burden attributable to WASH, converted to care
     #   hours avoided. Partly abatable — prevention scales, treatment less so.
+    #   NOT the harmonised time-use panel: it carries no health counterpart at
+    #   all, pinned as a negative finding by
+    #   tests/test_mtus_time_use.py::TestThereIsNoHealthCategory so the search
+    #   is not repeated.
     "care":      {"share": 936.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_CARE},
-    #   resolves_by: childcare/eldercare time-use across development levels.
-    #   LEAST abatable and the largest share — this is what bounds a_max.
+    #   resolves_by: a survey coding PAID AND UNPAID care together at the
+    #   declared frame, or MTUS national micro-data below the harmonised
+    #   aggregates. NOT "childcare/eldercare time-use across development
+    #   levels", which stood here until 2026-09-22 and is REFUTED on its own
+    #   terms: the harmonised panel admits NO care code set (childcare alone
+    #   runs 0.827 of ATUS care, the residual being adult and elder care), and
+    #   `automation_floors.cross_country()` has already measured that this
+    #   panel's cross-section is not a capital gradient — the exact ranking the
+    #   retired pointer asked for. LEAST abatable and the largest share — this
+    #   is what bounds a_max.
+}
+
+# tag: derived | units: dimensionless share of the personal obligation, per essential domain
+# form: w(d, personal) = Σ_c share_c × split_c(d) over PERSONAL_EOH_COMPONENTS —
+#   health and care → healthcare; nutrition → agriculture : manufacturing by
+#   the floor's unassisted production : processing terms (LSMS; the FR1966
+#   anchor NUTRITION_AUTOMATION_FLOOR adopts); shelter → construction : energy
+#   : unattributed by the measured ATUS shelter destinations (structure,
+#   thermal, upkeep). Computed by `scenarios.essential_bridge.personal_column`
+#   and FROZEN here because core/ cannot import scenarios/;
+#   `tests/scenarios/test_essential_bridge.py` pins it against the live call.
+#   Written as component share × the measured split, not as bare totals, so
+#   the dependency on PERSONAL_EOH_COMPONENTS stays visible to the verdict
+#   ladder — frozen totals read as dependency-free and ranked CERTAIN.
+# note: REPLACES the personal column of the essential-domain bridge (2026-10-01,
+#   author: "fix the domain mapping, as that seems to be an oversight"). It was
+#   healthcare 0.80 / logistics 0.20, written before the obligation was
+#   decomposed. Healthcare barely moves (0.759) — care is 62% of the obligation
+#   and has no essential domain of its own — and logistics goes to 0: food
+#   SERVICE is excluded from the obligation (author, 2026-09-03), and the
+#   floor's terms carry no distribution stage.
+# note: `unattributed` is the share no essential domain is certified for —
+#   shelter upkeep, where the measured frame also hides WATER (piped water puts
+#   hauling inside upkeep). Water is HELD at 0, not weighted (author: no new
+#   placeholders). The old column summed to 1 over the seven by construction.
+# note: inherits its inputs' standing — the component shares are the desk
+#   estimate (PERSONAL_EOH_COMPONENTS, confidence 25) and the shelter
+#   destinations are a high-capital frame. Derived is not measured.
+ESSENTIAL_BRIDGE_PERSONAL: dict[str, float] = {
+    # splits frozen 2026-10-01 from `essential_bridge.personal_column()["inputs"]`:
+    # nutrition: unassisted production 330.92 h (LSMS) : processing 472.65 h (FR1966)
+    # shelter:   ATUS destinations structure : thermal : upkeep
+    "agriculture":   PERSONAL_EOH_COMPONENTS["nutrition"]["share"] * 0.41181596618128197,
+    "construction":  PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.09086663279071067,
+    "energy":        PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.010731960781923996,
+    "water":         0.0,
+    "healthcare":    PERSONAL_EOH_COMPONENTS["health"]["share"],
+    "manufacturing": PERSONAL_EOH_COMPONENTS["nutrition"]["share"] * 0.5881840338187181,
+    "logistics":     0.0,
+    "care":          PERSONAL_EOH_COMPONENTS["care"]["share"],
+    "unattributed":  PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.8984014064273654,
 }
 
 # tag: placeholder | units: TEH of PERSONAL-SERVING capital per capita
@@ -1838,7 +1994,8 @@ WATER_WALKING_SPEED_M_S: float = 1.2
 #   reading it as the value is the error that status exists to prevent.
 #   Two further reasons it errs LOW, either alone sufficient. (1) CHILDcare only
 #   — elder and adult care are outside these codes, and elder care is the leg
-#   whose two ATUS routes disagree 7.13x. (2) It measures care DELIVERED, not
+#   whose two ATUS routes disagree ~5.5x (7.13x before the 2026-10-02 bin fix).
+#   (2) It measures care DELIVERED, not
 #   care OWED, and no sample here delivers all of what is owed. The model's care
 #   is broader again than ATUS's, covering household AND non-household members,
 #   so 0.827 is itself an upper estimate of the fraction captured.
@@ -1863,7 +2020,7 @@ WATER_WALKING_SPEED_M_S: float = 1.2
 # resolves_by: A CODE SET THAT CLEARS THE 5% BAR — that is the bar this repo
 #   already set for a code set BEING a component, and childcare does not clear
 #   it. Concretely: elder and adult care on the same footing, which needs the
-#   7.13x ATUS route disagreement reconciled first
+#   ~5.5x ATUS route disagreement reconciled first
 #   (`care_demand.elderly_route_disagreement`), and a dependency structure stated
 #   per sample so the figure is commensurable across age distributions — care
 #   hours per person-year are meaningless without one. THE POINT OF PRICING IT
@@ -1883,16 +2040,18 @@ CARE_CHILDCARE_HOURS_PER_PERSON_YEAR: float = 168.07344
 #   `hours_per_unit=None`, so this multiplies into nothing today and is excluded
 #   rather than costed at zero.
 BASKET_SHELTER_M2_PER_PERSON: float = 12.0
-# tag: placeholder | units: degree-days per person per year | tier: D
-# form: a temperate baseline, carried so the thermal component appears in the
-#   basket with its unit. It is never costed.
+# tag: instance | units: degree-days per person per year
+# supplied_by: the collective — heating and cooling degree-days for its own
+#   jurisdiction against a set-point it states. Both depend on the institution:
+#   the climate it sits in and the indoor standard it adopts. Retagged from
+#   placeholder 2026-10-16 (author: "degree as instanced as it does depend on
+#   institutions"), record/provenance.md#placeholders-audited.
+# default: 2500, a temperate baseline carried so the thermal component appears
+#   in the basket with its unit. It is never costed.
 # note: LATITUDE-DEPENDENT BY CONSTRUCTION, and that is the finding rather than
 #   a caveat: thermal is the one basket component where climate is the QUANTITY
 #   and not merely the delivery cost, so costing it makes the floor
 #   climate-indexed and PERSONAL_EOH_BASE cannot remain a single global scalar.
-# resolves_by: heating and cooling degree-days for the jurisdiction being
-#   modelled, against a stated indoor set-point. This is an instance quantity
-#   wearing a placeholder's clothes until the framework indexes by climate.
 BASKET_THERMAL_DEGREE_DAYS_PER_YEAR: float = 2500.0
 # tag: normative | units: automation level ε ∈ [0, 1]
 # form: NOT a quantity like the three above — a CLASSIFICATION GATE. Below it,
@@ -2064,11 +2223,11 @@ ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem healt
 #   and a test frame needs one that is measured rather than assumed. The
 #   contiguous 48 is chosen over the 915,052,512 ha US total because Alaska's
 #   150 Mha is overwhelmingly unmanaged and would dilute every intensity by 16%
-#   for land no stewardship workforce reaches. Paired with US_POPULATION in
-#   reference/land_stewardship.py, it gives 2.285 ha/person against the shipped
-#   global LAND_HECTARES_PER_CAPITA of 1.65 — the US carries 38.5% MORE land
-#   per person than the planetary average, which is the direction that makes
-#   per-capita stewardship burden harder, not easier.
+#   for land no stewardship workforce reaches. Paired with
+#   US_MAINLAND_POPULATION (the people on this land), it gives 2.254 ha/person
+#   against the shipped global LAND_HECTARES_PER_CAPITA of 1.65 — the US
+#   carries 36.6% MORE land per person than the planetary average, which is
+#   the direction that makes per-capita stewardship burden harder, not easier.
 # resolves_by: nothing — this is a published measurement. It moves only when
 #   ERS revises the series (5-year cycle).
 US_MAINLAND_HECTARES: float = 765_495_267.0  # ha, contiguous 48, ERS MLU 2022
@@ -2184,21 +2343,36 @@ AMENITY_STEWARDSHIP_WEIGHT: float = 0.0468  # fraction of amenity labour counted
 #   (Resource Stewardship vs Visitor Services vs Facility Operations) and are
 #   the direct instrument; they would replace this band with a measured split.
 AGENCY_STEWARDSHIP_ROLE_MIX: float = 0.2263  # fraction of NPS+FWS on stewardship
-# tag: placeholder | units: persons | tier: C
-# form: the population the frozen O*NET/BLS registry's employment is drawn
-#   against (reference epoch 2026-07-29 -> 2024 vintage weights), stated round.
+# tag: measured | units: persons | tier: A
+# form: Census Bureau resident population, United States (50 states + DC),
+#   July 1, 2024 (Vintage 2025): reference/data/census_adults_2000_2025.csv's
+#   2024 row, bound by test (TestThePopulationsAreTheCensus). 2024 because the
+#   frozen O*NET/BLS registry's employment is 2024-vintage (reference epoch
+#   2026-07-29) and BEA's stock is yearend 2024: the NATIONAL population those
+#   are drawn against. The US frame's people are US_MAINLAND_POPULATION.
 # note: MIGRATED FROM TWO PLACES AT ONCE (2026-08-16). The same value lived as
 #   `REFERENCE_POPULATION_US` in scenarios/knowledge_base.py and as
 #   `US_POPULATION` in reference/land_stewardship.py — one value, two names, two
-#   files, neither under the gate. That is the fifth instance of the pattern
-#   behind GUF_PSI_NORM, RECAL_FOUNDING_LABOR_HOURS, DEFAULT_SEGMENTS and the
-#   mean-multiplier literal: a copy of a value whose source is elsewhere. Both
-#   names now bind here. Its epistemic status is UNCHANGED by the move — it was
-#   debt before and it is debt now, only visible.
-# resolves_by: Census Bureau national population estimate for the reference
-#   epoch. The shipped figure is round to three significant figures and the
-#   estimate is not, so this closes on contact with the source.
-US_REFERENCE_POPULATION: float = 335_000_000.0  # persons, registry reference epoch
+#   files, neither under the gate; both names bind here.
+#   CLOSED 2026-10-15 (author: "close the national constant at the 2024 census
+#   and re-derive"): 335,000,000 (round) -> 340,003,797 (+1.49%). It sits
+#   inside the KNOWLEDGE_EOH_BASE fixed point twice — the registry's employment
+#   per head and the ATUS paid-labour anchor — so that constant was re-derived
+#   in the same change. ATUS is 2025 data read against this 2024 total: a
+#   0.52% vintage gap, stated, not split into a second constant.
+# resolves_by: nothing — a published estimate. It moves with the registry's
+#   vintage: a registry refresh brings a new year with it.
+US_REFERENCE_POPULATION: float = 340_003_797.0  # persons, US (50 states + DC), Census July 2024
+# tag: measured | units: persons | tier: A
+# form: Census Bureau resident population of the 48 contiguous states and DC,
+#   July 1, 2025 (SCPRC-EST2025): the sum of reference/states.load_states()'
+#   in_48_states rows, bound by test (TestTheMainlandPopulationIsTheCensus).
+# note: THE PEOPLE ON US_MAINLAND_HECTARES' LAND (author, 2026-10-15). The US
+#   frame had paired the national population with contiguous-48 land, parcels
+#   and energy (record/thermal.md#us-energy-eia, found not fixed). Alaska and
+#   Hawaii hold 2,170,090 people (0.63% of the national figure).
+# resolves_by: nothing — a published estimate; it moves with each vintage.
+US_MAINLAND_POPULATION: float = 339_614_767.0  # persons, 48 states + DC, Census July 2025
 # tag: instance | units: feet | family: PRACTICE_EQUIPMENT_WIDTHS_FT
 # supplied_by: the working width of the equipment YOUR collective actually
 #   operates. Field capacity is linear in width, so these values scale the
@@ -2276,7 +2450,7 @@ FRAME_CONSISTENCY_TOLERANCE: float = 0.10  # ±10% on ha/person to call a pairin
 # tag: convention | units: dict of frame name -> {population: persons, land_hectares: ha}
 # form: DECLARED PAIRINGS of a population with the land area it is responsible
 #   for. Every value is BOUND to the constant that already carries it —
-#   US_REFERENCE_POPULATION, US_MAINLAND_HECTARES, LAND_HECTARES_PER_CAPITA —
+#   US_MAINLAND_POPULATION, US_MAINLAND_HECTARES, LAND_HECTARES_PER_CAPITA —
 #   rather than restated. A frame that restated 335,000,000 would be the sixth
 #   copy-of-a-value-whose-source-is-elsewhere, after GUF_PSI_NORM,
 #   RECAL_FOUNDING_LABOR_HOURS, DEFAULT_SEGMENTS, the mean_multiplier literal
@@ -2299,15 +2473,15 @@ FRAME_CONSISTENCY_TOLERANCE: float = 0.10  # ±10% on ha/person to call a pairin
 JURISDICTION_FRAMES: dict[str, dict[str, float]] = {
     # The honest US pairing: contiguous-48 land with the population living on it.
     "us_mainland": {
-        "population":     US_REFERENCE_POPULATION,
+        "population":     US_MAINLAND_POPULATION,
         "land_hectares":  US_MAINLAND_HECTARES,
     },
-    # A million people holding land at the US per-capita ratio (2.285 ha/person).
+    # A million people holding land at the US per-capita ratio (2.254 ha/person).
     # This is what the shipped 1M default SHOULD be paired with; it is not what
     # it is currently paired with, which is the whole contiguous US.
     "reference_1m": {
         "population":     1_000_000.0,
-        "land_hectares":  1_000_000.0 * (US_MAINLAND_HECTARES / US_REFERENCE_POPULATION),
+        "land_hectares":  1_000_000.0 * (US_MAINLAND_HECTARES / US_MAINLAND_POPULATION),
     },
     # The planetary average behind LAND_HECTARES_PER_CAPITA, at world population.
     "global": {
@@ -2324,6 +2498,36 @@ JURISDICTION_FRAMES: dict[str, dict[str, float]] = {
 #   of claim on the deferral rate rather than the state; both resolve from one
 #   series.
 ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics (regime shift) / CHOSEN (0.40 on this index)
+# tag: instance | units: index [0, 1] — 0 collapsed, 1 pristine
+# supplied_by: YOUR ecosystem's measured condition, on the same index
+#   ECOLOGICAL_THRESHOLD is stated on. Nothing about your land's condition is
+#   derivable from this framework.
+# default: 0.70 — a moderately degraded reference state. NAMED 2026-10-02: it was
+#   retyped as a bare literal at 24 sites (every generation, fulfilment, fiscal,
+#   dashboard, simulation and shock entry point, EohParams and two CLI flags),
+#   with no stated source. It equals the canonical arc's health at ε=1
+#   (CANONICAL_ECOSYSTEM_HEALTH_BASE + CANONICAL_ECOSYSTEM_HEALTH_DRIFT), an
+#   equality NOT asserted as its derivation. Under the adopted Phase 4e/4f
+#   partition the ecological domain is health-invariant, so on the documented
+#   entry point this moves only the relocated-to-GUF report.
+ECOSYSTEM_HEALTH_DEFAULT: float = 0.70
+# tag: instance | units: mean asset age / design life, value-weighted — 0 new, 1 at end of life
+# supplied_by: YOUR stock's average age over its service life, value-weighted —
+#   for the US, `capital_retrodiction.stock_age_ratio` reads it off BEA (Tables
+#   2.9 / 7.7 ages over BEA's own service lives, line by line), and `--frame us`
+#   takes it from there, labelled measured.
+# default: 0.591 — the US stock, MEASURED (2026-10-04): `stock_age_ratio`,
+#   'government' scope, current cost — BEA 2024 average age over BEA service
+#   life, band 0.571–0.630, 89.5% of the stock covered. One economy standing in
+#   for one not stated; a test holds this value to the function. It errs LOW:
+#   BEA weights by depreciated stock, so old assets count for less.
+# note: REPLACED a bare 0.50 ("halfway through design life") at 18 sites from
+#   the initial commit, with no source, and CANONICAL_CAPITAL_AGE_BASE (0.30) as
+#   the default at 11 more and the frame resolver — the canonical arc's axis at
+#   ε=0, not a reading of any stock. The arc itself still reads the canonical
+#   pair; only the DEFAULTS moved. Infrastructure EOH at ε 0.40 90.0M → 95.5M
+#   h/yr from the 0.50.
+CAPITAL_AGE_RATIO_DEFAULT: float = 0.591
 # tag: placeholder | units: dimensionless multiplier on the base ecological rate
 # form: the magnitude of the sub-threshold spike —
 #     spike = rate × INTENSITY × ((threshold − health) / threshold)²
@@ -2379,9 +2583,10 @@ PRE_THRESHOLD_COMPOUND_RATE: float = 0.10
 #   one quantity or two is unresolved; they are at least not independent
 #   evidence for each other.
 # resolves_by: restoration-project outcomes with and without machine assistance.
-#   FIELD: hectares restored per labour-hour by equipment level, which is the
-#   same instrument reference/restoration.py already uses for ASAE field
-#   capacity — so this is reachable from data the repo can already read.
+#   FIELD: hectares restored per labour-hour by equipment level. NOT
+#   reachable from the shipped ASAE table (audit 2026-10-16): its 17 rows are
+#   all machine implements, so it has no unassisted leg to compare against and
+#   no automation index to read a slope on.
 REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # --- KNOWLEDGE_EOH_BASE — ADOPTED FROM MEASUREMENT (Block K-IV, 2026-08-08) ---
 #
@@ -2454,7 +2659,8 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # it, and both should.
 #
 # WHAT THIS DOES NOT FIX, stated plainly: the fixed point is still anchored on
-# 937.3 h/person·yr of US PAID labour (ATUS 2025, `scenarios/personal_floor`).
+# US PAID labour (ATUS 2025, `personal_floor.paid_labour_anchor()`: 923.47
+# h/person·yr since 2026-10-15, 937.3 at the round 335M).
 # It removes the self-inconsistency, not the US-specificity or the paid-labour
 # convention. The convention is at least coherent with
 # `personal_eoh_registration_share(0)` being near-zero — subsistence labour is
@@ -2466,6 +2672,14 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # it mechanically; the ANCHOR now resolves by whatever settles Finding B — the
 # capital-inventory route remains unusable (Finding A).
 # provenance-block: EOH generation — knowledge domain
+# tag: convention | units: year
+# form: the ATUS survey year whose US PAID labour per capita anchors the
+#   knowledge fixed point (`personal_floor.paid_labour_anchor`).
+# decided_by: the anchor KNOWLEDGE_EOH_BASE was frozen at; named 2026-10-15,
+#   when its hours (typed as 937.3 in five places) moved with the population.
+#   Moving the year is a re-derivation of KNOWLEDGE_EOH_BASE, which its own
+#   test detects.
+KNOWLEDGE_ANCHOR_YEAR: int = 2025  # ATUS year of the knowledge anchor's paid labour
 # tag: derived-then-FROZEN | units: embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION
 # form: recovered from the O*NET 30.3 / BLS spine already shipped in
 #   reference/data/ by inverting the documented log-minmax normalization of
@@ -2502,7 +2716,7 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
-#   is still 937.3 h/person·yr of US PAID labour, so it removes the
+#   is still US PAID labour (`paid_labour_anchor()`), so it removes the
 #   self-inconsistency, not the US-specificity or the paid-labour convention —
 #   and the full-labour reading has no solution at all (supply exceeds the
 #   whole obligation; Finding B). tests/test_knowledge_base.py asserts the
@@ -2524,10 +2738,29 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 #   (elderly 1.48), so its stated direction was never its arithmetic — which
 #   raises total EOH and lowers the labour residual this anchor is solved
 #   against. The smallest of the ten moves, and mechanical.
+# note: RE-ANCHORED AN ELEVENTH TIME, -5.90% (2026-10-15), when
+#   US_REFERENCE_POPULATION closed at the 2024 Census (335M -> 340,003,797). The
+#   population enters the fixed point TWICE, both the same direction. Through
+#   registry employment per head alone (anchor held at 937.3) the base moves
+#   -1.09%; the ATUS paid-labour anchor, now read live from
+#   `personal_floor.paid_labour_anchor()` (937.3 -> 923.47 h/person yr, -1.47%)
+#   rather than typed in five places, carries the rest, amplified by the fixed
+#   point. epsilon*
+#   0.507504 -> 0.518082, 297,779,308.10 -> 280,218,381.73.
+# note: RE-ANCHORED A TWELFTH TIME, +4.18% (2026-10-15, the same day), when
+#   ATUS hours stopped converting to per head over a FIXED national total and
+#   took the survey year's own Census 15+ share (`atus_time_use.hours_per_capita`,
+#   as the labour route already did): the anchor 923.47 -> 934.85 h/person yr,
+#   epsilon* 0.518082 -> 0.508651, 280,218,381.73 -> 291,930,848.76.
+# note: RE-ANCHORED A THIRTEENTH TIME, +0.170% (2026-10-18), when the
+#   nutrition and care automation floors moved 0.2808 -> 0.2799 to follow
+#   their live source (author: "follow from the live computes"; the shipped
+#   0.2808 had drifted 0.3% above `anchored_processing_estimate()`):
+#   epsilon* 0.508651 -> 0.508262, 291,930,848.76 -> 292,426,958.88.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 297779308.09991723  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.507504 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 292426958.8775929  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.508262 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2683,7 +2916,7 @@ SKILL_DECAY_RATE: float = 0.10  # RETIRED (pre-K-IV default) — kept as the ref
 #   needs, published annually. EU 2025: 37.5 years overall, 39.5 men, 35.4
 #   women. The EU aggregate is adopted rather than either sex-specific figure.
 # note: TIER B, NOT A, FOR A NAMED REASON: the series is EU-27, while the
-#   knowledge domain's ε_ref anchor is US paid labour (937.3 h/person·yr). No
+#   knowledge domain's ε_ref anchor is US paid labour (`paid_labour_anchor()`). No
 #   current US equivalent exists to reconcile it against — BLS ceased
 #   publishing worklife tables, and the last (Smith 1986) rests on 1979–80
 #   labour-force behaviour, which is older than the gap it would close. The
@@ -2770,8 +3003,21 @@ SKILL_CPD_RATE: float = 0.0027  # fraction of stock renewed per year by continui
 #   and never as a plausible one.
 PHYSICAL_CAPACITY_CEILING_H_YR: float = 8766.0
 
+# tag: convention | units: hours per week
+# form: 7 d × 24 h — the hours that ELAPSE in a week. A stated denominator for
+#   reading an annual hour figure per week; it says nothing about how long
+#   anyone works, and is not the 40-hour week.
+HOURS_ELAPSED_PER_WEEK: float = 168.0
+
+# tag: convention | units: weeks per year
+# form: PHYSICAL_CAPACITY_CEILING_H_YR / HOURS_ELAPSED_PER_WEEK — the Julian
+#   year in weeks (52.18). Bound by EXPRESSION so the year has one length in
+#   this file; used only to restate per-year hours per week
+#   (`scenarios.capacity_breakdown`).
+WEEKS_PER_YEAR: float = PHYSICAL_CAPACITY_CEILING_H_YR / HOURS_ELAPSED_PER_WEEK
+
 # tag: measured | units: hours per adult per year | tier: A
-# form: the median of 50 MTUS frames over 1965-2024 across ten countries — paid
+# form: the median of 50 MTUS frames over 1965-2024 across eight countries — paid
 #   work plus unpaid domestic work plus childcare, ages 18-69, weighted by
 #   PROPWT. Computed by `reference.mtus_time_use.capacity_frames()` and bound by
 #   TEST rather than expression, since data.py sits below reference/.
@@ -2789,9 +3035,10 @@ PHYSICAL_CAPACITY_CEILING_H_YR: float = 8766.0
 # note: IT REPLACES H_REF ON THE FEASIBILITY PATH (2026-09-03, author decision).
 #   H_REF is a paid-work calendar year whose own tag block warns that read as
 #   hours actually worked it "would be wrong in most jurisdictions", and 45 of
-#   the 50 measured frames exceed it. The correction narrows the epsilon=0
-#   deficit from 15.3% to 2.6% and does NOT close it: the over-determination
-#   survives its own fix, which is why the fix is worth making.
+#   the 50 measured frames exceed it. The correction narrowed the epsilon=0
+#   deficit from 15.3% to 2.6% and did NOT close it then; the 2026-09-04 band
+#   alignment and the 2026-09-09 capital-path decision closed it
+#   (`feasibility.over_determination_report` reads CONSISTENT).
 MEASURED_CAPACITY_H_YR: float = 2335.751835
 
 # ---------------------------------------------------------------------------
@@ -2864,33 +3111,31 @@ CAPITAL_FAILURE_RATE:               float = 0.005  # fraction of capital failing
 #   assumption with ENV_MONITORING_SATURATION_TEH_PER_CAPITA and neither is
 #   measured.
 CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction at ε=1 from better monitoring
-# tag: convention | units: TEH per period (at the 1M reference population)
-# form: a numerical guard, not an economic claim — it keeps period labour
-#   income from reaching zero and producing division-by-zero at high ε, which
-#   the ε-coherence rule requires every function to survive.
-#
-#   RETAGGED 2026-08-15, was `placeholder` with `resolves_by: n/a`. That was a
-#   contradiction in the scheme's own terms: `placeholder` means measurement is
-#   owed and REQUIRES naming what would settle it, and this constant's own form
-#   says no economic claim is being made. A guard against division by zero is a
-#   stated frame, not a fact about the world — no dataset settles where to put
-#   it, so filing it as measurement debt overstated the framework's ignorance in
-#   exactly the way the `normative` and `instance` splits were made to prevent.
-#
-#   It could still be made CONSISTENT with what it guards — WORKFORCE_FRACTION_MIN
-#   × H_REF × mean multiplier — which is a tidy worth doing, but the chain runs
-#   through WORKFORCE_FRACTION_MIN and COMPETENCY_THRESHOLD, both placeholders,
-#   so deriving it would import unmeasured inputs into a guard that does not need
-#   them. Left as a declared convention rather than dressed as a derivation.
-LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # hard floor on period labor income (100M TEH)
+# tag: normative | units: fraction of the Trust balance per period
+# form: the boundary between a DEGRADED and a CRISIS shock outcome. A shock
+#   that leaves the Trust insolvent is DEGRADED while its per-period deficit is
+#   at most this fraction of the balance — equivalently, while the Trust could
+#   carry it for at least 1 / fraction periods (ten, at 0.10) — and CRISIS
+#   beyond. With no Trust there is no runway, so every deficit is CRISIS.
+# note: ONE CONCEPT, THREE UNNAMED COPIES, TWO VALUES until 2026-09-30:
+#   `demographic_shock` used 0.05, `labor_income_shock` and `compound_shock`
+#   0.10, so the same deficit could read DEGRADED in one shock and CRISIS in
+#   another. Unified at the value two of three used; `shocks._classify` is the
+#   one reader.
+# decided_by: a charter decision on how much runway counts as "degraded"
+#   rather than "in crisis" — a reporting boundary, not a measurement.
+SHOCK_DEGRADED_TRUST_FRACTION:     float = 0.10  # deficit ≤ this × Trust → DEGRADED (≥10 periods of runway)
 # tag: placeholder | units: fraction of population in the workforce
 # form: the minimum workforce retained at any automation level. Structural in
 #   direction — full automation still needs someone, which Condition IV
 #   asserts as distributed competency — and asserted in level.
 # resolves_by: the minimum staffing that holds ESSENTIAL_DOMAINS above
-#   COMPETENCY_THRESHOLD; that makes it derivable from two other constants in
-#   this file rather than independent, and it is currently set independently
-#   of both.
+#   COMPETENCY_THRESHOLD — but NOT derivable from those two alone (audit
+#   2026-10-16): the threshold is a per-domain FRACTION of the workforce, so it
+#   implies no minimum workforce size. CONTESTABILITY_MIN_VIABLE_POPULATION
+#   retracted the same derivation for the same reason. What would settle it
+#   is that constant's pointer too: a minimum certified count per domain (an
+#   absolute) plus a multi-certification rate.
 WORKFORCE_FRACTION_MIN:            float = 0.05           # minimum workforce fraction retained at any automation level
 
 # ---------------------------------------------------------------------------
@@ -2988,11 +3233,23 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 # provenance-block: Fiscal architecture
 # tag: normative | units: fraction of labor income
 # decided_by: author, 2026-09-15 — raised 1.25% → 4.5% with the wage doctrine
-#   (minted TEH is the wage; the Trust owes only the guarantee).
+#   (minted TEH is the wage; the Trust owes only the guarantee); 2026-10-15 —
+#   4.5% → 4.6% to keep the end of the arc (see form).
 # form: scenarios/stationarity.py swept levy × base: the smallest rate at which
 #   the Trust stands still on the TEH side from ε=0 to 0.99 is 4.48%, with the
 #   V1 guarantee at 5% need, base PERSONAL_EOH_BASE (1,000 h), the urban land
 #   fee and no inheritance. Rounded up to 4.5%.
+#   RE-SIZED 2026-10-15 (author: "raise the levy to cover 0.99"), by the same
+#   sweep and the same rounding: the national population closing at the 2024
+#   Census re-derived KNOWLEDGE_EOH_BASE -5.90%, which trimmed the mint at
+#   epsilon 0.99 and moved the smallest standing-still rate 4.4923% -> 4.5026%;
+#   4.5% then reached 0.98, not 0.99. Rounded up to 4.6%.
+#   THE SAME DAY the ATUS vintage gap closed (hours per head at the survey
+#   year's own Census share), the knowledge base re-derived +4.18%, and the
+#   smallest standing-still rate is 4.4993%: the round-up rule alone would give
+#   4.5% again, with a 0.016% margin. 4.6% is KEPT — the author's decision was
+#   to cover 0.99, and it does, with 2.2% margin. Returning to 4.5% is the
+#   author's call, not this rule's.
 # note: SIZED TO A DESIGN THE REPORTING LAYER NOW RUNS, AND CORE STILL DOES NOT.
 #   Until 2026-09-16 this read "sized to a design the default does not run": V1
 #   was proposed and nothing defaulted to it. `scenarios/stationarity` now
@@ -3001,13 +3258,13 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 #   `sufficiency_guarantee`'s shipped aggregation**, which at ε=0 demands a levy
 #   of 812% of the mint — unfundable by construction, since nothing mints that
 #   was not registered — against V1's 8.07%. That gap is the open item, not this
-#   constant. Under the shipped guarantee 4.5% does not reach the end of the arc
+#   constant. Under the shipped guarantee 4.6% does not reach the end of the arc
 #   (record/fulfilment.md). The 2026-08-09 rationale — "the dividend alone runs
 #   a surplus, so the required rate is zero" — held only while the Trust was
 #   charged for minted hours and a large dividend was assumed; it no longer
 #   describes this constant. Incidence on labour income at low ε, where labour
 #   income is nearly all income, remains the charter's question.
-SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate on labor income
+SUFF_LEVY_RATE:               float = 0.046             # sufficiency levy rate on labor income
 # tag: normative | units: fraction of on-ledger people receiving the guarantee
 # decided_by: author, 2026-09-15 (V1 proposed) and 2026-09-16 (adopted as the
 #   reporting default, and named here). It is a charter decision about WHO the
@@ -3025,6 +3282,29 @@ SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate 
 #   Changing it moves the Trust's whole liability: at 10% need the required levy
 #   roughly doubles (record/fulfilment.md).
 SUFF_NEED_FRACTION:           float = 0.05              # V1: share of on-ledger people the guarantee reaches
+# tag: normative | units: years of age
+# form: the age at which a member is ADDED TO THE REGISTER as a guarantee
+#   recipient — the retirement register event. OFF unless a run asks for it:
+#   the shipped guarantee reads the register share and SUFF_NEED_FRACTION, with
+#   no age term, so an ageing population asks nothing more of the Trust
+#   (found 2026-10-03 running the US ageing shock). Whether retirement is an
+#   automatic register event at all is the collective's governance question,
+#   which is why this is opt-in and only the AGE is defaulted.
+# decided_by: the collective's charter — when, if ever, age alone puts a
+#   member on the register. 68 is the author's working figure (2026-10-03),
+#   not a measured retirement age.
+RETIREMENT_REGISTER_AGE: int = 68
+# tag: instance | units: years
+# supplied_by: the collective's own membership record — how long its retirees
+#   were members before the register event.
+# default: 10 — the author's working figure (2026-10-03), confirmed the same
+#   day as TENURE (years of membership vesting the claim), not a stock of
+#   obligation owed. Read through
+#   `core.fiscal.vested_fraction`, the framework's ONE tenure curve (linear,
+#   full at CONTESTABILITY_VESTING_YEARS), so any tenure at or past the vesting
+#   period is fully vested and 0 is none: under the shipped 5-year vesting this
+#   default and 5 give the same claim.
+RETIREMENT_YEARS_IN_COLLECTIVE: float = 10.0
 # tag: normative | units: fraction, per ε unit
 # decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the
@@ -3043,6 +3323,17 @@ SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarante
 #   It is the floor's floor, so it binds precisely where the model is least
 #   tested: ε→1, with human labour income near zero.
 SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
+# tag: normative | units: fraction of population
+# form: the SHIPPED design's recipient share at ε=0, decaying toward
+#   SUFF_GUARANTEE_STRUCTURAL_MIN at SUFF_GUARANTEE_EPS_DECAY. Read ONLY by
+#   `sufficiency_guarantee(design="shipped")`; the default design V1 derives
+#   the share from the register and SUFF_NEED_FRACTION, and ignores this
+#   (measured 2026-10-02: doubling it moves V1 by nothing at ε 0, 0.40, 0.90).
+# decided_by: the charter of the pre-V1 design — who the guarantee reached
+#   before the Trust owed only what is on the ledger. NAMED 2026-10-02: the
+#   companion of the two constants above had stayed a bare 0.15 at three
+#   parameter defaults.
+SUFF_GUARANTEE_FLOOR_FRACTION: float = 0.15
 # tag: placeholder | units: fraction of the full care rate
 # form: the residual share of care that stays human-carried however high
 #   automation goes. `care_stipend`'s automation factor is
@@ -3054,7 +3345,8 @@ SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
 #   the framework's own ordering: care is the LEAST abatable component (0.25,
 #   and 84.4% of the residual at full abatement) while nutrition is the MOST
 #   (0.85), so care's floor cannot coherently sit below nutrition's measured
-#   0.2808. The 20 is that ordering plus the corroborating series — US
+#   value (0.2808 when adopted; 0.2799 since 2026-10-18, when both floors moved
+#   to follow `anchored_processing_estimate()`). The 20 is that ordering plus the corroborating series — US
 #   childcare moved −0.5% across 59 years and no declining care activity has an
 #   identified machine substitute — and nothing more. It is not a measurement
 #   OF CARE; `automation_floors.care_floor_is_too_low()` computes the bound and
@@ -3085,7 +3377,7 @@ SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
 #   (ZA2010 106.9 against US 174.7 h/person-15+·yr), so the denominator runs
 #   backwards. A stated-preference instrument — would this hour be acceptable
 #   from a machine — is the route, and no such survey is in this repo.
-CARE_AUTOMATION_FLOOR:        float = 0.2808
+CARE_AUTOMATION_FLOOR:        float = 0.2799
 
 # tag: measured | units: MTUS harmonised activity codes | tier: A
 # form: the MTUS codes composing ACT_CHCARE, the file's own childcare
@@ -3201,7 +3493,7 @@ MAPPING_TOLERANCE: float = 0.20
 #   obligation handoff says so in as many words). Raw LSMS WASH modules reach
 #   water and fuel — 2 of the 9 activities; a time-use survey at low capital
 #   reaches all of them.
-NUTRITION_AUTOMATION_FLOOR: float = 0.2808
+NUTRITION_AUTOMATION_FLOOR: float = 0.2799
 
 # tag: placeholder | units: dimensionless human-labour fraction
 # form: the floor on the human share of a personal-EOH component — the fraction
@@ -3345,9 +3637,12 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   the CURRENT WORLD's prior work is assumed to amount to per head — an estimate
 #   of a real stock, NOT a hard number and NOT a per-head grant. A collective
 #   founded at subsistence brings 0.0, and a joiner may bring nothing; both are
-#   honoured as zero. `scenarios/stationarity` already defaults `trust_start`
-#   to 0.0, and CAPITAL_STOCK_DEFAULT says the same of capital ("Callers passing
-#   it at low ε are asserting capital the arc says is not there").
+#   honoured as zero when passed. `scenarios/stationarity` defaulted
+#   `trust_start` to 0.0 until 2026-10-18; it now resolves the frame's Trust
+#   when none is stated (author: the empty default was an artefact), and 0.0
+#   passed is a new collective with no prior. CAPITAL_STOCK_DEFAULT says the
+#   same of capital ("Callers passing it at low ε are asserting capital the
+#   arc says is not there").
 #   NOTHING IS MINTED BY ARRIVING. Prior work already exists, so bringing it is a
 #   TRANSFER — which is why this doctrine leaves the one-mint-path gate,
 #   Condition III and trust_management's all-transfers property untouched. An
@@ -3441,11 +3736,13 @@ TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAM
 #   apart.
 # form: physics — the capital the Trust represents really does deteriorate, so
 #   a depreciation term must exist. The RATE is not structural.
-# resolves_by: a weighted mean design life over the actual capital inventory.
-#   FORMATION_DEPRECIATION_RATE (0.05) in this file derives exactly that from
-#   CAPITAL_MACHINE_PROFILES design lives — so the repo holds two aggregate
-#   depreciation rates, 0.045 and 0.05, on the same physical quantity. They
-#   should be reconciled to one derivation.
+# resolves_by: THE AUTHOR NAMING WHICH SCOPE THE TRUST'S CAPITAL IS. The
+#   measurement this field used to ask for — a weighted aggregate over the actual
+#   inventory — is run (2026-10-08, note below): BEA's depreciation over its
+#   stock, 0.052–0.090 in 2024 by scope. What remains is the choice of scope,
+#   and with it reconciling this and FORMATION_DEPRECIATION_RATE to one value.
+#   (Until 2026-10-08 this read "a weighted mean design life over the actual
+#   capital inventory", which the profiles could not settle — see below.)
 # note: THE RESOLVES_BY WAS RUN, 2026-09-17, AND THE STATED DERIVATION DOES NOT
 #   REPRODUCE. A depreciation rate aggregates as a mean of RATES, not as the
 #   reciprocal of a mean life: δ = Σ(wᵢ/lifeᵢ)/Σwᵢ weighted by TEH at the
@@ -3460,6 +3757,17 @@ TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAM
 #   field above is the SAFE direction, and re-fitting a calibration constant to a
 #   freshly-run derivation is an author decision (§5). See
 #   record/provenance.md#depreciation-derivation-does-not-reproduce.
+# note: MEASURED 2026-10-08, AND THE "SAFE DIRECTION" ABOVE DOES NOT SURVIVE IT.
+#   BEA sums depreciation asset by asset, so its depreciation over the stock it
+#   is taken from IS the stock-weighted mean of rates — the aggregation above,
+#   measured rather than chosen. 2024: 0.0904 productive, 0.0704 government
+#   (nondefence), 0.0524 residential, 0.0534 all fixed assets; 0.034–0.091 over
+#   1926–2024, lowest in 1936 for every line. 0.045 is BELOW
+#   every line in 2024 — the UNSAFE direction by the errs field — and so are
+#   the profiles' 0.0428 and 0.0286. Not changed: which SCOPE the Trust's capital
+#   is decides between 0.05 and 0.09, and that is the author's. Call
+#   `capital_retrodiction.depreciation_report()`; see
+#   record/provenance.md#depreciation-measured.
 DEP_RATE:                     float = 0.045             # annual trust depreciation rate
 # tag: normative | units: fraction of annual depreciation
 # form: the dividend/renewal split. That a split exists is structural — pay
@@ -3661,6 +3969,7 @@ CANONICAL_MONITORING_CAPABILITY_BASE: float = 0.50  # fraction of deferred ecolo
 CANONICAL_MONITORING_CAPABILITY_SLOPE: float = 0.50 # additional visibility per ε unit (full at ε=1)
 CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE: float = 9.0   # knowledge base ≈ 10× by ε=1: kbs = 1 + slope×ε
 CANONICAL_KNOWLEDGE_COMPLEXITY_EXP:   float = 2.0   # per-unit complexity: factor = 1 + (ε^exp) × slope
+CANONICAL_CAPITAL_AGE_BASE:           float = 0.30  # mean asset age / design life at ε=0 — NAMED 2026-10-02; was a bare literal in trajectory.py
 CANONICAL_CAPITAL_AGE_DRIFT:          float = 0.20  # age_ratio increases across arc: 0.30 at ε=0 → 0.50 at ε=1
 CANONICAL_ECOSYSTEM_HEALTH_BASE:      float = 0.90  # ecosystem health at ε=0 on ideal trajectory
 CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of development pressure vs. stewardship)
@@ -4060,6 +4369,8 @@ GUF_ECO_KAPPA_FLOOR_FRACTION: float = 0.10
 #   argument the framework makes and the magnitudes are unconstrained. Naming
 #   the services does not ground them — it makes them reachable, which is the
 #   precondition for grounding them.
+# resolves_by: n/a — it inherits the standing of the GUF_ECO_KAPPA_* and
+#   GUF_ECO_BETA_* constants it pairs; the debt is counted on each of them.
 GUF_ECOSYSTEM_SERVICES: dict[str, dict[str, object]] = {
     "water_filtration": {
         "kappa_ref": GUF_ECO_KAPPA_WATER_FILTRATION,
@@ -4109,6 +4420,12 @@ GUF_ECOSYSTEM_SERVICES: dict[str, dict[str, object]] = {
 #   session, after WORLD_POPULATION and REFERENCE_FRAME_POPULATION.
 # decided_by: the unit definition itself; changing it changes what SLU MEANS.
 SLU_HECTARES: float = 0.01  # ha per SLU (1 SLU = 100 m²)
+# tag: convention | units: square metres per hectare
+# form: the SI definition of the hectare (1 ha = 100 m × 100 m).
+# decided_by: the unit definition itself. Named so the reserved land floor
+#   (`research/parcel_condition.land_reserve_hectares`) can turn the basket's
+#   per-person floor area into ground without an anonymous literal.
+M2_PER_HECTARE: float = 10_000.0
 
 # tag: instance | units: dict of service name -> volume per hectare per year
 # supplied_by: an ecological survey of YOUR OWN land. The two services here are
@@ -4207,10 +4524,13 @@ GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
 GUF_USE_SCALE_FACTOR: float = 100.0
 
 # tag: measured | units: TEH per parcel per year | tier: B
-# form: hours(parcel) / national_parcel_count, both halves measured —
+# form: hours(parcel) / fifty_states_parcel_count, both halves measured —
 #   758,393,730 h/yr from the servicing census (404,600 workers on a per-parcel
-#   basis × the derived 1,874.4 h/worker·yr) over 160,573,137 assessor parcels
-#   from `reference/parcels`. Bound by TEST to
+#   basis × the derived 1,874.4 h/worker·yr) over 158,985,395 assessor parcels
+#   in the 50 states + DC from `reference/parcels`. The territories left the
+#   denominator 2026-10-15 (author): BLS national employment covers none of
+#   them, so their 1,587,742 parcels had no hours in the numerator (4.723 →
+#   4.770, +1.0%). Bound by TEST to
 #   `scenarios.guf_magnitude.two_part_rates()`, never by expression: data.py sits
 #   below reference/ and scenarios/ and cannot import them — the same constraint
 #   MEAN_MULTIPLIER_REFERENCE and GUF_ECO_KAPPA_CARBON are bound under.
@@ -4235,7 +4555,7 @@ GUF_USE_SCALE_FACTOR: float = 100.0
 #   across 3,230 independent county systems, a normalisation project rather than
 #   a lookup. Census county housing-unit estimates would separately settle
 #   P_service's residential share.
-GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
+GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.7702100549032265
 
 # tag: convention | units: dimensionless relative tolerance
 # form: the relative tolerance for `guf_magnitude.subdivision_invariance`, which
@@ -4243,7 +4563,7 @@ GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
 #   halved ones. Floating-point addition is NOT associative, so the two
 #   accumulations may differ in the last ulp.
 # note: NUMERICS ONLY. It must not move any reported result, and the effect it
-#   has to distinguish — a parcel-blind ratio of 1.0 against a per-parcel 1.1194
+#   has to distinguish — a parcel-blind ratio of 1.0 against a per-parcel ~1.12
 #   — is eleven orders of magnitude larger, which
 #   `test_the_tolerance_cannot_hide_the_effect_it_must_distinguish` pins. A
 #   tolerance wide enough to absorb the finding is worse than none, which is the
@@ -4251,6 +4571,17 @@ GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
 # decided_by: adopted 2026-08-31 after bit-exact equality passed on one machine
 #   and failed on another — the assertion was unsound, not the arithmetic.
 SUBDIVISION_FP_TOLERANCE: float = 1e-12
+# tag: convention | units: dimensionless (relative)
+# form: the relative tolerance within which `recovery.maintenance_recovery_schedule`
+#   counts a backlog EQUAL to one year's demand as recovered (backlog <= demand).
+# note: NUMERICS ONLY. On the US frame the backlog after year 1 equals one
+#   year's demand to the last digit (1.5x demand at 150% fulfilment), and the
+#   bare `<=` fell either side by rounding: recovery year 2 -> 1 -> 2 across two
+#   recalibrations that moved neither ratio (2026-10-15). A real miss of 1e-6
+#   still reads as a miss (tests/scenarios/test_recovery.py).
+# decided_by: the same reason as SUBDIVISION_FP_TOLERANCE — an equality decided
+#   by float rounding is unsound, not a finding.
+RECOVERY_FP_TOLERANCE: float = 1e-12
 
 # tag: convention | units: dimensionless (automation level epsilon)
 # form: the epsilon values arc TABLES are reported at. A superset of the four
@@ -4262,6 +4593,18 @@ SUBDIVISION_FP_TOLERANCE: float = 1e-12
 #   for constants whose correct behaviour is to move nothing.
 # decided_by: the four-point rule in CLAUDE.md, extended for legibility.
 ARC_REPORTING_POINTS: tuple[float, ...] = (0.0, 0.20, 0.40, 0.70, 0.90, 0.99)
+
+# tag: convention | units: dimensionless (automation level epsilon)
+# form: the precision to which `shocks.automation_failure_shock` locates its
+#   `failure_boundary` — bisection between the highest capability at which the
+#   failure is still fully taken up and the lowest at which it is not.
+# note: NUMERICS ONLY — it sets how finely a boundary is located, never where
+#   it is. It replaced a 0.05 grid stepped from the caller's ε (2026-10-08),
+#   under which the reported boundary depended on where the run STARTED: on the
+#   reference frame a run at 0.37 read 0.42 and one at 0.38 read 0.38, for a
+#   boundary between 0.37 and 0.38.
+# decided_by: chosen 2026-10-08 well below the third decimal the CLI prints ε to.
+FAILURE_BOUNDARY_TOLERANCE: float = 1e-4
 
 # tag: convention | units: labour-hours per hectare
 # form: the restoration cost the Phase-0 bounding exercise ASSUMED, retained as
@@ -4340,6 +4683,16 @@ GUF_SUBSIDY_FLOOR_RATE:      float = 0.25  # subsidized leaseholders pay 25% of 
 #   (the US 30% burden threshold is the better-known variant). Adopting a
 #   published threshold explicitly would move this to `convention`.
 GUF_AFFORDABILITY_THRESHOLD: float = 0.25  # GUF ≤ 25% of income = accessible primary housing
+# tag: normative | units: multiple of BASKET_SHELTER_M2_PER_PERSON, as ground area
+# form: reserve_ha = population × BASKET_SHELTER_M2_PER_PERSON × this / M2_PER_HECTARE
+#   — the collective land held back from private lease so the register can
+#   cover every member's shelter: a collective advances the arc only if the
+#   register covers the EOH. Sized to the WHOLE population (anyone may fall back
+#   on the collective), measured as GROUND, not floor area.
+# decided_by: the author, 2026-10-01 ("default to the already per person shelter
+#   amount * 4 (rough account of misc space needed)"). INSTANCED: a collective
+#   states its own; this is the default.
+COLLECTIVE_LAND_RESERVE_FACTOR: float = 4.0
 
 # Agricultural soil-health credit rate (NLSA Eq. 26); symbol c_soil in equations
 # tag: placeholder | units: TEH per Standard Land Unit per unit Soil Health Index gain
@@ -4351,13 +4704,20 @@ GUF_AFFORDABILITY_THRESHOLD: float = 0.25  # GUF ≤ 25% of income = accessible 
 GUF_SOIL_CREDIT_RATE: float = 0.05  # TEH/SLU per unit improvement in Soil Health Index
 
 # Ecological write-down parameters (NLSA §9)
-# tag: placeholder | units: years
+# tag: bounded | units: years
 # form: NLSA Eq. 28 — Y_r, the design life over which replacement
 #   infrastructure is amortized.
+# band: 40–60 years, BEA service lives for the replacement classes a
+#   write-down buys (reference/capital_inventory.py): 40 for water supply,
+#   sewage and conservation structures, 60 for government sewer, water and
+#   conservation structures. 50 sits inside. Retagged from placeholder
+#   2026-10-16 (author: "let guf be a bound"),
+#   record/provenance.md#placeholders-audited.
+# errs: neither way by construction — the midpoint. A shorter life raises the
+#   annual surcharge (Eq. 28 divides by Y_r), so 40 is the end that charges
+#   the holder more, 60 the end that charges less.
 # resolves_by: engineering design lives for the specific replacement asset
-#   class. ASSET_TYPES in this file already carries measured-order threshold
-#   ages for comparable classes, so this one is reconcilable against a table
-#   we ship.
+#   class a given write-down funds, which picks a point in the band.
 GUF_WRITEDOWN_AMORTIZATION_YEARS: float = 50.0  # Y_r: replacement infra design life (Eq. 28)
 # tag: placeholder | units: fraction of ecological EOH left unfulfilled
 # form: NLSA §9.8 — the preventive monitoring trigger.
@@ -4402,8 +4762,32 @@ REGISTRATION_CRIT:         float = 0.20   # RED below 20%
 #   outruns any feasible maintenance response — derivable from that table plus
 #   a labour-supply constraint, so this is a wiring debt rather than a data
 #   debt.
-COMPOUNDING_WARN:          float = 0.20   # YELLOW: compounding adds >20% of original
+# ONE VALUE SINCE 2026-10-03 (author: "default to .15 to split the
+#   difference"): the dashboard's YELLOW was 0.20 and
+#   `deferred_maintenance_crisis`'s DEGRADED a separate 0.10; both read this
+#   now, and the scenario's is settable. MEASURED THE SAME DAY, AND A DEAD BAND:
+#   before an asset's threshold age the ratio peaks just under 0.10 (0.093–0.100
+#   across ASSET_TYPES) and at the threshold jumps past 0.50 in one step, so any
+#   value in [0.10, 0.50] first fires in the same year as COMPOUNDING_CRIT —
+#   moving 0.10/0.20 → 0.15 changed no verdict, and none of them can fire alone.
+COMPOUNDING_WARN:          float = 0.15   # YELLOW: compounding adds >15% of original
 COMPOUNDING_CRIT:          float = 0.50   # RED: compounding adds >50% (spiral risk)
+# tag: instance | units: fraction of annual infrastructure EOH fulfilled
+# supplied_by: the collective's own maintenance record — what share of its
+#   infrastructure upkeep it actually performs.
+# default: 0.85 — chronic under-service, the CLI's working figure for the
+#   `maintenance_crisis` scenario since it was first wired; not a measurement.
+MAINTENANCE_CRISIS_FULFILMENT: float = 0.85
+# tag: instance | units: years
+# supplied_by: the horizon the caller wants to see the backlog over.
+# default: 10 — long enough to show the compounding the scenario is about.
+MAINTENANCE_CRISIS_YEARS: int = 10
+# tag: instance | units: fraction of the capital stock
+# supplied_by: the event's own damage assessment — the share of the
+#   collective's capital a wildfire, flood or earthquake destroyed.
+# default: 0.10 — illustrative, so `scenario run capital_loss` runs with no
+#   flags; not a statement about any event (2026-10-03).
+CAPITAL_LOSS_FRACTION_DEFAULT: float = 0.10
 # tag: normative | units: purchasing-power index (1.0 = parity)
 # form: the threshold is ε-scaled, threshold = 1 + slope × ε, because
 #   purchasing power is expected to RISE across the arc — so a flat 1.05 would
@@ -4593,20 +4977,25 @@ COASEAN_N_MAX: int = 20            # collective count at ε=0 (maximally fragmen
 # resolves_by: as for COASEAN_N_MAX — the same study settles both, and neither
 #   is independently identifiable without it.
 COASEAN_BOUNDARY_EXPONENT: float = 1.0   # exponent in N(ε) = max(1, round(N_max×(1−ε)^exp))
-# tag: placeholder | units: fraction of period TEH creation
+# tag: normative | units: fraction of period TEH creation
 # form: each collective's inter-collective reserve, consumed by
 #   settlement_check() for imbalance settlement. Analogous to a central-bank
 #   FX reserve ratio.
-# resolves_by: observed reserve ratios in monetary unions and clearing
-#   systems, which is a real and well-documented comparator.
+# precedent: reserve ratios in monetary unions and clearing systems — an
+#   analogue that informs the choice and does not settle it.
+# decided_by: the author, 2026-10-16 ("no data will settle the union and
+#   changed to normative"). A clearing union's design, set by its charter.
+#   Was a placeholder; record/provenance.md#placeholders-audited.
 COASEAN_RESERVE_FRACTION: float = 0.10  # fraction of TEH created held in inter-collective reserve
-# tag: placeholder | units: fraction of the debtor collective's reserve
+# tag: normative | units: fraction of the debtor collective's reserve
 # form: the bilateral net-flow credit ceiling (the paper's
 #   bilateral-imbalance-ceiling sketch, reconciliation §9-item-4). Within it
 #   trade continues on credit; beyond it settlement from reserve is required.
-# resolves_by: observed bilateral credit limits in real clearing unions — the
-#   European Payments Union and regional ACUs set exactly this parameter, so
-#   the precedent is concrete.
+# precedent: the European Payments Union and regional Asian Clearing Unions
+#   set exactly this parameter, by charter.
+# decided_by: the author, 2026-10-16 ("no data will settle the union and
+#   changed to normative"). Was a placeholder;
+#   record/provenance.md#placeholders-audited.
 COASEAN_IMBALANCE_CEILING: float = 0.50  # bilateral net-flow ceiling as fraction of the deficit
                                          # collective's reserve; beyond it settlement is required
                                          # (paper's bilateral-imbalance-ceiling sketch, recon. §9-item-4)
@@ -4675,7 +5064,8 @@ COASEAN_INDIVISIBLE_RESERVE_FRACTION: float = 0.30
 #   entry threat vacuous at high ε, because the "alternative" would have to be
 #   the whole economy.
 # resolves_by: NOT the derivation this line used to claim. COMPETENCY_THRESHOLD
-#   × len(ESSENTIAL_DOMAINS) = 0.155 × 7 = 1.085 is a fraction GREATER THAN
+#   × len(ESSENTIAL_DOMAINS) = 0.155 × 8 = 1.24 (0.155 × 7 = 1.085 before care
+#   was added, 2026-10-01) is a fraction GREATER THAN
 #   ONE, so it yields no headcount at all without a further assumption the
 #   repo does not make — namely how many domains one worker may be certified
 #   in at once. Condition IV is a per-domain fraction of the workforce, not a
@@ -4742,16 +5132,19 @@ RECAL_CAPITAL_OUTPUT_RATIO: float = 4.0  # ν: capital stock required per unit o
 #   Converts per-ε acquisition needs into per-year flows, and faster arcs
 #   tighten acquisition feasibility LINEARLY, so this is a real lever on every
 #   §8.9 result.
-# resolves_by: UNCALIBRATED placeholder, and the obvious derivation is
-#   CIRCULAR — formation_feedback_simulation() takes epsilon_rate_per_year as
-#   an INPUT to build the target arc it then chases, so reading the realized
-#   pace back out is not independent of the constant being set. Measured
-#   2026-08-09: the null anchor (s≡0) reaches ε=0.99 in 39 yr, implying
-#   0.0254/yr against this 0.02 — a 27% disagreement that the circularity
-#   makes uninterpretable as it stands. What would settle it: a damped
-#   fixed-point solve over (rate, realized pace), the same shape as
-#   scenarios/knowledge_base.epsilon_ref_fixed_point(), which closed exactly
-#   this defect for the ε_ref anchor.
+# note: THE FIXED-POINT ROUTE WAS BUILT AND SETTLES NOTHING (2026-10-16,
+#   record/provenance.md#rate-fixed-point). research.formation.
+#   epsilon_rate_fixed_point solves (rate, realised pace) with damping. Under
+#   the null anchor the realised pace is the rate times a near-constant shape
+#   factor (`ratio_at_start`), so the solve finds no interior rate and leaves
+#   the range: the 2026-08-09 "27% disagreement" is that factor, not a
+#   calibration signal. Under the endogenous charter it converges where
+#   formation stops keeping up — a CEILING on the rate, not a reading of it.
+# resolves_by: an observed pace of automation transition — the rate at which
+#   a real economy's machine share of obligation has risen, read off the
+#   capital or labour route (scenarios.capital_retrodiction,
+#   scenarios.labour_epsilon) at two dates. External; no rearrangement of the
+#   model's own loop can supply it.
 RECAL_EPSILON_RATE_PER_YEAR: float = 0.02
                                          # arc speed dε/dt: a ~50-year subsistence→post-scarcity
                                          # transition. UNCALIBRATED placeholder — converts per-ε
@@ -4899,6 +5292,9 @@ RECAL_ESCALATION_CAPACITY_FLOOR: float = 10.0
 #   formula, so this is a provenance defect rather than a caveat. Recorded and
 #   not repaired: retagging moves the verdict-ladder census and re-fitting is an
 #   author decision. See record/provenance.md#depreciation-derivation-does-not-reproduce.
+# note: MEASURED 2026-10-08: BEA's 2024 rate is 0.052–0.090 by scope, so 0.05
+#   sits below all four scopes — see DEP_RATE and
+#   `capital_retrodiction.depreciation_report()`. Not changed.
 FORMATION_DEPRECIATION_RATE: float = 0.05
                                          # aggregate annual depreciation of machine capital.
                                          # Derived from CAPITAL_MACHINE_PROFILES design lives
@@ -5119,17 +5515,21 @@ THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ EQUILIBRIUM climate f
 #   block.
 THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
                                        # Epistemic pointer: greenhouse forcing assessment.
-# tag: placeholder | tier: D | units: W·m⁻²
-# form: net anthropogenic albedo forcing. Defaults to ZERO, which is a
-#   placeholder standing in for a quantity that is not zero — land-use albedo
-#   change is a real forcing term (IGCC assesses it at roughly −0.2 W·m⁻²).
-# note: the default understates the budget rather than overstating it, so it
-#   errs toward a larger obligation, which is the framework's preferred
-#   direction of error.
-# resolves_by: the land-use albedo term from the same IGCC synthesis already
-#   shipped in reference/data/ for the other forcing constants — reachable
-#   from data in hand.
-THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
+# tag: measured | tier: A | units: W·m⁻²
+# form: net anthropogenic albedo forcing — the land-use term of IGCC 2025a
+#   (`land_use` in ERF_best / ERF_p05 / ERF_p95, time 2025.5): −0.192
+#   [−0.300, −0.053] W·m⁻². Negative, so it COOLS: subtracting it in
+#   residual_thermal_forcing RAISES the residual, from −0.600 to −0.408 W·m⁻²
+#   on the P0 defaults — still an overage at both percentiles.
+# note: was a 0.0 placeholder until 2026-10-16 (author: "Thermal takes the
+#   measurement"); record/provenance.md#placeholders-audited. The 0 erred toward
+#   a larger obligation; the measured value is less conservative, by design.
+# note: ONLY THE P0 CHAIN READS IT. Path C passes f_alb=0 because its net and
+#   anthro bases already contain land use (IGCC's anthro_nonwmghg sums it);
+#   adding this there would count it twice. Path C's wmghg basis omits it,
+#   as that basis omits every non-GHG term.
+# resolves_by: an annual IGCC refresh.
+THERMAL_F_ALB: float = -0.192          # W·m⁻² net anthropogenic albedo forcing (IGCC 2025a land use).
 # tag: placeholder | tier: D | units: K
 # form: the assessed habitability threshold.
 # note: THE SINGLE MOST LEVERAGED INPUT IN THE WHOLE THERMAL LAYER. It sets
@@ -5622,3 +6022,12 @@ THERMAL_GRID_KAPPA_DEFAULT: float = 0.93  # CHOSEN/measured; resolves_by: physic
 LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA: tuple[float, ...] = (
     0.0, 500.0, 1_000.0, 2_000.0, 4_000.0, 8_301.0, 16_000.0,
 )
+# tag: convention | units: dimensionless ε — the gap between two ε intervals
+# form: `instrument_comparison`'s cut between ADJACENT and DIVERGENT, when the
+#   labour and capital intervals do not overlap: a gap below it is ADJACENT.
+# note: NAMED 2026-10-04: a bare 0.05 at two sites (the corner and the grid);
+#   the measured stock age alone moved the US gap to 0.0597, past it, before
+#   the measured condition closed it. It states how near counts as near, not a property of either
+#   instrument; the verdict is reported beside both intervals and the grid's,
+#   so a reader can apply their own.
+INSTRUMENT_ADJACENT_GAP: float = 0.05

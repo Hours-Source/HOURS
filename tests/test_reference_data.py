@@ -185,14 +185,17 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.parcels",
     "hours_eoh.reference.verification",
     "hours_eoh.reference.capital_inventory",
+    "hours_eoh.reference.energy_use",
     "hours_eoh.reference.obligation_work",
+    "hours_eoh.reference.states",
 ]
 
 
 def test_every_reference_module_is_on_the_isolation_list():
-    """The list above is hand-maintained, so it can silently fall behind — and
-    did: `care_demand` and `land_stewardship` were both added without being
-    registered, which meant neither was ever checked for domain imports."""
+    """Someone keeps the list above by hand, so it can fall behind, and it did.
+    `care_demand` and `land_stewardship` arrived unregistered, so nobody checked them
+    for domain imports.
+    """
     import pathlib
 
     on_disk = {

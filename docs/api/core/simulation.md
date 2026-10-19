@@ -10,6 +10,8 @@ Period-by-period simulation of the EOH/TEH economy. Tracks the full physical sta
 
 Creates an initial economy state for simulation: every quantity that persists between periods. Fields left unsupplied take the function's defaults — the capital stock, knowledge complexity and monitoring capability from the canonical arc at ε, the rest from fixed defaults. Per-period inputs such as levy rates are passed to `simulate_period()` rather than stored in the state.
 
+The **register** is state too: `registration_epsilon` (default `None`, the register tracks ε). Set it to hold the register while capability moves; `simulate_period()` carries it forward unchanged and the pipeline, the guarantee and the period's on-ledger reads all use it.
+
 ```python
 from hours_eoh.core.simulation import make_economy_state
 

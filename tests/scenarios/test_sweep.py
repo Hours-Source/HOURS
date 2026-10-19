@@ -4,6 +4,8 @@ Tests for hours_eoh.scenarios.sweep.epsilon_sweep at its canonical location.
 The sweep verifies EOH framework coherence across the full automation arc.
 """
 
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT
+
 import pytest
 from hours_eoh.scenarios.sweep import epsilon_sweep
 
@@ -94,3 +96,54 @@ class TestTheDiscontinuityDetectorCanFire:
         rows = epsilon_sweep(jump_threshold=0.05)["discontinuities"]
         for row in rows:
             assert row["rel_jump"] > 0.05, "flagged below its own threshold"
+
+
+class TestTheFloorReadsObservedEpsilon:
+    """Author decision 2026-09-30: the floor price is read at the OBSERVED ε."""
+
+    def test_every_point_prices_the_floor_at_its_observed_epsilon(self):
+        from hours_eoh.core.prices import basket_price
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        for row in epsilon_sweep()["sweep"]:
+            assert row["basket_price"] == basket_price(row["epsilon_observable"])
+            if row["epsilon"] > 0.0:
+                assert row["epsilon_observable"] < row["epsilon"]
+
+
+class TestTheSweepPaysFromTheMint:
+    """2026-09-30: the arc coherence check judged solvency on
+    `tot_eoh × (1 − ε)` — obligation hours read as TEH, ~50× the mint at ε=0.
+    On the mint its solvency column can fire, and agrees with stationarity."""
+
+    def test_zero_prior_work_fails_at_the_top_and_nowhere_below_the_edge(self):
+        from hours_eoh.scenarios.stationarity import stationary_bands
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        edge = stationary_bands(step=0.01)["teh"]["upper"]
+        rows = epsilon_sweep(trust_balance=0.0)["sweep"]
+        assert not rows[-1]["fiscal_solvent"]
+        assert all(r["fiscal_solvent"] for r in rows if r["epsilon"] <= edge)
+
+    def test_default_prior_work_holds_everywhere(self):
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        assert all(r["fiscal_solvent"] for r in epsilon_sweep()["sweep"])
+
+
+class TestTheSweepsDomainsAreThePipelines:
+    """2026-09-30: the sweep sums its own four domains; its personal EOH was
+    population² × weight (head counts passed as fractions). Bound to the
+    pipeline's domains so a bypass cannot drift again."""
+
+    def test_every_domain_matches_the_pipeline(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import resolve_capital_stock, resolve_knowledge_base_size
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        for row in epsilon_sweep()["sweep"][::25]:
+            e = row["epsilon"]
+            p = eoh_to_teh_pipeline(
+                e, capital_stock=resolve_capital_stock(None, e, population=1.0e6),
+                capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, ecosystem_health=0.70,
+                knowledge_complexity=resolve_knowledge_base_size(None, e),
+            )["eoh_by_domain"]
+            for key, dom in (("personal_eoh", "personal"), ("infrastructure_eoh", "infrastructure"),
+                             ("ecological_eoh", "ecological"), ("knowledge_eoh", "knowledge")):
+                assert row[key] == pytest.approx(p[dom], rel=1e-9, abs=1e-6), (e, key)

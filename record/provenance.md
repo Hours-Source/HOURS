@@ -4,30 +4,23 @@
 ratchet, the confidence figures, the placeholder and chain audits, constant
 revaluations and re-anchors, the dataset-governance gate.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
 
-Counts verified live against `utils.provenance.scan()` at migration, not
-recalled. Regenerate with `eoh provenance check`.
+Counts below are generated, never hand-kept.
 
-- **348 constants in `data.py`, all tagged** — `provenance 348/348` *(gated)*.
-  placeholder 128 (36.8%), normative 72 (20.7%), convention 45 (12.9%), measured
-  28 (8.0%), instance 23 (6.6%), derived 22 (6.3%), bounded 19 (5.5%),
-  derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).
-  Breakdown [drifted; not gated](#per-tag-census-drift).
-- **Quote the debt as the placeholder figure, not "83% CHOSEN".** The 68
-  normative constants are decisions needing argument, not data — they are
-  forbidden a `resolves_by` and that is the point.
+- <!-- census:provenance -->**372 constants in `data.py`, all tagged** — `provenance 372/372`<!-- /census:provenance --> *(gated)*.
+  <!-- census:tags -->placeholder 123 (33.1%), normative 79 (21.2%), convention 54 (14.5%), measured 32 (8.6%), instance 30 (8.1%), derived 23 (6.2%), bounded 20 (5.4%), derived-then-FROZEN 6 (1.6%), physics 3 (0.8%), baseline 2 (0.5%)<!-- /census:tags -->. [Census](#census-one-source).
+- **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
+  constants are decisions, not data — forbidden a `resolves_by` by design.
 - **The shadow ratchet stands at 33** *(gated)* — named constants outside
   `data.py`, in the operative layers, invisible to the provenance gate. **Never
   quote the 100%-tagged figure without the wider denominator**; the two gaps
   compound.
 - **The confidence ratchet may not rise.** The count is in § Open *(gated)* and
-  is not restated here: backfilling it wholesale would invent that many numbers
-  rather than measure them, which is the failure the field exists to expose.
+  is not restated here: backfilling it wholesale would invent numbers, the
+  failure the field exists to expose.
 - **Leverage runs OPPOSITE to confidence, and that ordering is pinned as a
   test.** `PERSONAL_EOH_BASE` has the model's highest elasticity (0.94) at
   confidence 40; the GUF α pair (0.73, 0.59) at 10; `SERVICES_PRICE_DECLINE_
@@ -43,6 +36,7 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
+- **Three bridge columns are untagged** *(caveat)* — and BOUNDED: all three on one domain leaves every domain but care covered (≥1.67×). [verification.md](verification.md#one-headcount)
 - **30 dict/tuple constants carry ONE tag over several fields; two checked**
   *(gap)* — a composite's tag reads its WEAKEST element and says nothing about
   the others. **9 of the 30 declare MIXED UNITS in their own `units:` field and
@@ -53,8 +47,10 @@ recalled. Regenerate with `eoh provenance check`.
   `CARE_SIGMOID_DEFAULTS`: one 10% perturbation per field moves the registration
   share **+0.23% / −0.66% / +2.91% / −5.68%**, a **25× leverage spread** inside
   one constant, on the quantity that is unit-elastic on the money supply.
-  *Settles by:* a pass over the 30, mixed units first.
-- **131 of 147 placeholder/bounded constants carry no confidence figure.**
+  **Ten `derived` constants rest on placeholders** and are not placeholders
+  themselves; each says it inherits (gated). *Settles by:* a pass over the
+  30, mixed units first.
+- <!-- census:confidence -->**125 of 143**<!-- /census:confidence --> **placeholder/bounded constants carry no confidence figure.**
   *(caveat)* Ratcheted; may not rise. 125 → 133 (sigmoid split), 133 → 131 (two
   baselines retagged, 2026-09-16); arithmetic in `tests/test_confidence.py`.
 - **Two of four personal automation floors carry a value; both are improved
@@ -68,15 +64,12 @@ recalled. Regenerate with `eoh provenance check`.
 - **`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates `INFRA_MAINT_RATE`** *(person)*
   as an unbound literal 1,087 lines away. Reported, not bound — binding would
   ASSERT the aggregate and the catch-all are one quantity, which is a theory
-  claim. *Settles by:* an author decision on whether they are.
-- **`derive `form:` edges from the expressions.** *(gap)* `band_from:` is
-  opt-in, the wrong shape for a circularity check — every failure found so far
-  was one nobody thought to declare. **Measured 2026-09-04:** the "right-hand
-  side of each assignment is a dependency statement" claim holds for **12 of
-  300**; the rest are bare literals. Small, but `band_from:` is declared ONCE,
-  so deriving those 12 takes the check from one edge to twelve.
-- **The scan is `data.py`-only.** *(caveat)* "342/342 tagged" means 342 constants *in
-  `data.py`*; the 33 shadow constants are invisible to every count published.
+  claim. *Settles by:* the author deciding.
+- **~~Derive `form:` edges from the expressions~~ — SETTLED 2026-10-16**
+  (built: `provenance.expression_parents`) *(pointer)* [provenance.md](provenance.md#expression-edges)
+- **Which scope is the Trust's capital?** *(person)* [entry](#depreciation-measured)
+- **The scan is `data.py`-only.** *(caveat)* The <!-- census:shadow -->29<!-- /census:shadow --> shadow constants are
+  invisible to every count published.
 
 ## Cross-area entries
 
@@ -89,17 +82,24 @@ Filed here on primary subject; each also bears on another area.
 | [two-constants-revalued](#two-constants-revalued) | [guf § Live state](guf.md#live-state) | One of the two is `GUF_ECO_KAPPA_CARBON`, reconciled against `CDR_LABOR_HOURS_PER_TONNE` |
 | [chain-audit-three-closures](#chain-audit-three-closures) | [fulfilment](fulfilment.md) | Re-anchored `KNOWLEDGE_EOH_BASE` a third time and found the fourth shadow constant carrying a duplicated wrong pointer |
 
-*(gated)* marks a line checked against the code by
-`tests/test_claims_register.py`.
-
 ---
 
 ## History
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 17 entries, newest first | |
+| 27 entries, newest first | |
 |---|---|
+| [confidence-test-history](#confidence-test-history) | THE HISTORY THAT `tests/test_confidence.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [provenance-test-history](#provenance-test-history) | THE HISTORY THAT `tests/test_provenance.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [placeholders-audited](#placeholders-audited) | THE 128 LIVE PLACEHOLDERS AUDITED: MOST ARE REAL; ONE CLOSES FROM A SOURCE THE REPO ALREADY CIT… |
+| [rate-fixed-point](#rate-fixed-point) | THE ARC SPEED SOLVED AGAINST ITS OWN PACE: NO RATE UNDER THE NULL ANCHOR, A CEILING UNDER THE C… |
+| [derived-is-not-placeholder](#derived-is-not-placeholder) | A `derived` CONSTANT ON A PLACEHOLDER IS NOT A PLACEHOLDER — IT MUST SAY IT INHERITS; AND THE T… |
+| [expression-edges](#expression-edges) | THE ASSIGNMENT IS AN EDGE: THE TRANSITIVE GATE NOW READS WHAT EACH CONSTANT IS COMPUTED FROM, A… |
+| [atus-vintage-closed](#atus-vintage-closed) | THE THREE ITEMS [national-population-closed](#national-population-closed) LEFT OPEN, CLOSED: TH… |
+| [national-population-closed](#national-population-closed) | THE NATIONAL POPULATION CLOSED AT THE 2024 CENSUS; THE KNOWLEDGE BASE RE-DERIVED −5.90%, AND TH… |
+| [depreciation-measured](#depreciation-measured) | DEPRECIATION MEASURED — THE AGGREGATION DISPUTE ENDS, AND THE "SAFE DIRECTION" DOES NOT SURVIVE |
+| [census-one-source](#census-one-source) | THE COUNTED FIGURES GET ONE SOURCE, AND THE PROSE QUOTING THEM IS GENERATED |
 | [per-tag-census-drift](#per-tag-census-drift) | THE GATED TOTAL IS CHECKED AND THE PER-TAG BREAKDOWN BESIDE IT IS NOT |
 | [the-arc-bound-named](#the-arc-bound-named) | THE ARC'S EVALUATION BOUND HAD NO NAME, AND NAMING IT MEANT FIRST SEPARATING THREE THINGS THAT… |
 | [depreciation-derivation-does-not-reproduce](#depreciation-derivation-does-not-reproduce) | A `resolves_by` WAS RUN AND THE DERIVATION DID NOT REPRODUCE — AND THE AGGREGATION CHOICE IS WO… |
@@ -121,6 +121,121 @@ Filed here on primary subject; each also bears on another area.
 <!-- /record-index -->
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/provenance.md#<slug>`.
+
+<a id="confidence-test-history"></a>
+
+**THE HISTORY THAT `tests/test_confidence.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 6; [ste-docstrings](verification.md#ste-docstrings)).
+- **The counts.** The module docstring said "147 constants carry `placeholder` or `bounded`" and that backfilling them "would be inventing 131 more numbers". LIVE (the census, 2026-10-17): 143 soft constants, 125 without a confidence figure. The docstring no longer states a count; the census generates it.
+- **The first pass (2026-09-01).** It annotated the nine highest-leverage constants, chosen by perturbation, not by hand: everything above 0.14 elasticity on the model's headline outputs.
+- **Why a low number is worth stating.** Everything downstream is fitted against these constants. A value that moves from 0% to 3% measured moves whatever is fitted to it a little closer to something real; a value at 70% moves it a long way. An undocumented guess is a 0 that does not say so.
+- **The first leverage review's ranking.** AGE_WEIGHT_CHILD, the best measured of the nine at 70, ranked SIXTH by leverage. Anything fitted in this repo is fitted hardest against what is known least. The elasticities (0.94, 0.73, 0.59, 0.54) are the figures in each constant's `confidence` field.
+
+<a id="provenance-test-history"></a>
+
+**THE HISTORY THAT `tests/test_provenance.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-16, author: "use (b) create record and link to"). The test docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)); each test's stated gap stays in its docstring. None of these facts is read by a test.
+- **The domain-balance table.** On 2026-08-10 the doc's ε=0.40 and ε=0.99 columns were wrong (infrastructure and knowledge also transposed at the top of the arc), and the paragraph above drew a FINDING from the error: that two moves "pulled in opposite directions" and personal's share ended HIGHER at ε=0.99. It ended lower; both moves cut it. The test's tolerance is 1 percentage point, because the doc quotes to 0.1pp.
+- **The transitive ancestry.** Both anchored-inversion candidates examined on 2026-08-15 had the two-step shape: `CONTESTABILITY_CAPITAL_YIELD_RATE` ← `FORMATION_DEPRECIATION_RATE` (derived) ← `CAPITAL_MACHINE_PROFILES` (placeholder). Hand tracing caught them.
+- **Expectations that name a test.** `DEFAULT_SEGMENTS` carried an exemplary expectation in prose (the synthetic mean sits ON the band ceiling because it was built to; the measured one sits inside on its own evidence) and nothing evaluated it. Prose drifting from its number had been caught nine times by then.
+- **`baseline_in` and parameter defaults.** The `decay=SKILL_DECAY_RATE` and `skill_decay_rate=0.10` defects were both a superseded value governing output through a default.
+- **The comparison label.** The first version accepted any dict value under a literal key. A retired constant could then enter a live figure under the key "total" and pass; breaking it exactly that way showed it.
+- **`SKILL_DECAY_RATE`.** 0.10 against a measured split of 0.0294; `scenario run knowledge_base` prints it beside the split.
+- **Aliases.** `TRANSMISSION_WORKING_LIFE_YEARS = SKILL_WORKING_LIFE_YEARS` is what the 2026-08-16 pass did to the constant that broke a structural identity.
+- **Innocuous values.** The test once asserted that `HALF = 0.5` and `PERCENT = 100.0` were ignored for their values alone. That hid `_STEW_REG_SIGMOID_RATE = 10.0`, tuned by hand ("raised from 6.0 to 10.0") while its two siblings were counted. Two `_INNOCUOUS_NAMES` entries went stale within an hour of the allowlist shipping, when the registration migration bound `_PERS_REG_START` and `_KNOW_REG_BASE` to `data.py`.
+- **The shadow ratchet.** 76 shadow constants existed when the scan was written, so an unconditional gate would have failed on honest pre-existing states, the same reason `band_from:` shipped opt-in.
+- **Retirement verified.** On 2026-08-09 the check falsified two of four retirement claims: `DEFAULT_SEGMENTS` was the live default in `core/multipliers.py`, and `core/eoh_generation.py` still read `SKILL_DECAY_RATE`. Both went back into the debt count.
+- **The sigmoid split.** The five registration sigmoids were one `placeholder` dict each, over four fields whose leverage on the money supply differs 25-fold. Seven of the twenty fields were `normative` or `convention`, not awaiting measurement.
+- **The reference population.** Until 2026-10-02 the 1M frame was retyped at 83 sites in four spellings (`1_000_000.0`, `1e6`, `1.0e6`, `1_000_000`) across core/, scenarios/, research/ and twelve CLI flags.
+- **The capital age.** `CANONICAL_CAPITAL_AGE_BASE` was a bare 0.30 in `canonical_physical_state` and a retyped default at ten scenario and simulation sites until 2026-10-02.
+- **The arc bound.** `EPSILON_ARC_MAX` was retyped as 0.99 in 51 arc-bound uses (clamps, range checks, arc grids, bisection bounds, `epsilon_end` defaults and two `_EPS_MAX` copies) until 2026-10-02.
+- **The census.** Before 2026-10-03 the counted figures were pinned by hand in about six places across four files, and the tag breakdown had drifted, ungated.
+
+<a id="placeholders-audited"></a>
+
+**THE 128 LIVE PLACEHOLDERS AUDITED: MOST ARE REAL; ONE CLOSES FROM A SOURCE THE REPO ALREADY CITES, ONE IS BOUNDED BY DATA IT SHIPS, ONE POINTED AT A COMPUTATION, AND THREE POINTERS WERE FALSE** (2026-10-16, author: "audit the placeholders if they are really placeholders, finding what can close"). Every placeholder's `form`, `resolves_by` and notes were read. Each claim that data was in hand was checked against the data, and each self-description as another kind against the scheme. **The author's decisions, applied the same day** ("Thermal takes the measurement, let guf be a bound, degree as instanced as it does depend on institutions, and no data will settle the union and changed to normative, then build the fix epsilon"): `THERMAL_F_ALB` → `measured` Tier A at −0.192; `GUF_WRITEDOWN_AMORTIZATION_YEARS` → `bounded` [40, 60]; `BASKET_THERMAL_DEGREE_DAYS_PER_YEAR` → `instance`; the two Coasean clearing-union constants → `normative`; the arc-speed solve built ([rate-fixed-point](#rate-fixed-point)) — and it settles nothing. Confidence ratchet 129 of 147 → 125 of 143: four left the pool, the bounded one stays in it. The measured albedo moved one test: `test_decarbonization_headroom_reproduces_measured` fed a NET-ERF forcing to the P0 chain, which already contains land use, so it now passes `f_alb=0`, as Path C does (−0.192 counted twice gave 1,032 TW against 1,110).
+- **REAL, AND WAITING ON DATA THE REPO DOES NOT HOLD — the large majority.** FHWA NBI (the `ASSET_*` condition family, `COND_DECAY_FLOOR`, `PRE_THRESHOLD_COMPOUND_RATE`); NHATS/HRS (the `CAPACITY_DECLINE_*` schedule, `HUMAN_CAPITAL_*_DECAY`); state-DOT timesheets (`INFRA_TREATMENT_HOURS_*` — public, units match, the nearest external closure); BLS JOLTS (`SCARCITY_ROLLING_WINDOW`); BEA/OECD input–output (`GOODS_`/`SERVICES_PRICE_*`); a servicing census by use (`GUF_USE_*`); panels or time series through a transition (the registration sigmoids, `GUF_ALPHA_*`, `KNOWLEDGE_EPS_EXPONENT`); IEA/LCA (`CAPITAL_THERMAL_PROFILES`). MTUS capacity by age was checked for the decline schedule and is the WRONG instrument: hours by age carry retirement and choice, and the constant claims biological capacity, as its own note warns.
+- **CLOSES FROM A SOURCE ALREADY CITED — `THERMAL_F_ALB` (0.0).** The IGCC 2025a release that the shipped thermal totals come from has land-use albedo at **−0.192 W·m⁻² (p05 −0.300, p95 −0.053)** at 2025. Its aggregates in the same file match the shipped totals exactly (total 3.366, anthropogenic 3.104, WMGHG 3.585), so it is one vintage. `residual_thermal_forcing` goes −0.600 → −0.408 W·m⁻² (−0.300 to −0.547 across the band): still an overage, smaller by a third. The zero errs toward a larger obligation, as its note says. Its pointer said the term was "already shipped … in hand"; it was not, and the pointer now says so.
+- **BOUNDED BY DATA THE REPO SHIPS — `GUF_WRITEDOWN_AMORTIZATION_YEARS` (50).** BEA's service lives in `reference/capital_inventory.py` for what replaces a lost ecosystem service are water supply, sewage and conservation at 40 years, and government sewer, water and conservation-and-development structures at 60. That is a measured band [40, 60] with 50 inside it. Which BEA classes count as "the replacement" is the judgement the band would state. A candidate for `bounded`.
+- **POINTED AT A COMPUTATION — `RECAL_EPSILON_RATE_PER_YEAR` (0.02).** Its pointer names a damped fixed-point over (rate, realised pace), the shape `knowledge_base.epsilon_ref_fixed_point` already has. That needs no data, only code — and once built it settled nothing ([rate-fixed-point](#rate-fixed-point)).
+- **SELF-DECLARED ANOTHER KIND.** `BASKET_THERMAL_DEGREE_DAYS_PER_YEAR` calls itself "an instance quantity wearing a placeholder's clothes" (`instance`). `COASEAN_RESERVE_FRACTION` and `COASEAN_IMBALANCE_CEILING` are a clearing union's own design parameters: the EPU and ACU figures they cite are PRECEDENT, which is the scheme's `normative` with `precedent:`. `FORMATION_HURDLE_RATE_MIN` / `_FULL_SUPPLY_RATE` name no evidence that could settle them ("no observed economy … the counterfactual is the argument"). A placeholder must name one, so these stand on the scheme's edge.
+- **DEBT NO SHIPPED FIGURE READS.** `GUF_PSI_A` / `_B` / `_FLOOR` count as placeholder debt, while the default fee has not read Ψ since 2026-08-20 (author decision; the family kept live for `psi_policy="bell"`). Reported only.
+- **THREE FALSE POINTERS, CORRECTED IN `data.py`:**
+  - `THERMAL_F_ALB` ("already shipped") — the term is not in the extract.
+  - `REGEN_AUTOMATION_LEVERAGE_MAX` ("reachable from data the repo can already read") — the ASAE table is 17 machine implements, with no unassisted leg and no automation index.
+  - `WORKFORCE_FRACTION_MIN` ("derivable from two other constants") — a per-domain FRACTION implies no minimum workforce, which is why `CONTESTABILITY_MIN_VIABLE_POPULATION` retracted the same derivation.
+- Mode 8 again: a pointer that says "in hand" reads as a finding until someone opens the file.
+
+<a id="rate-fixed-point"></a>
+
+**THE ARC SPEED SOLVED AGAINST ITS OWN PACE: NO RATE UNDER THE NULL ANCHOR, A CEILING UNDER THE CHARTER** (2026-10-16, author: "build the fix epsilon"). `RECAL_EPSILON_RATE_PER_YEAR` (0.02) pointed at a damped fixed point over (rate, realised pace), the shape of `knowledge_base.epsilon_ref_fixed_point`. Built as `research.formation.epsilon_rate_fixed_point`, with `realised_pace` reading the first passage to the cap between years, so the pace does not jump a whole year at a boundary.
+- **Null anchor (`charter_share_override=0.0`): `exit: left_range`.** The realised pace is the rate times ~1.287 (`ratio_at_start`) at every rate whose arc runs a decade or more, so the damped map only scales the rate up until the arc fits in two yearly steps. The 2026-08-09 "27% disagreement" (39 yr, 0.0254/yr) is that shape factor read off one run: reading the pace back reproduces the input times the arc's shape and selects no rate.
+- **Endogenous charter (`None`): converges at ~0.044/yr** (an arc of ~22.5 yr) from 0.02 and from 0.2 alike. Below it the run keeps up with its schedule; above it formation does not. That is the fastest schedule formation can supply — a CEILING on the rate, not a reading of it. The shipped 0.02 sits under it.
+- **No value or tag changed.** The constant stays a placeholder; its `resolves_by` now names what can settle it: an observed pace of transition, the capital or labour route's ε read at two dates. External, as the loop cannot be.
+- Gated by `tests/test_formation.py::TestTheRateSolvedAgainstItsPace`, broken two ways (the range rule removed → the null anchor "converges" at the cap; the damping sign flipped → the charter never converges).
+- Mode 8 once more, from the other side: a pointer naming a COMPUTATION can be as wrong as one naming a dataset, and only running it shows which.
+
+<a id="derived-is-not-placeholder"></a>
+
+**A `derived` CONSTANT ON A PLACEHOLDER IS NOT A PLACEHOLDER — IT MUST SAY IT INHERITS; AND THE TAG PARSER WAS DROPPING TEXT FROM 58 RECORDS, INCLUDING A MEASURED BAND** (2026-10-16, author: "determine if a placeholder should be one", of the ten [expression-edges](#expression-edges) found). `utils/provenance.declares_inheritance`, a new refusal in `problems()`, and `_parse_tag_block`. Seven `resolves_by: n/a — it inherits …` lines were added in `data.py`. Tests: `tests/test_provenance.py::TestTheExpressionIsAnEdge::test_a_derived_on_placeholder_must_say_it_inherits`, `::TestTheTagBlockIsReadWhole`.
+- **THE DETERMINATION: NONE OF THE TEN.** Each was read for content of its own. Seven are assemblies: the five sigmoid dicts and `GUF_ECOSYSTEM_SERVICES` hold no numeric literal, and `AGE_GROUPS` holds only the 1.0 of a complement (self share = 1 − care share). `GUF_PSI_NORM` is a normalisation (its 1.0 is the peak), and `RECAL_FOUNDING_LABOR_HOURS` is a product. `ESSENTIAL_BRIDGE_PERSONAL`'s non-zero literals are frozen MEASURED splits (LSMS, FR1966, ATUS); its two zeros (water, logistics) are attributions. In every case the unmeasured content sits in a parent already tagged `placeholder` and already counted. Tagging the child too would count one debt twice, and its `resolves_by` could only say "settle the parents". The scheme already says what such a constant does: "say so in `form:`/`resolves_by:`", as `FORMATION_DEPRECIATION_RATE` did. Three did. The seven composites did not, and now do. The gate refuses a silent one, and a bare "inherit" is not enough: the block must also name the placeholder or its `FAMILY_*`.
+- **THE REVERSE, CHECKED TOO.** Of the placeholders computed from other constants, `CAPACITY_DECLINE_MID_AGE` (its own breakpoints) and `PERSONAL_EOH_COMPONENTS` (its own desk shares) are genuine. `PERSONAL_AUTOMATION_FLOORS` has the sigmoid dicts' shape — it binds its two floors by expression — but it is RIGHTLY a placeholder. The table holds a claim of its own: which components carry a floor at all (health and shelter absent, an admission rather than a zero). Its `resolves_by` names the instrument for all four components, which neither floor's own block does.
+- **THE PARSER, FOUND BY THE GATE.** `GUF_PSI_NORM` already said "it inherits GUF_PSI_A and GUF_PSI_B's standing", and the scan could not see it. Three defects, all silent:
+  - A bare `#` line ended the block, so later paragraphs vanished (four blocks).
+  - A repeated field replaced the one before (34 blocks repeat `note:`).
+  - The field regex accepted any indent, so `AMENITY_STEWARDSHIP_WEIGHT`'s continuation line "#   band: every admissible weight…" opened a new field. That overwrote the measured band `[0.0468, 0.0699]` with a sentence, and the gate "a bounded value states its band" passed on the sentence. The published table printed it.
+  - Fixed: one space at most opens a field, repeats add, and a bare `#` is a paragraph break. Diffed field by field across all 373 records, 58 changed: 53 notes, 3 forms, 1 `decided_by`, the band. No tag, tier or confidence moved, and the census is unchanged.
+- **VERIFIED BY BREAKING IT.** Each of the three parser fixes, the refusal and the naming condition was reverted in turn, and each fails a test. The regex break first passed, because the repeat-adds fix masked it. The test now asserts the literal "band:" stays inside the text.
+
+<a id="expression-edges"></a>
+
+**THE ASSIGNMENT IS AN EDGE: THE TRANSITIVE GATE NOW READS WHAT EACH CONSTANT IS COMPUTED FROM, AND TEN `derived` CONSTANTS BOTTOM OUT ON PLACEHOLDERS** (2026-10-16, autonomous: the open item "derive `form:` edges from the expressions"). `utils/provenance.expression_parents` (AST over module-level assignments; the other tagged constants each right-hand side reads), `Scan.expr_parents`, `unanchored_ancestors` (follows `band_from` ∪ expression parents), `derived_on_placeholder`, `DERIVED_TAGS`. Tests: `tests/test_provenance.py::TestTheExpressionIsAnEdge`.
+- **WHY.** `band_from:` is opt-in, and every failure the gate had found was one nobody thought to declare. The file declares it once (`SKILL_TRANSMISSION_RATE`). The code states **79 edges on 21 constants** (2026-10-16; the item's "12 of 300" was 2026-09-04).
+- **WHAT IT FOUND.** Ten constants tagged `derived` — "computed from measured inputs by a stated formula" — are computed from placeholders: `AGE_GROUPS`, `CARE_` / `KNOWLEDGE_` / `PERSONAL_` / `PRODUCTION_` / `STEWARDSHIP_SIGMOID_DEFAULTS`, `GUF_ECOSYSTEM_SERVICES` (13 chains), `ESSENTIAL_BRIDGE_PERSONAL` (→ `PERSONAL_EOH_COMPONENTS`), `GUF_PSI_NORM` (→ the Ψ floor and coefficients) and `RECAL_FOUNDING_LABOR_HOURS` (→ `RECAL_FOUNDING_FRACTION`). Seven are the composites the "30 dict/tuple constants" item names. There the tag should read the weakest element, and these read the strongest.
+- **REPORTED, NOT RETAGGED.** A retag moves the census, the verdict ladder and the confidence ratchet, so it is the author's. The ten are not added to `problems()`; they are pinned by EQUALITY, so a retag or a new composite of placeholders changes the declared set in a diff. `problems()` is still clean: the one `band_from` claim (`SKILL_TRANSMISSION_RATE` ← `SKILL_WORKING_LIFE_YEARS`) is also its expression, and it is measured.
+- **STATES ITS GAP.** Only annotated module-level assignments are constants in the tag scan, so an edge through a function call's result or a later mutation is invisible. It is static, the same shape as the rest of the scanner.
+- **VERIFIED BY BREAKING IT.** Reading no assignments fails both tests. Walking `band_from` only fails both too: the synthetic chain, and the live pin, whose ten vanish. Retagging `CARE_SIGMOID_DEFAULTS` in `data.py` fails the equality pin.
+
+<a id="atus-vintage-closed"></a>
+
+**THE THREE ITEMS [national-population-closed](#national-population-closed) LEFT OPEN, CLOSED: THE ATUS VINTAGE GAP, THE RECOVERY TIE, THE 3M RECOUNT** (2026-10-15, author: "fix the open items").
+- **ATUS converts at the survey year's own Census share.** `atus_time_use.hours_per_capita` defaults to hours per person 15+ × `census_adult_share(year)`, Census's 15+ over Census's total for the survey year: one universe, one year, as the labour route already did. Before, it took the ATUS 15+ count over a FIXED national total, which was 2025 hours over the 2024 population. `observed_hours`, `identity_report` and `unpaid_food_hours` default to it; a supplied population keeps the explicit form. BLS paid employment still divides by the national 2024 figure, its own vintage. Readings: paid labour 923.47 → **934.85**, unpaid core 752.6 → **761.9** h/person·yr. Labour-route ε (core / broad) is 0.4109 / 0.2181, and the US frame's ε midpoint 0.368.
+- **The twelfth re-anchor: `KNOWLEDGE_EOH_BASE` 280,218,381.73 → 291,930,848.76 (+4.18%), ε* 0.518082 → 0.508651.** Net on the day it is **−1.96%** against the 297.78M it started at. The docs domain table reads personal 58.0% and knowledge 32.5% at ε 0.99. The bridge bound is 1.67×.
+- **The levy is kept at 4.6%.** The smallest standing-still rate is now **4.4993%**, so the round-up rule alone would give 4.5% again, with a 0.016% margin. The author's decision was to cover 0.99, and 4.6% does, with a 2.2% margin. The tag block says so, and returning to 4.5% is the author's call. Compensation, both archetypes, and the stationarity pins are unchanged.
+- **The recovery tie is fixed, not reported.** On the US frame the backlog is 1.5× a year's demand to within ONE ulp, either side, so the bare `backlog <= demand` read year 2 or 1 by rounding. New `data.RECOVERY_FP_TOLERANCE` (1e-12, numerics only) counts equality within float rounding as recovered. Year 1 is stable. `tests/scenarios/test_recovery.py::TestAnExactTieIsRecovered` uses the frame's two real pairs and a 1e-6 real miss that stays year 2. It was broken by removing the tolerance (4 fail).
+- **The 3M recount.** At 3M people on US land, **11 of 49** states cannot pay their fee, against 10 in [contestability.md § frame-split-by-state](contestability.md#frame-split-by-state): Wisconsin joined. The split collects **751.1M against the whole frame's 764.3M** (13.1M unpaid).
+- 22 tests re-pinned from their functions with the reason, and 29 CLI-log entries re-recorded.
+
+<a id="national-population-closed"></a>
+
+**THE NATIONAL POPULATION CLOSED AT THE 2024 CENSUS; THE KNOWLEDGE BASE RE-DERIVED −5.90%, AND THE LEVY RAISED TO KEEP THE END OF THE ARC** (2026-10-15, author: "close the national constant at the 2024 census and re-derive"; then, when the adopted levy fell short, "raise the levy to cover 0.99"). Follows [ecological.md § mainland-population](ecological.md#mainland-population), which held it.
+- **`US_REFERENCE_POPULATION` 335,000,000 → 340,003,797** (`placeholder` → `measured`). 2024 because the registry's employment and BEA's stock are 2024-vintage. `reference.capital_inventory.BEA_POPULATION`, a 335M copy, now carries the same figure. Both are bound by test to `census_adults_2000_2025.csv` (`tests/test_states.py::TestThePopulationsAreTheCensus`). The confidence ratchet goes 130 → 129. ATUS is 2025 data read against this 2024 total, a 0.52% vintage gap; it is stated, not split into a second constant.
+- **`KNOWLEDGE_EOH_BASE` 297,779,308.10 → 280,218,381.73 (−5.90%), ε* 0.507504 → 0.518082**, the eleventh re-anchor, solved by `epsilon_ref_fixed_point` (8 iterations) and verified as its own fixed point. The population enters twice. Through registry employment per head alone (anchor held) the base moves −1.09%. The ATUS paid-labour anchor carries the rest, amplified by the fixed point: 937.3 → **923.47** h/person·yr. **The anchor had been typed as 937.3 in five places** (an `obligation_accounts` default, the `--observed-hours` CLI default, the tests). It is now `personal_floor.paid_labour_anchor()` at the new `data.KNOWLEDGE_ANCHOR_YEAR` (mode 4).
+- **THE ADOPTED LEVY FELL SHORT, AND WAS RE-SIZED BY ITS OWN RULE.** The smaller knowledge base trims the mint at ε 0.99. The smallest rate at which the TEH side stands still to 0.99 (V1, 5% need, 1,000 h, urban fee) moved **4.4923% → 4.5026%**, so 4.5% reached 0.98 and urban compensation went `fails` at 0.99. The margin had been 0.16%. `SUFF_LEVY_RATE` **4.5% → 4.6%**, rounded up as in 2026-09-15. At 4.6% both archetypes read `redundant → sole:levy → joint` to 0.99, where rural had failed at the top, and the top-of-arc reserve fills in 249 years against 1,353.
+- **What moved:**
+
+  | Reading | Before | After |
+  |---|---|---|
+  | ATUS unpaid core / paid, per person | 763.8 / 937.3 | 752.6 / 923.5 |
+  | Labour-route ε (core / broad) | 0.4119 / 0.2185 | 0.4090 / 0.2171 |
+  | Capital-route ε, low end | 0.3875 | 0.3828 |
+  | Knowledge flow per head (registry) | 146.7 | 144.5 |
+  | Personal share at ε 0.99 (docs table) | 57.5% | 58.8% |
+
+  On the US frame: the ε midpoint 0.371 → 0.367; the stationarity bands, both sides, [0.12, 0.97] → [0.11, 0.98]; the sufficiency band's lower edge 0.458 → 0.454. The frame's BEA stock goes 2.783T → **2.742T**, now 0.11% under the national inventory, which closes the overstatement `0304302` pinned. `recovery --frame us` flipped back to year 2: the same float tie.
+- **Tests:** 26 failed on the change. Each was re-pinned from its function with the reason, and 30 CLI-log entries were re-recorded. Two stale figures surfaced and were corrected: `theory.md`'s "1.33×" (1.35× at HEAD already) and the bridge bound (1.69×).
+
+<a id="depreciation-measured"></a>
+
+**DEPRECIATION MEASURED — THE AGGREGATION DISPUTE ENDS, AND THE "SAFE DIRECTION" DOES NOT SURVIVE** (2026-10-08, author-directed). [The derivation that did not reproduce](#depreciation-derivation-does-not-reproduce) left the aggregation open (0.0428 / 0.0286 / 0.0602 by method) and concluded both shipped values "err high against 0.0428 — the SAFE direction". BEA's own tables were on disk: `utils/bea_depreciation_ingest.py` extracts current-cost net stock and depreciation, 1925–2024, from Tables 1.1, 1.3, 7.1 and 7.3 (`bea_depreciation_1925_2024.csv`, each line's label checked against the workbook). BEA depreciates each asset type at its own rate and SUMS the dollars, so depreciation over the stock is the stock-weighted mean of rates — the aggregation, measured.
+
+- **2024, over the mean of opening and closing stock** (`capital_retrodiction.measured_depreciation_rate`): productive **0.0904**, government-nondefence scope **0.0704**, residential scope **0.0524**, all fixed assets **0.0534**. Over 1926–2024 every line runs from a 1936 low (0.034–0.051) to a 2000/2020 high. The aggregate lines bracket `SCOPES` rather than reproduce it: their 2024 stocks run 0.8–2.1% above `scope_total`. *Not claimed:* that composition drives the rise — the equipment+IPP share of nonresidential stock went 0.20 (1936) → 0.36 (2000) → 0.31 (2024) while the productive rate peaked in 2020, so it does not track after 2000.
+- **`DEP_RATE` 0.045 and `FORMATION_DEPRECIATION_RATE` 0.05 are below all four lines** (three scopes and all fixed assets), and so are the profiles' 0.0428 and 0.0286 (`profile_depreciation_rates`, live). By `DEP_RATE`'s own `errs:` field understating depreciation flatters solvency — the UNSAFE direction. The earlier entry's "safe" was a comparison against the profiles, which are not the stock.
+- **NOTHING CHANGED.** Which scope the Trust's capital is decides between 0.05 and 0.09 — the author's call. `depreciation_report()` states the comparison; both tag blocks carry the finding.
+- **An error caught before it shipped:** the survey that led here quoted 0.0384 as "government scope" — that was government-OWNED assets alone. The inventory's government SCOPE adds private nonresidential, giving 0.0704. *The tell:* a scope name shared by a BEA line and a `SCOPES` key.
+- Gate: `tests/test_capital_retrodiction.py::TestTheMeasuredDepreciation` — the extract against the workbook figures, the nondefence subtraction (broken by dropping it: fails), the profile aggregations live, and a below-verdict that can fire and can not.
+
+<a id="census-one-source"></a>
+
+**THE COUNTED FIGURES GET ONE SOURCE, AND THE PROSE QUOTING THEM IS GENERATED** (2026-10-03, author: option B). The provenance count moved in 31 of 271 commits and lived as literals in ~6 places across 4 files (a claims predicate and its anchor, the verdict-ladder asserts, CLAUDE.md, this file); adding one constant meant hand-editing all of them, and the per-tag breakdown above had [drifted](#per-tag-census-drift), ungated (normative 72 written, 76 live). `utils/census.py` computes every figure from the repo's own functions; `tests/census_snapshot.json` holds the acknowledged set; the prose sits between `<!-- census:… -->` markers that `eoh provenance census --write` regenerates. Rehearsed by adding a constant: five checks fire, the three generators clear them, zero hand edits. **Kept deliberate:** the two ratchet BOUNDS (`BASELINE_WITHOUT`, the shadow bound) — a ratchet a regenerate command could raise is not one. `SOFT_TAGS` moved from the confidence test to `utils/provenance.py` so the census and the ratchet read one definition. Gate: `tests/test_provenance.py::TestTheCensusHasOneSource`.
 
 <a id="per-tag-census-drift"></a>
 

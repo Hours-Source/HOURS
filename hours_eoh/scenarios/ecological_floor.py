@@ -1,19 +1,21 @@
 """
 Ecological domain balance — how far off is the anchor, and what would settle it?
 
-THE DEFECT. `ECOLOGICAL_BASE_RATE` is documented as a RELATIVE anchor — it "does
-not represent an absolute ecosystem-specific count" — but `total_eoh()` sums it
-with absolute counts and then divides the result into ε. At defaults the
-ecological domain is **under 0.1% of total EOH**, so it cannot move ε, and the
-planetary thermal obligation it carries books at roughly one part in a thousand
-of the ledger. Every result that depends on the ecological domain's SHARE is
-conditioned on a number that was never meant to carry a level.
+THE DEFECT. Its documentation calls `ECOLOGICAL_BASE_RATE` a RELATIVE anchor:
+it "does not represent an absolute ecosystem-specific count". But `total_eoh()`
+sums it with absolute counts and then divides the result into ε. At defaults
+the ecological domain is **about one part in a million of total EOH**
+(2026-10-18, `domain_balance_report`), so it cannot move ε. The planetary
+thermal obligation it carries books at roughly one part in a thousand of the
+ledger. Every result that depends on the ecological domain's SHARE rests on a
+number that nobody meant to carry a level.
 
-WHAT THIS MODULE DOES NOT DO. It does not fix the constant. No stewardship-hours
-census exists in this repo — there is no measured hours-per-hectare figure
-anywhere — and picking one to make the share look reasonable is precisely the
-fitted-residual error the personal floor was built to refuse. A number chosen to
-produce a target share would afterwards be indistinguishable from a measured one.
+WHAT THIS MODULE DOES NOT DO. It does not fix the constant. When this was
+written the repo held no stewardship-hours census. `scenarios/land_stewardship`
+has measured one since 2026-08-16, and the Phase 4f note below says why it does
+not set the anchor. To pick a figure that makes the share look reasonable is
+the fitted-residual error the personal floor exists to refuse. Afterwards,
+nobody could tell a number chosen for a target share from a measured one.
 
 WHAT IT DOES INSTEAD — INVERT THE QUESTION. Rather than asking "what is the
 ecological obligation?", which the data cannot answer, it asks:
@@ -21,29 +23,29 @@ ecological obligation?", which the data cannot answer, it asks:
     What stewardship intensity, in labour-hours per hectare per year, would the
     ecological domain have to carry for it to be X% of total EOH?
 
-That is answerable exactly, from quantities the model already has. It converts an
-unbounded "we don't know" into a falsifiable number: any future census of agency
-FTEs per hectare either clears the required figure or it does not. Same move as
+The quantities the model already has answer that exactly. The inversion
+converts an unbounded "we don't know" into a falsifiable number. Any census of
+agency FTEs per hectare either clears the required figure or it does not. Same move as
 `research/epsilon_inverse.capital_for_epsilon` (sweep the economy, not the score)
 and `scenarios/food_conservation.uncounted_headroom` (price the missing sectors
 and see what closing the gap would demand).
 
 THE READING AT DEFAULTS. The anchor implies a stewardship intensity of roughly
-**8.0e-4 h/ha·yr** — about three seconds per hectare per year, all biomes, all
+**8.0e-4 h/ha·yr** (2026-10-18) — about three seconds per hectare per year, all biomes, all
 condition classes, including cropland.
 
 TWO CORRECTIONS, BOTH RECORDED ELSEWHERE AND NEITHER APPLIED HERE UNTIL
-2026-08-28. This paragraph read "roughly 0.3 h/ha·yr", which was the
-PRE-Phase-4b implied intensity — the whole contiguous US obligation divided by a
+2026-08-28. This paragraph read "roughly 0.3 h/ha·yr". That was the
+PRE-Phase-4b implied intensity: the whole contiguous US obligation divided by a
 million-person population, stale by 464× since 2026-08-17. And it concluded that
 "the 'low by 2–3 orders' hypothesis in data.py is not merely plausible; it is
 what the arithmetic requires." PHASE 4f (adopted 2026-08-28) supersedes that
-conclusion outright: the anchor produces a RECURRING term, the adopted partition
-assigns everything recurring to GUF, and GUF's target already charges the
-measured stewardship census. The anchor was never too low — it was the wrong
-KIND of term, and its derived value is zero. The shortfall arithmetic below is
-retained because it is still correct arithmetic; it just answers a question the
-partition has closed.
+conclusion outright. The anchor produces a RECURRING term, and the adopted
+partition assigns everything recurring to GUF. GUF's target already charges the
+measured stewardship census. The anchor was never too low. It was the wrong
+KIND of term, and its derived value is zero. The module keeps the shortfall
+arithmetic below because it is still correct arithmetic; it just answers a
+question the partition has closed.
 
 Reference: reconciliation §9 (domain balance); the infrastructure floor's
 determinacy result (doctrine spread 1.000, scenarios/infrastructure_floor.py).
@@ -53,11 +55,15 @@ from __future__ import annotations
 
 from hours_eoh.core.eoh_generation import ecological_statutory_floor, total_eoh
 from hours_eoh.core.trajectory import canonical_physical_state
-from hours_eoh.data import ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import (
+    ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA, REFERENCE_FRAME_POPULATION,
+)
 
 #: The 1M reference population the whole repo quotes at, and `total_eoh`'s own
-#: default. Named here rather than repeated as a literal at four call sites.
-REFERENCE_POPULATION: float = 1_000_000.0
+#: default. Named here rather than repeated as a literal at four call sites —
+#: and BOUND to `data.REFERENCE_FRAME_POPULATION` (2026-10-02), the frame
+#: declaration it was a retyped copy of (failure mode 4).
+REFERENCE_POPULATION: float = REFERENCE_FRAME_POPULATION
 
 #: Shares of total EOH to invert for. 5% is the point at which the domain could
 #: plausibly move ε at all; 10% and 25% bracket "comparable to infrastructure"
@@ -68,13 +74,13 @@ DEFAULT_TARGET_SHARES: tuple[float, ...] = (0.01, 0.05, 0.10, 0.25)
 def _eoh_at(epsilon: float, population: float) -> dict:
     """Total EOH on the canonical arc, mapped the way `arc` maps it.
 
-    The keyword mapping is explicit and not `**state` because
-    `canonical_physical_state` uses different key names, and because
-    `knowledge_complexity` (the corpus size) and `knowledge_base` (the base RATE)
-    are one keyword apart — the pair that produced the Block K-IV under-reporting
+    The keyword mapping is explicit, not `**state`, for two reasons. First,
+    `canonical_physical_state` uses different key names. Second,
+    `knowledge_complexity` (the corpus size) and `knowledge_base` (the base
+    RATE) are one keyword apart. That pair caused the Block K-IV under-reporting
     bug for the whole life of the `arc` command.
     """
-    state = canonical_physical_state(epsilon)
+    state = canonical_physical_state(epsilon, population=population)
         # ANCHOR-CHARACTERISING REPORT: computed at the PRE-PARTITION policy.
         # Phases 4e/4f (adopted 2026-08-28/29) relocated both recurring
         # ecological terms to GUF, so under the shipped default this domain is
@@ -195,6 +201,23 @@ def domain_balance_report(
     factor = five["shortfall_factor"]
     orders = f"{factor:.0f}×" if factor < 1000 else f"{factor:.2e}×"
 
+    # The partition figures come from their own scenarios, computed here so the
+    # verdict cannot drift from them (2026-10-18; they were pinned literals).
+    # Imported locally: two scenario modules, about 20 ms, read only for prose.
+    from hours_eoh.scenarios.restoration_cost import (
+        DEFAULT_AMORTIZATION_YEARS,
+        legacy_stock,
+        restoration_band,
+    )
+    from hours_eoh.scenarios.servicing_census import census
+    serviced = census("core")
+    flow = serviced["hours_per_hectare_year"]
+    band = restoration_band()
+    stock_lo = band["lifetime_low"] / DEFAULT_AMORTIZATION_YEARS
+    stock_hi = band["lifetime_high"] / DEFAULT_AMORTIZATION_YEARS
+    legacy = legacy_stock()
+    us_ratio = legacy["annual_hours_high"] / (flow * serviced["serviced_hectares"])
+
     verdict = (
         f"the shipped anchor implies {current['hours_per_hectare_year']:.3e} "
         f"h/ha·yr of stewardship across ALL land — cropland, forest and "
@@ -211,10 +234,13 @@ def domain_balance_report(
         f"adopted 2026-08-17 there is positive reason to expect it small: GUF "
         f"carries the recurring cost of holding land under human use, and what "
         f"remains here is a stock — the pristine gap plus thermal. Measured, "
-        f"the servicing flow is 45.92 h/ha·yr against a restoration stock "
-        f"amortising to 0.017–0.096, so PER HECTARE the stock is 0.21% of the "
-        f"flow. (A 0.56% figure also exists and is NOT this one: it compares "
-        f"100 Mha of restorable land against 37.1 Mha of serviced land, so it "
+        f"the servicing flow is {flow:.2f} h/ha·yr against a restoration stock "
+        f"amortising to {stock_lo:.3f}–{stock_hi:.3f}, so PER HECTARE the stock "
+        f"is {stock_hi / flow:.2%} of the "
+        f"flow. (A {us_ratio:.2%} figure also exists and is NOT this one: it "
+        f"compares {legacy['restorable_hectares'] / 1e6:,.0f} Mha of restorable "
+        f"land against {serviced['serviced_hectares'] / 1e6:.1f} Mha of serviced "
+        f"land, so it "
         f"is a US-scale ratio over DIFFERENT areas. The two are not "
         f"interchangeable and the per-hectare one is what belongs beside a "
         f"per-hectare table.) A small "
@@ -275,8 +301,8 @@ def floor_from_census(land_census: list[dict], population: float = REFERENCE_POP
     hectare, or the GUF parcel inventory × measured crew-hours — this is where it
     enters, and the comparison against the anchor is the falsification.
 
-    Unpriced parcels are EXCLUDED, not costed at zero, so `coverage` must be read
-    before `floor_h_per_capita` is compared to anything.
+    The floor EXCLUDES unpriced parcels and does not cost them at zero. So read
+    `coverage` before you compare `floor_h_per_capita` to anything.
     """
     floor = ecological_statutory_floor(land_census)
     anchor = implied_stewardship_intensity(population=population)

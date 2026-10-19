@@ -1,19 +1,17 @@
 """The in-browser explorers (utils/explorers/) against the repo they claim to show.
 
 A published explorer carries a second implementation of the multiplier math, in
-JavaScript. Two things keep it honest:
+JavaScript. Two checks keep it honest:
 
-1. The BUILDER refuses to write a page unless the repo's own functions reproduce
-   the registry, data.py agrees with the bounds file, and every provenance key and
-   tag the page names exists. Tested here by breaking each input and requiring
-   the refusal (a gate that has never fired is untested).
-2. The page's MATH BLOCK is run under node and compared with
-   hours_eoh.core.multipliers and scenarios.multiplier_sensitivity.reconstruct,
-   including under perturbed weights. That is what would catch the page drifting
-   back to re-anchoring the frozen scale.
+1. The BUILDER refuses to write a page unless the repo's own functions reproduce the
+   registry, data.py agrees with the bounds file, and every provenance key and tag the
+   page names exists. The tests break each input and require the refusal.
+2. The page's MATH BLOCK runs under node and is compared with hours_eoh.core.multipliers
+   and scenarios.multiplier_sensitivity.reconstruct, including under perturbed weights.
+   That catches a page that re-anchors the frozen scale.
 
-Stated gap: part 2 needs node on PATH and SKIPS without it. The rendering code
-(labels, wording, layout) is not tested; only the math block and the payload are.
+Stated gap: part 2 needs node on PATH and SKIPS without it. The rendering (labels,
+wording, layout) is not tested; only the math block and the payload are.
 """
 
 from __future__ import annotations
@@ -98,8 +96,9 @@ def _literal_weight_copies(src: str) -> list[str]:
 
 
 def test_no_literal_weights_in_template() -> None:
-    """The draft hard-coded the impact weights in the JS and in the step-1 prose,
-    and the scarcity leg split in a tooltip; the page must read them."""
+    """The page must read the impact weights and the scarcity split. The draft
+    hard-coded them in the JS, the step-1 prose and a tooltip.
+    """
     src = B.TEMPLATE.read_text(encoding="utf-8")
     assert _literal_weight_copies(src) == []
     assert "IW = {...C.impact_weights}" in src

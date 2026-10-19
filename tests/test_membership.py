@@ -40,14 +40,11 @@ _UW = dict(commons_balance=_COMMONS, underwriting_policy=True)
 class TestContestabilityAudit:
 
     def test_benign_terms_are_warn_not_crit_after_the_reprice(self):
-        """Canonical terms at ε=0 with a backed floor and the M2 power in force.
-
-        Was OK at PERSONAL_EOH_BASE = 1500. At 1000 the sufficiency floor — the
-        tenure-0 member's entire portable endowment — no longer covers K_entry,
-        so bare χ_marginal breaches and the commons carries the exit instead.
-        That is a WARN by design (§8.8): financeable, but by federation policy
-        rather than by arithmetic in the member's own hands. The TERMS are still
-        clean; nothing here is a terms warning.
+        """Canonical terms at ε=0, with a backed floor and the M2 power in force, read
+        WARN. At PERSONAL_EOH_BASE = 1000 the sufficiency floor no longer covers
+        K_entry, so bare χ_marginal breaches and the commons carries the exit. That is a
+        WARN by design (§8.8): financeable by federation policy. The TERMS are still
+        clean.
         """
         result = contestability_audit({}, 0.0, **_UW)
         assert result["audit_status"] == "WARN"
@@ -114,11 +111,9 @@ class TestContestabilityAudit:
         assert any("commons" in w for w in result["warnings"])
 
     def test_nonempty_commons_reports_coverage_without_backing_warning(self):
-        """Coverage is reported, never escalated — it is a scenario judgment.
-
-        The commons-FINANCED-exit warning is a different thing and is expected
-        here (see test_benign_terms_pass_ok...); what must be absent is a warning
-        that the floor is UNBACKED.
+        """The audit reports coverage and never escalates it; it is a scenario
+        judgement. The commons-financed-exit warning appears here, as it should. A
+        warning that the floor is UNBACKED must not appear.
         """
         result = contestability_audit({}, 0.0, **_UW)
         assert result["commons_floor_coverage"] > 0.0
@@ -214,8 +209,9 @@ class TestAuditClosureFlags:
         assert result["passes"] is False
 
     def test_admission_cost_shrinks_entry_capacity(self):
-        """Capacity is computed against k_eff: terms that inflate admission
-        shrink the number of foundings the commons can finance."""
+        """Capacity is computed against k_eff, so terms that inflate admission shrink
+        the number of foundings the commons can finance.
+        """
         cheap = contestability_audit({}, 0.40, commons_balance=1e9)
         dear = contestability_audit(
             {"admission_cost_teh": 2_000.0}, 0.40, commons_balance=1e9)
@@ -254,11 +250,9 @@ class TestRepriceBaseline:
             assert r["chi_marginal"] < CONTESTABILITY_CHI_CRIT, f"at ε={eps}"
 
     def test_the_adopted_invariant_still_holds_across_the_arc(self):
-        """The axis that governs is unaffected: exit stays financeable.
-
-        χ is the SUPERSEDED flow/stock test (§8.9). The reprice moves it and does
-        NOT move the adopted three-channel invariant — which is the whole reason
-        the axis was migrated.
+        """Exit stays financeable. χ is the SUPERSEDED flow/stock test (§8.9). The
+        reprice moves it and does NOT move the adopted three-channel invariant, which is
+        why the axis moved.
         """
         from hours_eoh.research.recalibration import exit_financing
         for eps in (0.0, 0.20, 0.40, 0.80, 0.99):

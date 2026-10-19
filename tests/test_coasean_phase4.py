@@ -134,13 +134,21 @@ class TestMergeCollectives:
         assert result["teh_before"] == pytest.approx(result["teh_after"])
 
     def test_conserves_teh_rate_not_one(self):
-        """Heterogeneous federation: conservation holds in absorber units."""
+        """Heterogeneous federation: conservation holds in absorber units.
+        Parity basis — capital is its heterogeneity lever."""
         fed = self._fed(caps=[1.0e9, 2.0e9, 4.0e9])
-        rates = exchange_rates(fed)
+        rates = exchange_rates(fed, basis="parity")
         rate = rates[(1, 0)]  # r(absorbed=1 → absorber=0)
         assert rate != 1.0
         result = merge_collectives(fed[0], fed[1], rate=rate)
         assert result["conserved"]
+
+    def test_conserves_teh_at_a_settlement_rate_not_one(self):
+        """The adopted basis: multipliers differ, so the settlement rate does."""
+        fed = make_federation(0.40, n=3, multiplier_schedule=[1.85, 2.00, 2.10])
+        rate = exchange_rates(fed)[(1, 0)]
+        assert rate == pytest.approx(1.85 / 2.00, rel=1e-12)
+        assert merge_collectives(fed[0], fed[1], rate=rate)["conserved"]
 
     def test_escheat_equals_indivisible_fraction(self):
         fed = self._fed()

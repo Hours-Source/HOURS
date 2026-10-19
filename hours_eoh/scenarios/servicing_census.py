@@ -1,17 +1,17 @@
 """
-Phase 2 — the ×100 use-coefficient fit, measured against what it is defined as.
+Phase 2 — the ×100 use-coefficient fit, against the quantity it claims to be.
 
 REPORTING ONLY. No constant moves here. This runs the instrument `GUF_USE_*`'s
 own `resolves_by` has always named and reports how far the shipped values sit
 from it.
 
-THE THING BEING TESTED
-----------------------
-The ten `GUF_USE_*` coefficients were scaled ×100 from the NLSA template's
-abstract values so that aggregate GUF over a 1M-population inventory would land
-co-equal with levy revenue at mid-arc. Their own tag block says so, and tags
-them `placeholder` on that ground: a value reverse-engineered from a desired
-outcome is CHOSEN, whatever the ratios between categories rest on.
+WHAT THIS TESTS
+---------------
+The ten `GUF_USE_*` coefficients are the NLSA template's abstract values ×100.
+The ×100 makes aggregate GUF over a 1M-population inventory land co-equal with
+levy revenue at mid-arc. Their own tag block says so, and tags them
+`placeholder` on that ground. A value reverse-engineered from a desired outcome
+is CHOSEN, whatever the ratios between categories rest on.
 
 Two things follow that the fit cannot distinguish, and this census can:
 
@@ -24,15 +24,14 @@ scalar k has one degree of freedom and the coefficient table has ten.
 WHAT THIS DOES NOT SETTLE
 -------------------------
 The census is an AGGREGATE: total servicing hours over total serviced area. It
-gives a level, and it does NOT give the ten ratios — no measured split of
-servicing labour by use category exists in the registry, because occupational
-data is not coded by the land use it serves. So this closes the level question
+gives a level, and it does NOT give the ten ratios. The registry holds no
+measured split of servicing labour by use category, because occupational data
+does not code the land use it serves. So this closes the level question
 and leaves the shape question open, which is the honest half-answer rather than
 a fitted whole one.
 
-Note also that Phase 1b already established the ×100 is NOT wrong because the
-ecological term was missing: switching E on moves the calibrated multiplier by
-at most 0.017%. Whatever this census finds is therefore about `base_fee`
+Phase 1b already showed that a missing ecological term does NOT explain the
+×100. Switching E on moves the calibrated multiplier by at most 0.017%. Whatever this census finds is therefore about `base_fee`
 alone.
 
 Layer: scenarios/ — imports core/, land/ and reference/; imported by neither.
@@ -58,12 +57,12 @@ def census(scope: str = "core") -> dict:
         h_per_ha = (workers × hours_per_worker_year) / serviced_hectares
         teh_per_slu = h_per_ha × SLU_HECTARES
 
-    units: labour-hours per hectare per year, and TEH per SLU per year — the
-    unit `GUF_USE_*` is denominated in.
+    units: labour-hours per hectare per year, and TEH per SLU per year (the
+    unit of `GUF_USE_*`).
 
-    Every input is measured or derived; the one judgement is which occupations
-    service land and which land classes receive it, isolated in
-    reference/servicing.py and reported under two scopes.
+    Every input is measured or derived. The one judgement is which occupations
+    service land and which land classes receive it. reference/servicing.py
+    holds that judgement, and the census reports it under two scopes.
     """
     workers = servicing.servicing_workers(scope)
     hectares = servicing.serviced_hectares(scope)
@@ -88,14 +87,14 @@ def shipped_vs_measured(scope: str = "core") -> dict:
     """
     The shipped `GUF_USE_*` coefficients against the measured servicing rate.
 
-    The census is an aggregate, so it is compared against the
-    EMPLOYMENT-WEIGHTED-EQUIVALENT of the table — here the simple mean of the
-    positive coefficients, plus the residential value on its own since it is the
-    category the overwhelming majority of parcels carry.
+    The census is an aggregate, so the comparison uses the table's
+    EMPLOYMENT-WEIGHTED-EQUIVALENT: here the simple mean of the positive
+    coefficients. It also gives the residential value on its own, because the
+    overwhelming majority of parcels carry that category.
 
-    `implied_scale_factor` is the headline: the factor the template's abstract
-    values would need, in place of the shipped ×100, for the table's level to
-    match the census.
+    `implied_scale_factor` is the headline. It is the factor the template's
+    abstract values would need, in place of the shipped ×100, for the table's
+    level to match the census.
     """
     c = census(scope)
     measured_teh_per_slu = c["teh_per_slu_year"]
@@ -127,17 +126,17 @@ def realized_vs_measured(epsilon: float = 0.40) -> dict:
     What the shipped table actually CHARGES per hectare, against what servicing
     that land actually COSTS per hectare.
 
-    This is the like-for-like test, and a sharper one than comparing the raw
-    coefficients: the realised rate carries L(p), D(p), Z(p) and Ψ(ε) as well as
-    U, so it is the fee a holder really pays.
+    This is the like-for-like test, and it is sharper than comparing the raw
+    coefficients. The realised rate carries L(p), D(p), Z(p) and Ψ(ε) as well
+    as U, so it is the fee a holder really pays.
 
         realised = compute_collective_guf(archetype, ε) / total hectares
         measured = the census over the land class that archetype occupies
 
-    Urban is compared against `urban_upper` — every core servicing worker
-    charged to urban land alone — so the comparison errs AGAINST the finding:
-    the true urban servicing rate is lower than 63.7 h/ha·yr, which makes the
-    overshoot larger, not smaller.
+    The urban row reads against `urban_upper`, which charges every core
+    servicing worker to urban land alone. So the comparison errs AGAINST the
+    finding. The true urban servicing rate is lower than 63.7 h/ha·yr
+    (2026-10-18), which makes the overshoot larger, not smaller.
     """
     from hours_eoh.land.collective import (
         compute_collective_guf,
@@ -166,13 +165,16 @@ def realized_vs_measured(epsilon: float = 0.40) -> dict:
         })
 
     by = {r["archetype"]: r for r in rows}
+    rural = make_rural_collective(1_000)
+    farm_share = sum(p["use_category"].startswith("agricultural")
+                     for p in rural) / len(rural)
     return {
         "epsilon": epsilon,
         "rows":    rows,
         "verdict": (
             f"THE ×100 IS NOT UNIFORMLY WRONG. "
             f"THE RURAL COMPARISON IS WITHDRAWN (2026-08-18) and is no longer "
-            f"quoted as a finding: the rural archetype is 70% agricultural by "
+            f"quoted as a finding: the rural archetype is {farm_share:.0%} agricultural by "
             f"parcel, and cropland and pasture sit in no serviced land class AND "
             f"are unpriced by the stewardship census, so BOTH halves of its "
             f"target are missing. Phase 2 compared it against an average taken "

@@ -1,51 +1,25 @@
-"""
-The capital scale-resolution gate.
+"""The capital scale-resolution gate.
 
-WHY THIS EXISTS. `CAPITAL_STOCK_DEFAULT` is declared "at the 1M reference
-population" and `resolve_capital_stock` had no way to hear about any other one:
-it returned the same ABSOLUTE stock whatever population the caller was
-modelling. 25 of the 32 functions that call it have a `population` in scope, and
-exactly one of them scaled — `land/calibration.py`, fixed by hand a day earlier,
-whose own comment says "THE SEAM ITSELF IS UPSTREAM AND IS NOT FIXED HERE".
+`CAPITAL_STOCK_DEFAULT` is declared "at the 1M reference population", and
+`resolve_capital_stock` returned the same ABSOLUTE stock whatever population the caller
+modelled. At the documented entry point that gave a 3.24× spread in per-capita TEH for
+identical capital intensity, and infrastructure EOH per capita inverse to population.
+The 2026-09-16 repair resolves at ε FIRST, then scales by the frame, because a callee
+never rescales a supplied stock ([record](record/fulfilment.md#capital-frame-closed)).
+This is mode 6; the ecological chain's gate is the precedent.
 
-WHAT IT COST, measured at the documented entry point (`eoh_to_teh_pipeline`,
-ε=0.40, no capital supplied) before the 2026-09-16 repair:
+WHAT THE GATE CHECKS. Any function with a `population` in scope that calls into the
+capital chain must SAY which frame it means: pass `population`, or supply a
+`capital_stock`. Calling with neither is the defect. `_CHAIN_CALLS` names the wrappers
+too (`total_eoh`, `eoh_to_teh_pipeline`), because the ecological gate, keyed to the
+bottom of its chain, missed callers one wrapper up.
 
-    population    per-capita TEH    infrastructure EOH per capita
-      1e5              913.65                 900.00
-      1e6              339.64                  90.00
-      1e7              282.23                   9.00
-
-A 3.24x spread for identical capital INTENSITY, and infrastructure EOH per
-capita exactly inverse-proportional to population — the fixed reference stock
-divided among whoever was named. A collective of 100,000 was told it owed ten
-times the stewardship labour per person that the reference frame did. At
-`min_levy_for_solvency` the same defect read 1,078.07 / 107.81 / 10.78 TEH per
-capita while the guarantee per capita stayed flat at 139.85: one domain
-travelling with the frame and the other not, summed as though they agreed.
-
-THIS IS FAILURE MODE 6, and the ecological chain's gate is the precedent — same
-defect, one domain over, found four times by hand there before a gate caught it.
-The repair is the same shape too: resolve at ε FIRST, then scale by the frame,
-because a supplied stock is never rescaled by the callee.
-
-WHAT THE GATE CHECKS. Any function with a `population` in scope that calls into
-the capital chain must SAY which frame it means: pass `population`, or supply a
-`capital_stock`. Calling with neither is the defect.
-
-**THE GATE STATES ITS OWN GAP** (the F-013 rule). Crediting a supplied stock is
-STATIC: this scan sees that a capital argument was passed, never whether it is
-`None` at runtime. A caller that passes `capital_stock=None` alongside a
-population defeats it, and only a runtime probe would see that. The gap is
-narrow because the value of naming the argument is that the caller has decided
-the stock is theirs to supply — but it is a gap, not a guarantee.
-
-THE WRAPPER LESSON, inherited rather than re-learned: the ecological gate was
-keyed to the names at the BOTTOM of its chain and did not see callers entering
-one wrapper up, so `fiscal_snapshot` reached the US anchor while the gate looked
-straight past. `_CHAIN_CALLS` therefore names the wrappers too — `total_eoh` and
-`eoh_to_teh_pipeline`, both of which take a `population` that defaults to the
-reference frame, which is the same seam one level up.
+**THE GATE STATES ITS OWN GAP** (F-013). Crediting a supplied stock is STATIC: the scan
+sees that a capital argument was passed, never whether it is `None` at runtime, so
+`capital_stock=None` beside a population defeats it. A second face of the same gap was
+live on 2026-09-30: a supplied stock that was itself read at the reference frame.
+`TestCanonicalStateCapitalCarriesTheFrame` closes that face for one assignment step;
+deeper indirection is still unseen.
 """
 
 from __future__ import annotations
@@ -148,10 +122,9 @@ def _unframed_chain_calls(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[st
 class TestEveryPopulationScaledCallerStatesItsFrame:
 
     def test_no_unframed_capital_call_alongside_a_population(self) -> None:
-        """
-        THE GATE. A function that scales with population and resolves a capital
-        stock without saying which frame it means is the defect the 2026-09-16
-        repair closed at 24 call sites.
+        """THE GATE. A function that scales with population and resolves a capital stock
+        must say which frame it means; the 2026-09-16 repair closed 24 call sites that
+        did not.
         """
         offenders = []
         for path, fn in _iter_functions():
@@ -213,19 +186,15 @@ class TestTheGateItselfIsHonest:
 
 
 class TestTheFrameHoldsAtRuntime:
-    """
-    The structural gate says every caller STATES a frame; these say the frame
-    actually TRAVELS. Both are needed — a caller can pass `population` into a
-    resolver that ignores it, which is the shape of failure mode 10.
+    """The structural gate says every caller STATES a frame; these tests say the frame
+    TRAVELS. Both are needed, because a resolver can ignore the `population` it is
+    passed (mode 10).
     """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
     def test_per_capita_output_is_frame_invariant(self, eps) -> None:
-        """
-        Across the arc, not at 0.40 alone — a ratio checked at one point is the
-        trap failure mode 3 names, and this one is a ratio.
-
-        Before the repair, ε=0.40 read 913.65 / 339.64 / 282.23 TEH per capita
+        """The check runs across the arc, not at 0.40 alone, because this is a ratio
+        (mode 3). Before the repair ε=0.40 read 913.65 / 339.64 / 282.23 TEH per capita
         at populations 1e5 / 1e6 / 1e7.
         """
         per_capita = [
@@ -242,9 +211,11 @@ class TestTheFrameHoldsAtRuntime:
             eoh_to_teh_pipeline(epsilon=0.40, population=pop)["eoh_by_domain"]["infrastructure"] / pop
             for pop in (1e5, 1e6, 1e7)
         ]
-        assert pc[0] == pytest.approx(90.0, rel=1e-9)   # was 900.00
-        assert pc[1] == pytest.approx(90.0, rel=1e-9)
-        assert pc[2] == pytest.approx(90.0, rel=1e-9)   # was 9.00
+        # 90.0 until 2026-10-04, when the default age became the measured US
+        # stock (CAPITAL_AGE_RATIO_DEFAULT, 0.50 → 0.591).
+        assert pc[0] == pytest.approx(95.46, rel=1e-9)   # was 954.6
+        assert pc[1] == pytest.approx(95.46, rel=1e-9)
+        assert pc[2] == pytest.approx(95.46, rel=1e-9)   # was 9.546
 
     def test_a_supplied_stock_is_never_rescaled(self) -> None:
         """The doctrine the repair must not break: a caller who names a stock is
@@ -278,3 +249,288 @@ class TestTheFrameHoldsAtRuntime:
         assert stewardship_pc[1] == pytest.approx(stewardship_pc[2], rel=1e-12)
         # And the two domains now agree about what frame they are in.
         assert guarantee_pc[0] == pytest.approx(guarantee_pc[2], rel=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# The canonical state's capital (2026-09-30)
+# ---------------------------------------------------------------------------
+
+_REPO = PKG.parent
+_CPS_NAMES = {"canonical_physical_state", "_cps"}
+
+
+def _cps_capital_reads_without_frame() -> list[tuple[str, int, str]]:
+    """Calls to `canonical_physical_state` without `population=`, in a function with a
+    population in scope, whose `capital_stock_teh` is then read (off the call or off the
+    name it was assigned to). Intensive keys are frame-free and not flagged. The scan
+    covers `hours_eoh/` AND `utils/`, because `arc_cmd` exposes `--population`.
+    """
+    out: list[tuple[str, int, str]] = []
+    for root in (PKG, _REPO / "utils"):
+        for f in sorted(root.rglob("*.py")):
+            tree = ast.parse(f.read_text())
+            for fn in ast.walk(tree):
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+                stores = {n.id for n in ast.walk(fn)
+                          if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                if not ((params | stores) & _POPULATION_PARAMS):
+                    continue
+                unframed: set[str] = set()
+                direct: list[int] = []
+                for node in ast.walk(fn):
+                    call = None
+                    if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                        call = node.value
+                        target_names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+                    else:
+                        target_names = []
+                    if call is not None:
+                        name = getattr(call.func, "id", None) or getattr(call.func, "attr", None)
+                        if name in _CPS_NAMES and "population" not in {k.arg for k in call.keywords}:
+                            unframed.update(target_names)
+                    if (isinstance(node, ast.Subscript)
+                            and isinstance(node.slice, ast.Constant)
+                            and node.slice.value == "capital_stock_teh"):
+                        v = node.value
+                        if isinstance(v, ast.Name) and v.id in unframed:
+                            direct.append(node.lineno)
+                        if isinstance(v, ast.Call):
+                            n = getattr(v.func, "id", None) or getattr(v.func, "attr", None)
+                            if n in _CPS_NAMES and "population" not in {k.arg for k in v.keywords}:
+                                direct.append(node.lineno)
+                for ln in direct:
+                    out.append((str(f.relative_to(_REPO)), ln, fn.name))
+    return out
+
+
+class TestCanonicalStateCapitalCarriesTheFrame:
+    """`canonical_physical_state` states capital at the 1M reference frame. Four callers
+    with their own population passed that stock to `total_eoh`, and `make_economy_state`
+    took it as the state's stock (found 2026-09-30, when two populations of one
+    intensity reported different observed ε). The gate above credits any supplied stock,
+    so it could not see this
+    ([record](record/fulfilment.md#floor-reads-observed-epsilon)).
+
+    **STATES ITS OWN GAP:** static and name-based. It follows one assignment, not a
+    stock passed through a second variable, a dict merge or a helper.
+    """
+
+    def test_no_unframed_canonical_capital_where_a_population_is_in_scope(self):
+        hits = _cps_capital_reads_without_frame()
+        assert not hits, (
+            "canonical-state capital read at the reference frame beside a "
+            f"population: {hits}. Pass population= to canonical_physical_state."
+        )
+
+    def test_the_scan_is_not_vacuous(self):
+        """It must see the calls it exempts, or a rename empties it."""
+        src = (PKG / "scenarios" / "ecological_floor.py").read_text()
+        assert "canonical_physical_state(epsilon, population=population)" in src
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_capital_scales_and_intensives_do_not(self, eps):
+        from hours_eoh.core.trajectory import canonical_physical_state as cps
+        ref, big = cps(eps), cps(eps, population=3.0e6)
+        assert big["capital_stock_teh"] == pytest.approx(3.0 * ref["capital_stock_teh"], rel=1e-15)
+        assert cps(eps, population=1.0e6) == ref
+        for k in ref:
+            if k != "capital_stock_teh":
+                assert big[k] == ref[k], k
+        assert ref["capital_stock_teh"] == resolve_capital_stock(None, eps)
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_make_economy_state_holds_intensity_across_frames(self, eps):
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        per_cap, eps_obs = [], []
+        for pop in (1.0e6, 3.0e6):
+            st = make_economy_state(epsilon=eps, population=pop)
+            per_cap.append(st["capital_stock_teh"] / pop)
+            eps_obs.append(simulate_period(st)[1]["epsilon_observable"])
+        assert per_cap[0] == pytest.approx(per_cap[1], rel=1e-12)
+        assert eps_obs[0] == pytest.approx(eps_obs[1], rel=1e-12)
+
+    def test_a_supplied_stock_is_still_never_rescaled(self):
+        from hours_eoh.core.simulation import make_economy_state
+        st = make_economy_state(epsilon=0.40, population=3.0e6, capital_stock_teh=1.0e9)
+        assert st["capital_stock_teh"] == 1.0e9
+
+    @pytest.mark.parametrize("pop", [1.0e5, 3.35e8])
+    def test_repaired_scenarios_are_frame_invariant_per_capita(self, pop):
+        from hours_eoh.scenarios.ecological_floor import _eoh_at
+        from hours_eoh.scenarios.knowledge_base import _total_eoh_per_capita
+        from hours_eoh.data import KNOWLEDGE_EOH_BASE
+        ref = _eoh_at(0.40, 1.0e6)
+        other = _eoh_at(0.40, pop)
+        assert other["infrastructure"] / pop == pytest.approx(ref["infrastructure"] / 1.0e6, rel=1e-9)
+        assert _total_eoh_per_capita(0.40, KNOWLEDGE_EOH_BASE, pop) == pytest.approx(
+            _total_eoh_per_capita(0.40, KNOWLEDGE_EOH_BASE, 1.0e6), rel=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# The reference constant, read beside a population (2026-09-30)
+# ---------------------------------------------------------------------------
+
+#: Functions that ARE the frame rule: they scale the constant through a local
+#: `scale` the scan cannot connect to `population`. Each is pinned at runtime
+#: by `test_capital_scales_and_intensives_do_not` / the resolver tests above.
+_CONSTANT_ALLOWED = {
+    ("hours_eoh/core/eoh_generation.py", "resolve_capital_stock"),
+    ("hours_eoh/core/trajectory.py", "canonical_physical_state"),
+}
+
+
+def _unscaled_capital_constant_reads() -> list[tuple[str, int, str]]:
+    """`CAPITAL_STOCK_DEFAULT` read beside a population, outside any expression that
+    also names that population. The constant is declared at the 1M frame, so beside a
+    population it must be scaled.
+
+    **STATES ITS OWN GAP:** naming the population is presence, not correctness, so
+    `CAPITAL_STOCK_DEFAULT + population * 0` passes. It catches the constant used as the
+    caller's stock, not wrong arithmetic that names the frame.
+    """
+    out: list[tuple[str, int, str]] = []
+    for root in (PKG, _REPO / "utils"):
+        for f in sorted(root.rglob("*.py")):
+            rel = str(f.relative_to(_REPO))
+            if rel == "hours_eoh/data.py":
+                continue
+            tree = ast.parse(f.read_text())
+            for fn in ast.walk(tree):
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if (rel, fn.name) in _CONSTANT_ALLOWED:
+                    continue
+                params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+                stores = {n.id for n in ast.walk(fn)
+                          if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                # A population read as an ATTRIBUTE (`args.population`) is in
+                # scope too (2026-10-14): the `coasean federation` CLI passed
+                # the 1M stock beside `--population` and this scan, keyed on
+                # names, could not see it.
+                attrs = {n.attr for n in ast.walk(fn) if isinstance(n, ast.Attribute)}
+                pops = (params | stores | attrs) & _POPULATION_PARAMS
+                if not pops:
+                    continue
+                scaled: set[int] = set()
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.BinOp):
+                        names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+                        names |= {n.attr for n in ast.walk(node) if isinstance(n, ast.Attribute)}
+                        if names & pops:
+                            scaled |= {id(n) for n in ast.walk(node)
+                                       if isinstance(n, ast.Name) and n.id == "CAPITAL_STOCK_DEFAULT"}
+                for node in ast.walk(fn):
+                    if (isinstance(node, ast.Name) and node.id == "CAPITAL_STOCK_DEFAULT"
+                            and isinstance(node.ctx, ast.Load) and id(node) not in scaled):
+                        out.append((rel, node.lineno, fn.name))
+    return out
+
+
+class TestTheReferenceConstantIsScaledBesideAPopulation:
+    """A literal sweep after the ×2200 CLI defect found three more sites (2026-09-30):
+    `recalibration.capital_stock_epsilon`, `formation_feedback_simulation`, and
+    `anchor_determinacy.hours_shock_response`, which retyped the constant as `2.0e9`
+    ([record](record/fulfilment.md#proxy-income-retired)).
+    """
+
+    def test_no_unscaled_reads(self):
+        hits = _unscaled_capital_constant_reads()
+        assert not hits, f"CAPITAL_STOCK_DEFAULT read unscaled beside a population: {hits}"
+
+    def test_the_scan_sees_a_scaled_read_and_exempts_it(self):
+        """indust_overshoot scales the constant by population — the scan must
+        see that read and pass it, or it is vacuous."""
+        src = (PKG / "scenarios" / "indust_overshoot.py").read_text()
+        assert "CAPITAL_STOCK_DEFAULT * (population / _POP_REFERENCE)" in src
+
+    @pytest.mark.parametrize("pop", [1.0e5, 1.0e7])
+    def test_recalibrated_stock_is_frame_invariant_per_capita(self, pop):
+        from hours_eoh.research.recalibration import capital_stock_epsilon
+        for eps in (0.0, 0.40, 0.99):
+            assert capital_stock_epsilon(eps, pop) / pop == pytest.approx(
+                capital_stock_epsilon(eps, 1.0e6) / 1.0e6, rel=1e-9)
+
+    @pytest.mark.parametrize("pop", [1.0e5, 1.0e7])
+    def test_shock_response_is_frame_invariant(self, pop):
+        from hours_eoh.research.anchor_determinacy import hours_shock_response
+        ref = hours_shock_response()["shocks"]
+        other = hours_shock_response(population=pop)["shocks"]
+        for k in ref:
+            for q in ("obligation_change", "minting_change"):
+                assert other[k][q] == pytest.approx(ref[k][q], rel=1e-9, abs=1e-12), (k, q)
+
+    def test_no_retyped_literal_stock_beside_a_population(self):
+        """The constant's other disguise: `capital_stock=2.0e9 * ...` — a stock
+        of 1e6 or more written as a number where a population is in scope."""
+        hits = []
+        for root in (PKG, _REPO / "utils"):
+            for f in sorted(root.rglob("*.py")):
+                tree = ast.parse(f.read_text())
+                for fn in ast.walk(tree):
+                    if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+                    stores = {n.id for n in ast.walk(fn)
+                              if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                    if not ((params | stores) & _POPULATION_PARAMS):
+                        continue
+                    for c in ast.walk(fn):
+                        if not isinstance(c, ast.Call):
+                            continue
+                        for k in c.keywords:
+                            if k.arg in ("capital_stock", "capital_stock_teh") and any(
+                                isinstance(n, ast.Constant)
+                                and isinstance(n.value, (int, float))
+                                and not isinstance(n.value, bool)
+                                and abs(n.value) >= 1e6
+                                for n in ast.walk(k.value)
+                            ):
+                                hits.append((str(f.relative_to(_REPO)), c.lineno, fn.name))
+        assert not hits, f"literal capital stock beside a population: {hits}"
+
+
+class TestTheStockAgeHasNamedDefaults:
+    """A bare 0.50 stock age sat at 18 sites from the first commit with no source. It is
+    now `CAPITAL_AGE_RATIO_DEFAULT` (2026-10-04), and a literal age as a default or
+    keyword in the package is the copy (mode 4) it replaced
+    ([record](record/fulfilment.md#stock-age-measured)).
+
+    **States its own gap:** static, and the package only. An age computed inline, passed
+    positionally, held in a dict literal or set in `utils/` is not seen.
+    """
+
+    _KEY = "capital_age_ratio"
+
+    def _literal_ages(self) -> list[str]:
+        found = []
+        for path in sorted(PKG.rglob("*.py")):
+            tree = ast.parse(path.read_text())
+            for node in ast.walk(tree):
+                pairs: list[tuple[str, ast.AST]] = []
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    a = node.args
+                    pos = a.posonlyargs + a.args
+                    pairs += [(p.arg, d) for p, d in zip(pos[len(pos) - len(a.defaults):], a.defaults)]
+                    pairs += [(p.arg, d) for p, d in zip(a.kwonlyargs, a.kw_defaults) if d is not None]
+                elif isinstance(node, ast.Call):
+                    pairs += [(k.arg, k.value) for k in node.keywords if k.arg]
+                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value:
+                    pairs.append((node.target.id, node.value))
+                for name, value in pairs:
+                    if name == self._KEY and isinstance(value, ast.Constant) \
+                            and isinstance(value.value, (int, float)):
+                        found.append(f"{path.relative_to(PKG)}:{value.lineno}")
+        return found
+
+    def test_no_literal_age_in_the_package(self):
+        assert self._literal_ages() == []
+
+    def test_it_can_fire(self, monkeypatch, tmp_path):
+        """Broken on purpose: the gate sees a planted literal."""
+        bad = tmp_path / "hours_eoh"
+        bad.mkdir()
+        (bad / "m.py").write_text("def f(capital_age_ratio: float = 0.5):\n    return g(capital_age_ratio=0.3)\n")
+        monkeypatch.setattr(__import__(__name__, fromlist=["PKG"]), "PKG", bad)
+        assert len(self._literal_ages()) == 2

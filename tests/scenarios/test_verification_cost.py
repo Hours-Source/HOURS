@@ -1,22 +1,12 @@
-"""
-Verification cost against the obligation it serves — `scenarios/verification_cost.py`.
+"""Verification cost against the obligation it serves
+(`scenarios/verification_cost.py`).
 
-WHAT IS AT STAKE. `docs/theory/anchor_comparison.md` ("What would change our
-mind") states a falsification
-condition in as many words: *if verification cost, once costed, exceeds the
-obligation it verifies at any point on the arc, the anchor is not cheaper to
-audit than the incumbents.* Phase 1 counted the workers; this module puts them
-beside the obligation, and `verification_crossover()` is the answer.
-
-WHAT THESE TESTS PIN. Not the level — it is a bound at US institutional density
-and it will move. They pin that **the search can fail**, that the frame is
-declared and honoured, that the two scaling bases are both reported and neither
-adopted, and that the whole thing changes no shipped number.
-
-THE FIRST OF THOSE IS THE ONE THAT MATTERS. A crossover search that can only
-ever return None answers the falsifier by construction, which would make the framework's
-own falsifier unfalsifiable — the `LEVY_SUFFICIENCY_WARN` failure, applied to
-the anchor's central claim. `test_the_search_can_find_a_crossover` forces one.
+`docs/theory/anchor_comparison.md` states the falsifier: if verification cost exceeds
+the obligation it verifies anywhere on the arc, the anchor is not cheaper to audit.
+`verification_crossover()` answers it. These tests pin that the search CAN fail, that
+the frame is declared and honoured, that both scaling bases are reported and neither
+adopted, and that no shipped number changes. The level is a bound that will move, so it
+is not pinned ([record](record/theory.md#verification-test-history)).
 """
 
 from __future__ import annotations
@@ -62,22 +52,10 @@ class TestTheFalsifierCanActuallyFire:
         assert c["ratio_at_zero"] > 1.0
 
     def test_a_rate_that_crosses_midway_is_located_not_clamped(self, monkeypatch):
-        """
-        A search that only ever returns an endpoint is a threshold, not a search.
-
-        **THIS TEST'S ORIGINAL FIXTURE DID NOT CROSS MIDWAY** (found 2026-09-10).
-        It set the per-capita rate to the mean of the obligation at ε=0 and
-        ε=0.99. Because the obligation only grows ~5% over the arc, that mean
-        sits ABOVE the ε=0 obligation: the ratio is **1.026 at ε=0** and the
-        crossing is at zero. The assertion `0.0 < crossover` passed anyway,
-        because a bisection seeded at `lo=0.0` converges toward zero without
-        ever reaching it — the invariant was manufactured by the implementation
-        (failure mode 2), and the test that was supposed to prove the search is
-        not a clamp was checking floating-point convergence instead.
-
-        A genuine interior crossing needs the NON-MONOTONE basis, which is what
-        `per_registered` is and what `TestTheCrossoverSearchSeesMidArcExcursions`
-        was built around.
+        """A search that only returns an endpoint is a threshold, not a search. A real
+        interior crossing needs the non-monotone `per_registered` basis; the original
+        fixture crossed at zero and passed only on bisection convergence (mode 2;
+        [record](record/theory.md#verification-test-history)).
         """
         base = VC.verification_hours_per_capita("core")
         monkeypatch.setattr(VC, "verification_hours_per_capita",
@@ -142,10 +120,9 @@ class TestBothBasesAreReportedAndNeitherIsAdopted:
 
 
 class TestTheFrameIsDeclaredAndHonoured:
-    """
-    RECURRING FAILURE MODE 6. The census is counted over the US population and
-    the package's extensives are stated at 1M. A per-capita rate is the only
-    thing that survives the move, and this pins that it actually does.
+    """Mode 6: the census counts the US population, and the package states extensives at
+    1M. A per-capita rate is the only thing that survives the move, and these tests
+    check that it does.
     """
 
     def test_the_us_census_declares_its_frame(self):
@@ -164,10 +141,8 @@ class TestTheFrameIsDeclaredAndHonoured:
         )
 
     def test_the_ratio_is_frame_invariant(self):
-        """
-        Both sides scale with population, so a share must not. This is the check
-        that would have caught `teh_per_capita` dropping its divisor — the two
-        collectives compared must DIFFER in the quantity being divided out.
+        """Both sides scale with population, so a share must not. The two collectives
+        compared DIFFER in population, so a dropped divisor would fail here.
         """
         small = VC.verification_account(0.40, population=1.0e6)
         large = VC.verification_account(0.40, population=50.0e6)
@@ -201,10 +176,7 @@ class TestTheBoundsSurviveTheConversion:
 
 
 class TestTheVerdictIsComputedNotRestated:
-    """
-    RECURRING FAILURE MODE 13. A verdict written beside the numbers drifts from
-    them; this one is derived from them and must change when they do.
-    """
+    """Mode 13: the verdict comes from the numbers and must change when they do."""
 
     def test_the_verdict_reports_the_measured_peak(self):
         r = VC.verification_report()
@@ -258,18 +230,10 @@ class TestVerificationChangesNothing:
 
 
 class TestThePeakIsNotReadOffTheReportingPoints:
-    """
-    THE DEFECT THIS CLASS EXISTS FOR, and it shipped for two days.
-
-    `verification_report` computed `peak_share_of_obligation` as `max` over the
-    four arc reporting points and the verdict called it "the peak". The
-    `per_registered` ratio turns where registered EOH peaks, at ε≈0.765 — which
-    sits BETWEEN the 0.40 and 0.90 reporting points, so the four-point maximum
-    understated it by ~18% at core scope and ~17% at broad, and both understated
-    figures were published in the anchor comparison as "peak".
-
-    That is the ε=0.40 trap one point over: measured where the defect is
-    invisible. `verification_arc`'s own docstring names the trap.
+    """The peak must come from a fine grid, not from the four reporting points. The
+    `per_registered` ratio turns where registered EOH peaks, between 0.40 and 0.90, so a
+    four-point maximum understates it
+    ([record](record/theory.md#verification-test-history)).
     """
 
     @pytest.mark.parametrize("scope", ("core", "broad"))
@@ -282,11 +246,9 @@ class TestThePeakIsNotReadOffTheReportingPoints:
 
     @pytest.mark.parametrize("scope", ("core", "broad"))
     def test_the_peak_lies_strictly_between_two_reporting_points(self, scope):
-        """
-        Stronger than "not ON a point": the peak must sit in the OPEN interval
-        the four points cannot see into. `0.99·i/200` never lands exactly on
-        0.40 or 0.90, so an equality test could only ever fire at the endpoints
-        and would be weaker than its own docstring.
+        """The peak must sit in the OPEN interval that the four points cannot see into.
+        `0.99·i/200` never lands exactly on 0.40 or 0.90, so an equality test could fire
+        only at the endpoints.
         """
         peak = VC.verification_report(scope)["peak_epsilon"]
         assert 0.40 < peak < 0.90, (
@@ -322,20 +284,10 @@ class TestThePeakIsNotReadOffTheReportingPoints:
 
 
 class TestTheCrossoverSearchSeesMidArcExcursions:
-    """
-    THE SECOND GATE THAT DID NOT BITE, found the same day as the first and one
-    function over.
-
-    `verification_crossover` decided "no crossover" from `ratio(0) < 1 and
-    ratio(0.99) < 1`. That is valid only for a MONOTONE ratio, and
-    `per_registered` is not monotone — it turns where registered EOH peaks. So
-    there is a band of rates whose cost exceeds the obligation across the middle
-    of the arc and is back below it at both ends, and the search returned None
-    for every one of them.
-
-    Measured on the shipped configuration before the fix: at 110x the rate the
-    ratio peaks at 1.25 and the answer was None. **§7's falsifier was
-    unfalsifiable in exactly the region where the extremum hides.**
+    """The crossover search must see a ratio that rises above 1 mid-arc and falls back
+    below it at both ends. Reading only the two endpoints is valid only for a monotone
+    ratio, and `per_registered` is not monotone
+    ([record](record/theory.md#verification-test-history)).
     """
 
     @staticmethod
@@ -379,7 +331,7 @@ class TestTheCrossoverSearchSeesMidArcExcursions:
         )
 
     def test_the_shipped_configuration_still_finds_nothing(self):
-        """The fix must not manufacture the crossing it was built to detect."""
+        """The fix must not create the crossing that it exists to detect."""
         for scope in ("core", "broad"):
             for basis in ("per_capita", "per_registered"):
                 c = VC.verification_crossover(scope=scope, basis=basis)
@@ -388,16 +340,10 @@ class TestTheCrossoverSearchSeesMidArcExcursions:
 
 
 class TestTheNetFractionFalsifier:
-    """
-    §7's falsifier is a crossover at ratio 1.0, and the net-energy literature's
-    result is that such a test fires far too late. What matters is the fraction
-    of gross obligation left for entropy reduction, and it degrades
-    non-linearly. A register consuming 20% of what it verifies has not crossed
-    over and has lost the audit claim anyway.
-
-    The FLOOR is the caller's argument. A threshold this module shipped would be
-    calibrated to the configuration it is then checked against — the defect
-    `LEVY_SUFFICIENCY_WARN` has, applied to the anchor's central audit claim.
+    """The net fraction left for entropy reduction degrades before the ratio reaches
+    1.0: a register that consumes 20% of what it verifies has lost the audit claim. The
+    floor is the caller's argument, because a shipped threshold would be calibrated to
+    its own check.
     """
 
     def test_the_floor_is_required_and_has_no_default(self):
@@ -420,8 +366,9 @@ class TestTheNetFractionFalsifier:
         assert loose["breach_epsilon"] is None, "cannot NOT fire"
 
     def test_the_minimum_net_fraction_sits_at_the_ratio_peak(self):
-        """net = 1 − ratio, so their extrema must coincide. If they drift
-        apart, the two are not being computed from the same quantity."""
+        """net = 1 − ratio, so their extrema must coincide. If they drift apart, the two
+        do not come from the same quantity.
+        """
         for scope in ("core", "broad"):
             nf = VC.net_fraction_falsifier(0.99, scope=scope)
             cr = VC.verification_crossover(scope=scope, basis="per_registered")
@@ -431,12 +378,9 @@ class TestTheNetFractionFalsifier:
             )
 
     def test_a_tighter_floor_breaches_strictly_earlier(self):
-        """
-        Direction, not just presence: a higher floor is a stricter standard, so
-        it must be breached at a LOWER ε. Measured at broad scope the series is
-        0.634 / 0.549 / 0.465 / 0.371 for floors 0.975 / 0.98 / 0.985 / 0.99 —
-        strictly decreasing, which is what makes the floor a dial rather than a
-        switch.
+        """A higher floor is a stricter standard, so the breach must come at a LOWER ε.
+        That direction makes the floor a dial, not a switch
+        ([record](record/theory.md#verification-test-history)).
         """
         breaches = [
             VC.net_fraction_falsifier(f, scope="broad")["breach_epsilon"]
@@ -448,11 +392,8 @@ class TestTheNetFractionFalsifier:
 
 
 class TestTheRegistrantScopeSensitivityIsNotAnEstimate:
-    """
-    THE CONDITIONAL THAT KEEPS §7's ANSWER HONEST.
-
-    The census is apparatus-side. This asks what the answer becomes if the
-    registrant side is added at a stated multiple — and refuses to pick one.
+    """The census is apparatus-side. This asks what the answer becomes if the registrant
+    side is added at a stated multiple, and it refuses to pick the multiple.
     """
 
     def test_the_multiple_is_required_and_has_no_default(self):
@@ -473,19 +414,17 @@ class TestTheRegistrantScopeSensitivityIsNotAnEstimate:
     def test_it_never_claims_to_be_measured(self):
         r = VC.registrant_scope_sensitivity(40.0)
         assert r["is_measured"] is False
-        for token in ("adversarial", "7.7x", "40x"):
+        tax = VC.registrant_analogues()["compliance_estimate"]["implied_multiple"]
+        for token in ("adversarial", "7.7x", f"{tax:.0f}x"):
             assert token in r["judgement"], (
                 f"{token!r} dropped from the declared judgement; the caveats "
                 "are what stop this being read as a measurement"
             )
 
     def test_the_units_matching_multiple_crosses_at_broad_and_not_at_core(self):
-        """
-        THE FINDING, PINNED IN BOTH DIRECTIONS. ~40x is the one comparison in
-        matching units — workers against workers. At broad scope it crosses; at
-        core it does not. Neither "the falsifier fires" nor "it does not" is
-        warranted, and a test that pinned only one of these would settle by
-        presentation a question the measurement does not settle.
+        """At ~40×, the one multiple in matching units, broad scope crosses and core
+        does not. The test pins both directions, because one alone would settle by
+        presentation what the measurement leaves open.
         """
         core = VC.registrant_scope_sensitivity(40.0, scope="core")
         broad = VC.registrant_scope_sensitivity(40.0, scope="broad")
@@ -494,7 +433,7 @@ class TestTheRegistrantScopeSensitivityIsNotAnEstimate:
         assert 0.0 < broad["crossover_epsilon"] < 0.99
 
     def test_the_apparatus_figure_is_unchanged_by_the_sensitivity(self):
-        """The conditional must not move what was actually measured."""
+        """The conditional must not move the measured figure."""
         for scope in ("core", "broad"):
             measured = VC.verification_crossover(
                 scope=scope, basis="per_registered"
@@ -506,15 +445,9 @@ class TestTheRegistrantScopeSensitivityIsNotAnEstimate:
     def test_the_registrant_side_ADDS_to_the_apparatus_rather_than_replacing_it(
         self,
     ):
-        """
-        THE STRUCTURE, PINNED — a mutation to `a * m` from `a * (1 + m)` passed
-        every other test in this class, because at m=40 the two differ by 2.5%
-        and both still cross at broad and not at core.
-
-        The two sides are disjoint by construction: one is an occupation and
-        the other is definitionally not. So the registrant side is ADDITIONAL,
-        and as the multiple vanishes the combined figure must return the
-        measured apparatus — not zero.
+        """The registrant side ADDS to the apparatus, so as the multiple goes to zero
+        the combined figure returns the measured apparatus, not zero. A mutation from `a
+        * (1 + m)` to `a * m` passed every other test in this class.
         """
         for scope in ("core", "broad"):
             apparatus = VC.registrant_scope_sensitivity(
@@ -541,14 +474,9 @@ class TestTheRegistrantScopeSensitivityIsNotAnEstimate:
 
 
 class TestTheReportSaysWhatItIsAVERDICTABOUT:
-    """
-    MODE 10 — the reported value read as something narrower than it is.
-
-    The report's verdict said "verification cost stays below the obligation
-    everywhere on the arc". True of the APPARATUS, and read by the CLI as an
-    answer about verification. Meanwhile the page it feeds says the answer is
-    undetermined. The key is now `apparatus_verdict` and the scope caveat
-    travels beside it carrying the multiple at which the scope would cross.
+    """Mode 10: the key is `apparatus_verdict`, because the verdict holds for the
+    APPARATUS, not for verification as a whole. The scope caveat travels beside it with
+    the multiple at which the scope would cross.
     """
 
     @pytest.mark.parametrize("scope", ("core", "broad"))
@@ -579,11 +507,9 @@ class TestTheReportSaysWhatItIsAVERDICTABOUT:
         )["crosses"] is False
 
     def test_the_measured_multiple_straddles_the_two_scopes(self):
-        """
-        THE FINDING, STATED AS A THRESHOLD RATHER THAN A VERDICT. The only
-        measured registrant multiple is ~40x. Broad crosses above ~34x, core
-        only above ~87x. So 40x sits BETWEEN them — which is exactly why
-        neither "fires" nor "does not fire" can be asserted.
+        """The one measured registrant multiple (~40×) sits between the two scopes'
+        crossing multiples (broad 34.8×, core 88.8×). So neither "fires" nor "does not
+        fire" can be asserted.
         """
         core = VC.verification_report("core")["crossing_registrant_multiple"]
         broad = VC.verification_report("broad")["crossing_registrant_multiple"]
@@ -595,21 +521,11 @@ class TestTheReportSaysWhatItIsAVERDICTABOUT:
 
 
 class TestTheCorridorReportsWhichBoundActuallyBinds:
-    """
-    THE FINDING: §7's falsifier tests the NON-BINDING constraint over 96% of
-    the arc.
-
-    Three bounds, all expressed as the registrant multiple at which they bind,
-    so they are comparable:
-
-      ratio     verification equals the obligation — §7's test, institutional.
-      clearing  obligation + verification exceeds the labour a population can
-                supply. An hour documenting is an hour not fulfilling.
-      physical  verification alone exceeds total labour supply. The only bound
-                with no institution in it.
-
-    The clearing bound is tighter than the ratio bound everywhere below
-    ε≈0.96, and nothing checked which bound bit before this existed.
+    """Three bounds, each expressed as the registrant multiple at which it binds:
+    `ratio` (verification equals the obligation, §7's test), `clearing` (obligation plus
+    verification exceeds labour supply) and `physical` (verification alone exceeds
+    labour supply). The test reports which one binds
+    ([record](record/theory.md#verification-test-history)).
     """
 
     ARC = (0.0, 0.20, 0.40, 0.70, 0.90)
@@ -641,19 +557,27 @@ class TestTheCorridorReportsWhichBoundActuallyBinds:
         )
         assert r["binding_bound"] == "clearing_bound"
 
-    def test_the_ratio_bound_does_take_over_at_the_top(self):
-        """Both directions. A bound that never binds is not a bound."""
-        r = VC.verification_feasibility_corridor(1.0, epsilon=0.99)
+    def test_the_ratio_bound_binds_only_where_labour_is_abundant(self):
+        """Under `per_component` (2026-10-01), CLEARING binds across the whole arc at
+        the shipped capacity; the ratio bound binds only in the labour-richest measured
+        frames. Both directions are pinned, because a bound that never binds is not a
+        bound.
+        """
+        from hours_eoh.scenarios.feasibility import measured_capacity_frames
+        for eps in (0.40, 0.70, 0.90, 0.99):
+            assert VC.verification_feasibility_corridor(
+                1.0, epsilon=eps)["binding_bound"] == "clearing_bound"
+        richest = max(f["capacity_h_yr"]
+                      for f in measured_capacity_frames()["frames"].values())
+        r = VC.verification_feasibility_corridor(
+            1.0, epsilon=0.99, adult_capacity_h_yr=richest)
         assert r["binding_bound"] == "ratio_bound"
 
     @pytest.mark.parametrize("epsilon", ARC + (0.99,))
     def test_the_physical_bound_is_never_the_tightest(self, epsilon):
-        """
-        It is the bound with no institution in it, so it is the one that cannot
-        be argued away — and it is always the loosest, which is why the other
-        two are where the argument lives. If it ever binds first, verification
-        alone is consuming a population's entire labour supply and the other
-        two have stopped meaning anything.
+        """The physical bound has no institution in it and is always the loosest, so the
+        argument lives in the other two. If it ever binds first, verification alone
+        consumes a population's whole labour supply.
         """
         r = VC.verification_feasibility_corridor(1.0, epsilon=epsilon)
         assert r["physical_bound"] > r["clearing_bound"]
@@ -706,16 +630,10 @@ class TestWhatWouldCloseTheBand:
     """
 
     def test_the_shipped_state_closes_on_the_default_cadence(self):
-        """
-        **THIS TEST PINNED `open_edges` UNTIL 2026-09-11 AND THE STATE MOVED
-        UNDER IT — by an author decision, not by a measurement.** Declaring the
-        register cadence as an `instance` with `episodic` as the shipped
-        default settles condition 1: every episodic regime is measured and
-        every one fits with an order of magnitude to spare.
-
-        The former state is kept runnable one test down, because what closed
-        this was a DECLARATION and a reader should be able to see the
-        difference without re-deriving it.
+        """On the default `episodic` cadence the band closes: every episodic regime is
+        measured and fits with an order of magnitude to spare (author decision,
+        2026-09-11). A DECLARATION closed it, so the earlier open state stays runnable
+        one test down.
         """
         r = VC.corridor_is_usable()
         assert r["verdict"] == "closed_and_usable"
@@ -723,11 +641,9 @@ class TestWhatWouldCloseTheBand:
         assert r["conditions"]["1_multiple_is_measured"] is True
 
     def test_the_pre_declaration_state_is_still_reachable_and_still_open(self):
-        """
-        The state this class was written for. With no cadence that admits a
-        fitting regime, condition 1 is unmet and 3 is UNDETERMINABLE rather
-        than False — reporting it as failed would claim a result nothing
-        establishes.
+        """With no cadence that admits a fitting regime, condition 1 is unmet and
+        condition 3 is UNDETERMINABLE, not False. Reporting it as failed would claim a
+        result that nothing establishes.
         """
         r = VC.corridor_is_usable(cadence="continuous")
         assert r["verdict"] == "open_edges"
@@ -747,11 +663,9 @@ class TestWhatWouldCloseTheBand:
         assert all(v is True for v in r["conditions"].values())
 
     def test_the_transferred_figure_does_not_close_it(self):
-        """
-        40x widened by its own 7.7x error bar is 308x against a binding bound
-        of ~62x. **A value inside the band with an error bar wider than its
-        margin has not been shown to be inside it** — that is the whole reason
-        condition 3 widens before it compares.
+        """A value inside the band with an error bar wider than its margin is not shown
+        to be inside it. Condition 3 therefore widens the transferred figure before it
+        compares ([record](record/theory.md#verification-test-history)).
         """
         r = VC.corridor_is_usable(registrant_multiple=40.0,
                                   multiple_error_factor=7.7)
@@ -805,15 +719,10 @@ class TestTheTwoRegistrantAnaloguesDisagree:
         assert "ADVERSARIAL" in r["compliance_estimate"]["over_measures"]
 
     def test_they_straddle_the_corridor(self):
-        """
-        THE FINDING, and the first version of this test overstated it.
-
-        The DIARY analogue sits inside the band under every scope and basis.
-        The COMPLIANCE analogue sits outside under three of the four, and
-        inside under `core`/`per_registered` (band 61.9x against 43.3x) —
-        which is the same one configuration that survived the 40x sensitivity.
-        Asserting it is outside everywhere would have been a stronger claim
-        than the measurement supports, in the class written about exactly that.
+        """The diary analogue sits inside the band under every scope and basis; the
+        compliance analogue sits outside under three of four. The first version asserted
+        "outside everywhere", which overstated the measurement
+        ([record](record/theory.md#verification-test-history)).
         """
         outside = 0
         for scope in ("core", "broad"):
@@ -847,14 +756,10 @@ class TestTheTwoRegistrantAnaloguesDisagree:
 
 
 class TestTheRegisterCadence:
-    """
-    THE CADENCE IS AN `instance` WITH A SHIPPED DEFAULT (author decision,
-    2026-09-11). `REGISTER_CADENCE = "episodic"`, and the framework prices all
-    four regimes against the labour the population actually has.
-
-    The default errs the safe way: episodic is the costlier of the two regimes
-    the evidence supports, so the audit claim is stated at its weakest and any
-    measurement can only improve it.
+    """The cadence is an `instance` with the shipped default `REGISTER_CADENCE =
+    "episodic"` (author decision, 2026-09-11). Episodic is the costlier of the two
+    supported regimes, so the audit claim starts at its weakest and a measurement can
+    only improve it.
     """
 
     def test_the_default_is_episodic_and_the_function_agrees(self):
@@ -907,13 +812,10 @@ class TestTheRegisterCadence:
         assert h["over_by"] > 5.0
 
     def test_the_machine_regime_is_unavailable_without_a_prior_document(self):
-        """
-        **THE GATE THAT STOPS THE CORRIDOR CLOSING BY ASSERTION.** Continuous
-        machine recording is cheap only because it intercepts a document the
-        actor was creating anyway — an invoice. Unpaid personal EOH produces
-        none, and it is 99.4% of the obligation at ε=0. Before this was
-        enforced, declaring "continuous" returned `closed_and_usable` by
-        pointing at a regime that cannot apply.
+        """Continuous machine recording is cheap only because it intercepts a document
+        the actor already creates, such as an invoice. Unpaid personal EOH produces
+        none, so without a prior document the regime is unavailable and cannot close the
+        corridor by assertion.
         """
         without = VC.cadence_feasibility("continuous")
         assert without["regimes"]["continuous_machine"]["fits"] is False
@@ -924,11 +826,9 @@ class TestTheRegisterCadence:
         assert with_doc["regimes"]["continuous_machine"]["fits"] is True
 
     def test_continuous_becomes_affordable_only_well_along_the_arc(self):
-        """
-        THE ε-DEPENDENCE, COMPUTED. Headroom rises with automation — 12.0% at
-        ε=0, 65.8% at 0.40, 607% at 0.90 — so a cadence unaffordable at
-        subsistence becomes affordable later, and the crossover is bisected
-        rather than asserted.
+        """Headroom rises with automation, so a cadence that subsistence cannot afford
+        becomes affordable later. The test bisects the crossover instead of asserting
+        it.
         """
         at = VC.cadence_feasibility(
             "continuous"
@@ -953,10 +853,8 @@ class TestTheRegisterCadence:
 
 
 class TestTheCorridorClosesOnTheDEFAULTAndNotOnTheOther:
-    """
-    Both directions. A cadence that closed the corridor whatever was declared
-    would be a decoration, and one that never closed it would make the
-    declaration pointless.
+    """Both directions: a cadence that always closed the corridor would be decoration,
+    and one that never did would make the declaration pointless.
     """
 
     def test_the_shipped_default_closes_it(self):

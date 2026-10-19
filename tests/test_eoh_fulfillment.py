@@ -219,15 +219,10 @@ class TestEohToTehPipeline:
             assert key in result, f"Missing key: {key}"
 
     def test_the_split_factor_is_one_minus_epsilon(self):
-        """
-        RETARGETED 2026-09-01, and the rename is the point. `human_fraction` used
-        to hold (1 - ε) and this test asserted it. After Phase 2 that quantity is
-        the split factor applied to the three domains WITHOUT an automation floor
-        — it is not the fraction of obligation people carry, and reporting it
-        under that name understated human labour by 5.8x at ε=0.99.
-
-        Both are now pinned: the factor keeps its value under a name that says
-        what it is, and `human_fraction` means what it says.
+        """The split factor (1 − ε) keeps its value under `uniform_split_factor`, and
+        `human_fraction` means the human share. Before 2026-09-01 `human_fraction` held
+        the split factor, which applies only to the three domains WITHOUT an automation
+        floor ([record](record/fulfilment.md#human-fraction-meant-the-split-factor)).
         """
         for eps in KEY_EPSILONS:
             result = eoh_to_teh_pipeline(epsilon=eps)
@@ -286,7 +281,7 @@ class TestEohToTehPipeline:
             assert result["teh_created"] > 0.0
 
     def test_registration_share_override(self):
-        """Explicit registration_share must be used instead of dynamic computation."""
+        """An explicit registration_share replaces the dynamic computation."""
         result = eoh_to_teh_pipeline(epsilon=0.40, registration_share=0.50)
         expected_teh = result["human_eoh"] * 0.50 * result["mean_multiplier"]
         assert result["teh_created"] == pytest.approx(expected_teh, rel=1e-6)
@@ -338,21 +333,13 @@ class TestEohToTehPipeline:
         )
 
     def test_knowledge_drags_the_non_personal_registration_composite(self):
-        """
-        BLOCK K-IV CONSEQUENCE, and the mission statement predicted it: "admitting
-        knowledge EOH to the collective ledger will require careful consideration."
-
-        `non_personal` is a composite weighted by human EOH volume across
-        infrastructure + ecological + knowledge, and knowledge carries its own,
-        much harder, verification-difficulty sigmoid. Pre-K-IV knowledge was
-        0.005% of EOH so its low registration was invisible; now it is ~8% at
-        mid-arc and ~41% at the top, and it pulls the composite well below the
-        labour-registration curve.
-
-        Consequence for the ledger: less EOH is admitted, so less TEH is minted.
-        That is the correct behaviour — labour whose output cannot be verified
-        should not mint currency — but it is a real change in fiscal output and
-        is pinned here so it is not mistaken for a regression.
+        """Knowledge pulls the `non_personal` registration composite below the labour
+        curve (Block K-IV). The composite is weighted by human EOH over infrastructure,
+        ecological and knowledge, and knowledge has a harder verification sigmoid. Less
+        EOH is admitted, so less TEH is minted. That is correct, because labour whose
+        output cannot be verified should not mint, and the test pins it so it is not
+        read as a regression
+        ([record](record/fulfilment.md#obligation-accounts-test-history)).
         """
         from hours_eoh.core.registration import (
             knowledge_eoh_registration_share, total_registration_share,
@@ -387,7 +374,8 @@ class TestEohToTehPipeline:
         # MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
         # capital stock resolves along the canonical arc, so the infrastructure term
         # falls at low ε and every ratio computed against total EOH moves with it.
-        assert mid == pytest.approx(0.36986, abs=0.01)
+        # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
+        assert mid == pytest.approx(0.38318, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""
@@ -627,7 +615,7 @@ class TestPipelineLaborConstraint:
     L = 1.0e9
 
     def test_omitting_the_constraint_changes_nothing(self):
-        """Every existing caller must be untouched."""
+        """The constraint is optional: every existing caller stays unchanged."""
         r = eoh_to_teh_pipeline(0.40)
         assert r["deficit"] is None
         assert r["deferred_personal"] == 0.0
@@ -711,19 +699,23 @@ class TestPipelineScaleOverrides:
         # of this test is unchanged: adding parameters must move nothing for a
         # caller who passes none of them. What moved here was a DEFAULT, which
         # is the one thing that legitimately re-pins it.
+        # And 2026-10-04: the default stock age became the measured US one
+        # (0.50 → 0.591). ε=0 holds no capital, so its total did not move.
         expected_total = {
-            0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.0:  1360598052.2367358,
+            0.40: 1535785338.3051229,
+            0.99: 2348009861.9085293,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 339635131.5742957
+        # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
+        # 2026-10-18: the nutrition and care floors moved 0.2808 -> 0.2799 to follow
+        # `anchored_processing_estimate()`, and KNOWLEDGE_EOH_BASE re-anchored +0.170%.
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 343120642.8628639
 
     def test_each_domain_base_actually_moves_the_ledger(self):
-        """
-        A parameter that is accepted and ignored is worse than one that is
-        absent. Each override must reach teh_created.
+        """Each domain-base override must reach teh_created. A parameter that is
+        accepted and ignored is worse than one that is absent.
         """
         base = eoh_to_teh_pipeline(epsilon=0.40)["teh_created"]
         for kw, val in (
@@ -770,29 +762,20 @@ class TestPipelineScaleOverrides:
 
 
 class TestLegibilityGatesTheMintNotTheObligation:
-    """
-    THE LAYER FIX, 2026-09-08 (author-approved).
-
-    `monitoring_capability` used to multiply the deferred ecological stock
-    INSIDE `total_eoh`, so an unmonitored collective did not owe its backlog.
-    That put an epistemic filter in the physics layer and broke the standing
-    invariant — physical state drives generation, ε drives fulfilment.
-
-    The obligation now enters in full. Legibility moved to the admission side,
-    where it says what may be MINTED against, and the unseen remainder is owed,
-    reported as `unseen_deferred`, and simply not registrable.
-
-    BOTH HALVES ARE PINNED HERE because either alone is worse than the original.
-    Full obligation without the registration gate would let unseen damage mint;
-    the gate without the full obligation would discount the debt twice.
+    """Legibility gates what may be MINTED, not what is owed (2026-09-08,
+    author-approved). `total_eoh` takes the whole deferred ecological stock; the unseen
+    remainder is owed, reported as `unseen_deferred`, and not registrable. Both halves
+    are pinned, because either alone is worse than the original: unseen damage would
+    mint, or the debt would be discounted twice
+    ([record](record/fulfilment.md#eoh-generation-test-history)).
     """
 
     SEED = 2.0e8
 
     def test_nothing_moves_on_the_shipped_path(self):
-        """The domain is empty by the Phase 4e/4f partition, so this fix is
-        invisible unless an institution supplies a stock. Stated as a test so
-        the claim is checked rather than asserted in a commit message."""
+        """The domain is empty under the Phase 4e/4f partition, so this fix shows only
+        when an institution supplies a stock. This test checks that claim.
+        """
         base = eoh_to_teh_pipeline(epsilon=0.40)
         for mon in (0.0, 0.5, 1.0):
             r = eoh_to_teh_pipeline(epsilon=0.40, monitoring_capability=mon)
@@ -801,7 +784,7 @@ class TestLegibilityGatesTheMintNotTheObligation:
 
     @pytest.mark.parametrize("epsilon", (0.0, 0.40, 0.90, 0.99))
     def test_the_obligation_is_observer_independent(self, epsilon):
-        """What is owed does not depend on who is watching — at every ε."""
+        """What is owed does not depend on who is watching, at every ε."""
         totals = [
             eoh_to_teh_pipeline(epsilon=epsilon, deferred_ecological=self.SEED,
                                 monitoring_capability=mon)["total_eoh"]
@@ -833,9 +816,30 @@ class TestLegibilityGatesTheMintNotTheObligation:
         )
 
     def test_seeing_nothing_mints_exactly_what_an_empty_domain_mints(self):
-        """mon=0 is the boundary: the backlog is fully owed and fully deferred."""
+        """mon=0 is the boundary: the whole backlog is owed and all of it is deferred.
+        """
         blind = eoh_to_teh_pipeline(epsilon=0.40, deferred_ecological=self.SEED,
                                     monitoring_capability=0.0)
         empty = eoh_to_teh_pipeline(epsilon=0.40)
         assert blind["teh_created"] == pytest.approx(empty["teh_created"], rel=1e-12)
         assert blind["total_eoh"] > empty["total_eoh"]
+
+
+class TestTheReconstructionSocket:
+    """`reconstruction_obligation` (2026-10-03): a rebuild flow booked into the
+    infrastructure domain before the split — default off, bit-identical."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_it_adds_to_infrastructure_and_mints_where_done(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        base = eoh_to_teh_pipeline(eps)
+        assert eoh_to_teh_pipeline(eps, reconstruction_obligation=0.0) == base
+        on = eoh_to_teh_pipeline(eps, reconstruction_obligation=1e8)
+        assert (on["eoh_by_domain"]["infrastructure"] - base["eoh_by_domain"]["infrastructure"]
+                == pytest.approx(1e8))
+        assert on["teh_created"] >= base["teh_created"]
+
+    def test_negative_is_refused(self):
+        from hours_eoh.core.eoh_generation import total_eoh
+        with pytest.raises(ValueError):
+            total_eoh(epsilon=0.4, reconstruction_obligation=-1.0)

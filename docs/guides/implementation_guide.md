@@ -17,6 +17,7 @@ report = collective_snapshot(
     state,
     parcels=your_parcel_inventory,          # or land_hectares=... if you have no inventory
     available_labor_eoh=your_labour_hours,  # omit it and you are measuring DEMAND
+    age_fractions=your_age_mix,             # reaches the pipeline AND the fisc
 )
 report["frame"]["labour_supplied"]          # True: the mint is what was served, not demanded
 report["frame"]["labor_constrained"]        # True: your hours BOUND, and the shortfall is deferred
@@ -25,7 +26,26 @@ report["frame"]["labor_constrained"]        # True: your hours BOUND, and the sh
 `collective_snapshot()` runs the EOH→TEH pipeline, the Ground Use Fee and the
 fiscal snapshot on **one stated frame**, passing the three values between them
 that otherwise have to be hand-carried. Run `eoh scenario run collective` to see
-it on the shipped urban archetype.
+it on the shipped urban archetype, or `eoh scenario run collective --frame us`
+(or `--frame-file` with your own) to run it on a frame's land and labour supply,
+every input labelled. A frame carries county parcel COUNTS, not parcels, so on a
+frame the fee is its MEASURED per-parcel half, P(ε) × the frame's PRIVATE
+parcel count — the collective does not pay itself on parcels it holds
+(`guf_parcel_count=` with no sample, in the function; `stationarity` prices the
+same). The AREA part is NOT SUPPLIED: it needs a land-class→use mapping and a
+location value, neither of which ships, so the fee is a LOWER bound and the
+verdict says so. On a named frame the land and its parcels stay fixed when
+`--population` moves; state more land in a frame file. The fee ASSESSED is not
+the fee COLLECTED: holders can pay at most what the mint leaves them after the
+levy and D3 consumption, and the rest is reported as `land_fee["unpaid"]`
+(`guf_unpaid` on the CLI), never booked to the Trust. Fewer people on the same
+land show up as an unpaid fee, not as revenue.
+
+**Pass your age mix as `age_fractions`, not to `fiscal_snapshot` by keyword.**
+It reaches the pipeline's personal obligation and the fiscal guarantee together.
+Until 2026-10-14 a keyword both halves take reached the fiscal half only, and a
+state's own register maturity reached the fiscal half only; a quantity both take
+is now forwarded to both or refused.
 
 **Pass `available_labor_eoh`.** Until 2026-09-12 this entry point could not
 accept it, so every snapshot minted from obligation *demanded* while this guide
@@ -368,9 +388,10 @@ number.** The framework carries two instruments that share no data:
 
 Run for the US, the two bands land close to each other without overlapping **at
 government scope and current-cost doctrine** — the one cell the comparison reads
-by default — and ADJACENT is the honest word for that. **Across the whole
-declared grid they OVERLAP**: 8 of the 18 cells fall inside the labour band
-(0.200–0.757 against 0.214–0.407). The capital route returns a grid precisely
+by default — they OVERLAP, since the capital reading takes the stock at its
+measured ages and the condition those imply (BEA ages, BLS age-efficiency).
+**Across the whole declared grid they OVERLAP too**, with most cells inside the
+labour band. Call `instrument_comparison()` for the figures. The capital route returns a grid precisely
 because its three judgements are undeclared, so *which verdict you get is a
 function of the scope and doctrine you pick, not a property of the instruments*.
 `instrument_comparison()` reports both, and takes `scope=` and `doctrine=`

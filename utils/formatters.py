@@ -1,7 +1,6 @@
-"""
-Output formatting utilities: ANSI color, aligned tables, and numeric display.
+"""Output formatting utilities: ANSI colour, aligned tables, and numeric display.
 
-All commands route through these helpers so color/no-color is controlled centrally.
+Every command routes through these helpers, so one place controls colour.
 """
 
 from __future__ import annotations
@@ -77,6 +76,8 @@ def table(headers: list[str], rows: list[list[str]], indent: int = 0) -> str:
 # ---------------------------------------------------------------------------
 
 def fmt_float(v: float, decimals: int = 3) -> str:
+    if abs(v) >= 1e12:
+        return f"{v/1e12:.{decimals}f}T"
     if abs(v) >= 1e9:
         return f"{v/1e9:.{decimals}f}B"
     if abs(v) >= 1e6:

@@ -27,15 +27,16 @@ Optional — handled by this module:
   guf_previous     float   for review_cycle_cap(); None → no cap
   delta_shi        float   Soil Health Index improvement for soil_health_credit(); None → 0
 
-This schema maps directly to geo-data pipeline outputs: a GeoJSON or CSV loader
-needs only to rename columns to these keys. The field set is a superset of the
-minimum required by ground_use_fee() so downstream tools can be built on it.
+This schema maps directly to geo-data pipeline outputs: a GeoJSON or CSV loader needs
+only to rename columns to these keys. The field set is a superset of the minimum
+ground_use_fee() requires, so downstream tools can build on it.
 
 Mission Statement: §"Land is held by the collective … stewardship leases …
 the fee reflects real costs rather than speculative value."
 """
 
 from __future__ import annotations
+from typing import Callable
 
 from hours_eoh.data import (
     GUF_SERVICE_PROFILE_DECLARED,
@@ -228,17 +229,16 @@ def attach_ecosystem_services(
         area_ha  = area_slu x SLU_HECTARES          (1 SLU = 100 m^2)
         V_s(p)   = area_ha x per_hectare_volumes[s]
 
-    WHY THIS EXISTS. E(p,ee) has been ZERO in every scenario the package ships.
-    The archetype factories produce 10,000 and 1,000 parcels and neither sets
+    WHY THIS EXISTS. E(p,ee) has been ZERO in every scenario the package ships. The
+    archetype factories produce 10,000 and 1,000 parcels and neither sets
     `ecosystem_services`; `guf_rate_calibration`, `guf_fiscal_integration`,
-    `guf_revenue_sweep` and `guf_lvi_weight_sensitivity` never supply it either.
-    So the ecological term of the Ground Use Fee has never been exercised, and
-    the x100 use-category calibration was fitted with it switched off.
+    `guf_revenue_sweep` and `guf_lvi_weight_sensitivity` never supply it either. So
+    nothing has exercised the ecological term of the Ground Use Fee, and the x100
+    use-category calibration fitted with it switched off.
 
-    OPT-IN BY CONSTRUCTION. This returns NEW parcel dicts and is never called by
-    the factories themselves, so no shipped number moves until a caller asks.
-    Turning E on for existing scenarios is a calibration change, not a plumbing
-    change.
+    OPT-IN BY CONSTRUCTION. This returns NEW parcel dicts, and the factories never call
+    it, so no shipped number moves until a caller asks. Turning E on for existing
+    scenarios is a calibration change, not a plumbing change.
 
     Args:
         parcels:             Inventory in the standard parcel schema.
@@ -394,3 +394,106 @@ def make_rural_collective(parcel_count: int = 1_000) -> list[dict]:
         })
 
     return parcels
+
+
+def sample_scaled_guf(
+    sample: list[dict],
+    epsilon: float,
+    parcel_count: float,
+    psi_policy: str = "retired",
+) -> float:
+    """
+    A land fee priced from a parcel SAMPLE and scaled to a parcel COUNT.
+
+    Governing equation:
+
+        guf = Σ_sample net_inflow / |sample| × parcel_count     [TEH / yr]
+
+    The convention `scenarios/stationarity` priced its fee with, made the ONE
+    implementation (2026-10-14, author: the entry point follows stationarity).
+    `collective_snapshot` on a frame calls it too, so the two report one fee
+    on one frame. The arithmetic order is stationarity's own, so its figures
+    are bit-identical. It ASSUMES every parcel in the count pays the sample's
+    mean fee — an urban archetype's mean over a whole jurisdiction's parcels —
+    and that assumption is the caller's to state.
+
+    ε-behaviour: inherits `compute_collective_guf`'s — the fee is
+    labour-independent under the shipped `psi_policy="retired"`, so it does
+    not vanish as ε → 0.99.
+
+    Raises:
+        ValueError: on an empty sample.
+    """
+    if not sample:
+        raise ValueError("an empty parcel sample prices no fee")
+    net = compute_collective_guf(sample, epsilon, psi_policy=psi_policy)["guf_net_inflow"]
+    return float(net) / len(sample) * parcel_count
+
+
+#: How a fee priced by `per_parcel_guf` is labelled wherever it is reported.
+PER_PARCEL_BASIS: str = ("per-parcel term × parcel count — the AREA part NOT SUPPLIED "
+                         "(needs a class→use mapping and a location value)")
+
+
+def per_parcel_guf(epsilon: float, parcel_count: float) -> float:
+    """
+    The land fee's MEASURED HALF over a parcel count: `per_parcel_term(ε) ×
+    parcel_count`, TEH per year (2026-10-15, author: "ship the per-parcel half
+    first").
+
+    What a frame that states its parcels and not their area can price. The
+    AREA part (private area by use class × rate × location value) is NOT
+    SUPPLIED: it needs an author-declared class→use mapping and a source for
+    location value, and accepting the ten ratios settles neither (record/guf.md
+    #land-use-mix-per-frame). So this is a LOWER bound on the fee, never the
+    fee — it replaces `sample_scaled_guf` on a frame, which priced every parcel
+    as an urban sample parcel and so tied the area part to the count.
+
+    ε-behaviour: α(ε) — positive and falling across [0, 0.99].
+
+    Raises:
+        ValueError: on a negative count.
+    """
+    if parcel_count < 0.0:
+        raise ValueError(f"parcel_count must be >= 0, got {parcel_count}")
+    from hours_eoh.land.guf import per_parcel_term
+    return per_parcel_term(epsilon) * parcel_count
+
+
+def per_parcel_fee(parcel_count: float) -> Callable[[float], float]:
+    """
+    `per_parcel_guf` over a fixed parcel count, as a function of ε: what the
+    period engine's `guf_assessed` takes (2026-10-19). The engine calls it at
+    each period's ε, so the fee follows the arc and the parcels stay fixed
+    with the land. `core/` cannot import `land/`, so the scenario passes it.
+
+    Raises:
+        ValueError: on a negative count.
+    """
+    if parcel_count < 0.0:
+        raise ValueError(f"parcel_count must be >= 0, got {parcel_count}")
+    return lambda epsilon: per_parcel_guf(epsilon, parcel_count)
+
+
+def default_parcel_count(population: float) -> float:
+    """
+    PRIVATE parcels for a frame that states none: the population's share of
+    the county parcel census's private parcels in the 50 states + DC,
+    `population × fifty_states_private_parcels()["central"] /
+    US_REFERENCE_POPULATION` — stationarity's default, made the one copy
+    (2026-10-14).
+
+    Government parcels are EXCLUDED (2026-10-15, author): they are the
+    collective's own holding, and the collective does not pay itself — until
+    then this scaled every parcel, 2.5% more than pay. And PUERTO RICO AND THE
+    TERRITORIES are excluded (2026-10-15, author): the reference population is
+    the 50 states', so their 1,587,742 parcels had no people in the
+    denominator.
+
+    A frame that measures its parcels (the US frame: the contiguous 48's
+    private parcels, `reference.parcels.contiguous_48_private_parcels`)
+    states them instead, and they stay fixed when the population moves.
+    """
+    from hours_eoh.data import US_REFERENCE_POPULATION
+    from hours_eoh.reference.parcels import fifty_states_private_parcels
+    return population * fifty_states_private_parcels()["central"] / US_REFERENCE_POPULATION

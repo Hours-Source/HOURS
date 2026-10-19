@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-eoh — HOURS EOH research CLI.
+"""eoh: the HOURS EOH research CLI.
 
 Commands:
   arc             Sweep the epsilon arc
@@ -13,8 +12,10 @@ Commands:
   multiplier      Tier multiplier four-factor breakdown and arc sweep
   contestability  Contestability invariant arc table and stress sweep (§8)
   coasean         [EXPERIMENTAL] Coasean collective federation (§§6–7)
-  thermal         [EXPERIMENTAL] Planetary radiative capacity: overage, ceilings
+  thermal         Planetary radiative capacity: overage, determinacy, ceilings
   corridor        [EXPERIMENTAL] Stability corridor [ε_suff, ε_max] and ceilings
+  frame           Resolve a frame's inputs; write a frame file
+  provenance      Provenance tags for every data.py constant
 """
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ import utils.contestability_cmd as contestability_cmd
 import utils.coasean_cmd as coasean_cmd
 import utils.thermal_cmd as thermal_cmd
 import utils.corridor_cmd as corridor_cmd
+import utils.frame_cmd as frame_cmd
 import utils.provenance_cmd as provenance_cmd
 
 
@@ -67,6 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     coasean_cmd.build_parser(sub)
     thermal_cmd.build_parser(sub)
     corridor_cmd.build_parser(sub)
+    frame_cmd.build_parser(sub)
     provenance_cmd.build_parser(sub)
 
     return parser

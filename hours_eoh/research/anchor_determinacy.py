@@ -3,10 +3,10 @@ Anchor determinacy — which monetary anchors have a shock response at all.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-WHY THIS EXISTS. The framework's comparative claim is that human productive
-capacity is a more defensible reference frame for economic accounting than
-commodity scarcity, discretionary issuance or credit. That claim has been argued
-and never checked. This is the smallest thing that checks part of it.
+WHY THIS EXISTS. The framework's comparative claim is that human productive capacity is
+a more defensible reference frame for economic accounting than commodity scarcity,
+discretionary issuance or credit. People have argued that claim and never checked it.
+This is the smallest thing that checks part of it.
 
 WHAT IT DELIBERATELY DOES NOT DO — AND THIS IS THE DESIGN. It does not model
 gold, bitcoin or fiat. A comparison whose rivals are modelled badly is worse than
@@ -14,11 +14,11 @@ no comparison: it is a conclusion fitted to a strawman, which is the failure thi
 repo already names in constants that were calibrated to the target they were then
 checked against.
 
-So each rival is classified from **its own definition**, at its **advocates'
+So the module classifies each rival from **its own definition**, at its **advocates'
 strongest reading**, and `advocates_say` is a required field. Gold's supply is
-cumulative extraction; bitcoin's is a published schedule; fiat's is set by an
-issuing institution. None of that is contentious, none of it needs a simulation,
-and none of it is a criticism.
+cumulative extraction; bitcoin's is a published schedule; an issuing institution sets
+fiat's. None of that is contentious, none of it needs a simulation, and none of it is a
+criticism.
 
 THE RESULT FALLS OUT OF THAT HONESTY. Classifying rivals charitably produces
 three classes, and the interesting one costs nothing to establish:
@@ -28,13 +28,13 @@ three classes, and the interesting one costs nothing to establish:
     INDETERMINATE               fiat, debt money   — the response is a POLICY
                                                      CHOICE, not a property
 
-Fiat's shock response is undetermined by its own definition. Saying so requires
-no model of monetary policy and takes nothing away from fiat — it is the standard
-characterisation, and discretion is the feature.
+Fiat's own definition leaves its shock response open. Saying so requires no model of
+monetary policy and takes nothing away from fiat — it is the standard characterisation,
+and discretion is the feature.
 
-WHAT IT CANNOT SETTLE. Whether a responsive base is BETTER than an indifferent
-one is normative and is not computed here. Report the classification; let a
-reader apply their own criterion. See `what_this_does_not_establish()`.
+WHAT IT CANNOT SETTLE. Whether a responsive base is BETTER than an indifferent one is
+normative, and this module does not compute it. Report the classification; let a reader
+apply their own criterion. See `what_this_does_not_establish()`.
 
 Layer: research/ — experimental, not a stable API, not imported by core or
 scenarios. Reporting only; nothing here changes a shipped number.
@@ -42,10 +42,13 @@ scenarios. Reporting only; nothing here changes a shipped number.
 
 from __future__ import annotations
 
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, REFERENCE_FRAME_POPULATION
+
 import inspect
 from dataclasses import dataclass
 
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import ecological_allocation
 from hours_eoh.core.prices import basket_price
 
@@ -195,14 +198,14 @@ def determinacy_table() -> list[dict]:
 
 
 def hours_shock_response(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capability: float = 0.40,
     working_age_share: float = 0.63,
     employment_rate: float = 0.70,
     hours_per_worker: float = 2080.0,
 ) -> dict:
     """
-    HOURS' own response, MEASURED — the one row in the table that is computed.
+    HOURS' own response, MEASURED: the one row in the table that the module computes.
 
     Governing comparison: hold the frame fixed, halve one physical capacity at a
     time, and report the proportional change in obligation and in minting.
@@ -213,14 +216,14 @@ def hours_shock_response(
     multiplying an hours-per-EMPLOYED-worker figure by working-age population
     would assume full employment and overstate supply.
 
-    Worked example (shipped defaults): halving labour cuts minting by about half
-    while the obligation does not move at all, and the unmet part is reported as
-    deferred rather than absorbed.
+    Worked example (shipped defaults): halving labour cuts minting by about half while
+    the obligation does not move at all. The report shows the unmet part as deferred and
+    does not absorb it.
 
-    THE ECOLOGICAL ROW IS WHERE THIS ANCHOR LOSES, and it is reported for that
-    reason. Phases 4e/4f relocated the recurring ecological obligation to the
-    Ground Use Fee, which is not on this path, so ecosystem condition moves the
-    monetary base by nothing at all.
+    THE ECOLOGICAL ROW IS WHERE THIS ANCHOR LOSES, and the report shows it for that
+    reason. Phases 4e/4f relocated the recurring ecological obligation to the Ground Use
+    Fee, which is not on this path, so ecosystem condition moves the monetary base by
+    nothing at all.
     """
     labour = population * working_age_share * employment_rate * hours_per_worker
     accepted = inspect.signature(eoh_to_teh_pipeline).parameters
@@ -230,7 +233,10 @@ def hours_shock_response(
             health: float = 0.70) -> dict:
         return eoh_to_teh_pipeline(
             epsilon=capability, population=population,
-            capital_stock=2.0e9 * capital_mult, capital_age_ratio=0.50,
+            # The frame's capital (2026-09-30): was a retyped 2.0e9 — the 1M
+            # constant — beside a `population` the docstring calls THE FRAME.
+            capital_stock=resolve_capital_stock(None, None, population=population) * capital_mult,
+            capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
             ecosystem_health=health, monitoring_capability=0.70,
             available_labor_eoh=labour * labour_mult,
         )
@@ -266,9 +272,9 @@ def the_defensible_claim() -> dict:
     """
     The comparative statement the classification supports, and no more.
 
-    It is a claim about the SHAPE of the table — which anchors hold which
-    combination of properties — not about which is better. Every term in it is
-    checkable from `ANCHORS` and none of it requires a rival to be simulated.
+    It is a claim about the SHAPE of the table — which anchors hold which combination of
+    properties — not about which is better. A reader can check every term in it from
+    `ANCHORS`, and none of it needs a simulated rival.
     """
     both = [a.name for a in ANCHORS
             if a.determinate and a.responsive and a.registered]
@@ -313,8 +319,8 @@ def ecological_response_by_path(
 
     units: EOH/yr for the relocated obligation, fractions for the ratios.
 
-    Worked example (shipped defaults): halving ecosystem health leaves minting
-    exactly unchanged and roughly DOUBLES what the fee is asked to carry.
+    Worked example (shipped defaults): halving ecosystem health leaves minting exactly
+    unchanged and roughly DOUBLES what the fee must carry.
 
     The honest statement is therefore not that this framework is blind to
     ecological collapse. It is that **the monetary base is blind to it and the

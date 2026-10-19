@@ -1,0 +1,644 @@
+{
+  "name": "us_states",
+  "frame": "us",
+  "note": "The contiguous 48 and DC, by state. population: Census Bureau, Population Division, SCPRC-EST2025-18+POP: resident population, July 1, 2025. land_hectares: USDA ERS Major Land Uses 2022, summary tables 1 and 5 (by state), total land. parcel_count: the county parcel census's PRIVATE parcels, unknown owner types split like each state's known ones. Each is a WEIGHT: a unit runs on its share of the frame's population, land and parcels, and on its population share of the frame's capital and Trust. age_fractions: Census Bureau, Population Division, SC-EST2025-ALLDATA6: resident population by single year of age, July 1, 2025, the unit's own mix, in place of the frame's. Labour capacity, stock age, ecosystem health and epsilon are the frame's: none ships by state.",
+  "collectives": [
+    {
+      "id": "01",
+      "label": "Alabama",
+      "population": 5193088,
+      "land_hectares": 13117075.7,
+      "parcel_count": 3231630.2,
+      "age_fractions": {
+        "infant": 0.06861620677331098,
+        "child": 0.14665590107465923,
+        "working_age": 0.5902744186118163,
+        "elderly": 0.19445347354021345
+      }
+    },
+    {
+      "id": "04",
+      "label": "Arizona",
+      "population": 7623818,
+      "land_hectares": 29436024.2,
+      "parcel_count": 3426989.5,
+      "age_fractions": {
+        "infant": 0.06323131008636355,
+        "child": 0.14628510281856152,
+        "working_age": 0.5843174640318014,
+        "elderly": 0.20616612306327356
+      }
+    },
+    {
+      "id": "05",
+      "label": "Arkansas",
+      "population": 3114791,
+      "land_hectares": 13465510.1,
+      "parcel_count": 2067511.8,
+      "age_fractions": {
+        "infant": 0.06967979553042243,
+        "child": 0.15465885191012815,
+        "working_age": 0.5856113620464423,
+        "elderly": 0.19004999051300714
+      }
+    },
+    {
+      "id": "06",
+      "label": "California",
+      "population": 39355309,
+      "land_hectares": 40367392.8,
+      "parcel_count": 12961416.1,
+      "age_fractions": {
+        "infant": 0.06308485597203671,
+        "child": 0.1446329388494955,
+        "working_age": 0.6169267531351361,
+        "elderly": 0.1753554520433317
+      }
+    },
+    {
+      "id": "08",
+      "label": "Colorado",
+      "population": 6012561,
+      "land_hectares": 26841584.6,
+      "parcel_count": 2850243.1,
+      "age_fractions": {
+        "infant": 0.06345349344480664,
+        "child": 0.13948881350226633,
+        "working_age": 0.6258847103588637,
+        "elderly": 0.1711729826940633
+      }
+    },
+    {
+      "id": "09",
+      "label": "Connecticut",
+      "population": 3688496,
+      "land_hectares": 1254525.5,
+      "parcel_count": 1298673.6,
+      "age_fractions": {
+        "infant": 0.05978317449713921,
+        "child": 0.13495609050409707,
+        "working_age": 0.601425621716819,
+        "elderly": 0.20383511328194473
+      }
+    },
+    {
+      "id": "10",
+      "label": "Delaware",
+      "population": 1059952,
+      "land_hectares": 504238.3,
+      "parcel_count": 478633.5,
+      "age_fractions": {
+        "infant": 0.061869782782616574,
+        "child": 0.13624201850649842,
+        "working_age": 0.5742165682974323,
+        "elderly": 0.22767163041345267
+      }
+    },
+    {
+      "id": "11",
+      "label": "District of Columbia",
+      "population": 693645,
+      "land_hectares": 15782.7,
+      "parcel_count": 226730.2,
+      "age_fractions": {
+        "infant": 0.0656949880702665,
+        "child": 0.11317172328784897,
+        "working_age": 0.6850074605886296,
+        "elderly": 0.1361258280532549
+      }
+    },
+    {
+      "id": "12",
+      "label": "Florida",
+      "population": 23462518,
+      "land_hectares": 13895690.9,
+      "parcel_count": 11047431.6,
+      "age_fractions": {
+        "infant": 0.05890079658116831,
+        "child": 0.1304532190449465,
+        "working_age": 0.5827596168493083,
+        "elderly": 0.22788636752457686
+      }
+    },
+    {
+      "id": "13",
+      "label": "Georgia",
+      "population": 11302748,
+      "land_hectares": 14948682.9,
+      "parcel_count": 4729372.3,
+      "age_fractions": {
+        "infant": 0.0683401947915675,
+        "child": 0.1533731443008373,
+        "working_age": 0.6115891462854874,
+        "elderly": 0.16669751462210783
+      }
+    },
+    {
+      "id": "16",
+      "label": "Idaho",
+      "population": 2029733,
+      "land_hectares": 21404633.0,
+      "parcel_count": 1080231.0,
+      "age_fractions": {
+        "infant": 0.06923373665403282,
+        "child": 0.16335941722384176,
+        "working_age": 0.5806054293840619,
+        "elderly": 0.18680141673806358
+      }
+    },
+    {
+      "id": "17",
+      "label": "Illinois",
+      "population": 12719141,
+      "land_hectares": 14378076.2,
+      "parcel_count": 5867635.2,
+      "age_fractions": {
+        "infant": 0.06184096866289948,
+        "child": 0.14403779311826168,
+        "working_age": 0.6070689050463393,
+        "elderly": 0.1870523331724996
+      }
+    },
+    {
+      "id": "18",
+      "label": "Indiana",
+      "population": 6973333,
+      "land_hectares": 9279037.1,
+      "parcel_count": 3661429.1,
+      "age_fractions": {
+        "infant": 0.07022897085224526,
+        "child": 0.1557985256117842,
+        "working_age": 0.5897800951137713,
+        "elderly": 0.18419240842219925
+      }
+    },
+    {
+      "id": "19",
+      "label": "Iowa",
+      "population": 3238387,
+      "land_hectares": 14465488.3,
+      "parcel_count": 2453894.9,
+      "age_fractions": {
+        "infant": 0.06859248138039091,
+        "child": 0.15363173085860338,
+        "working_age": 0.5771648045770935,
+        "elderly": 0.20061098318391224
+      }
+    },
+    {
+      "id": "20",
+      "label": "Kansas",
+      "population": 2977220,
+      "land_hectares": 21174771.5,
+      "parcel_count": 1666183.9,
+      "age_fractions": {
+        "infant": 0.07028771807256434,
+        "child": 0.15904299984549344,
+        "working_age": 0.5821313171347767,
+        "elderly": 0.1885379649471655
+      }
+    },
+    {
+      "id": "21",
+      "label": "Kentucky",
+      "population": 4606864,
+      "land_hectares": 10228429.6,
+      "parcel_count": 2301991.0,
+      "age_fractions": {
+        "infant": 0.06951648670331922,
+        "child": 0.15119395753814308,
+        "working_age": 0.5908709265131334,
+        "elderly": 0.18841862924540426
+      }
+    },
+    {
+      "id": "22",
+      "label": "Louisiana",
+      "population": 4618189,
+      "land_hectares": 11191176.8,
+      "parcel_count": 2785659.4,
+      "age_fractions": {
+        "infant": 0.07193620702833946,
+        "child": 0.15541590004220268,
+        "working_age": 0.5846467089155511,
+        "elderly": 0.18800118401390675
+      }
+    },
+    {
+      "id": "23",
+      "label": "Maine",
+      "population": 1414874,
+      "land_hectares": 7988899.3,
+      "parcel_count": 721828.2,
+      "age_fractions": {
+        "infant": 0.05170425069652845,
+        "child": 0.1209224284282558,
+        "working_age": 0.5816857190110215,
+        "elderly": 0.24568760186419428
+      }
+    },
+    {
+      "id": "24",
+      "label": "Maryland",
+      "population": 6265347,
+      "land_hectares": 2514716.6,
+      "parcel_count": 2461569.0,
+      "age_fractions": {
+        "infant": 0.0662060696717995,
+        "child": 0.14716870430320939,
+        "working_age": 0.6030984397193004,
+        "elderly": 0.18352678630569064
+      }
+    },
+    {
+      "id": "25",
+      "label": "Massachusetts",
+      "population": 7154084,
+      "land_hectares": 2020595.4,
+      "parcel_count": 2438562.3,
+      "age_fractions": {
+        "infant": 0.05837434953237899,
+        "child": 0.1271943410225544,
+        "working_age": 0.6156926589064372,
+        "elderly": 0.1987386505386294
+      }
+    },
+    {
+      "id": "26",
+      "label": "Michigan",
+      "population": 10127884,
+      "land_hectares": 14661356.1,
+      "parcel_count": 4518850.4,
+      "age_fractions": {
+        "infant": 0.061697586583732596,
+        "child": 0.14197476985320923,
+        "working_age": 0.5913028822210049,
+        "elderly": 0.20502476134205327
+      }
+    },
+    {
+      "id": "27",
+      "label": "Minnesota",
+      "population": 5830405,
+      "land_hectares": 20623185.0,
+      "parcel_count": 3073912.4,
+      "age_fractions": {
+        "infant": 0.066958641809617,
+        "child": 0.15314836619411515,
+        "working_age": 0.5888988843828173,
+        "elderly": 0.19099410761345054
+      }
+    },
+    {
+      "id": "28",
+      "label": "Mississippi",
+      "population": 2954160,
+      "land_hectares": 12153519.2,
+      "parcel_count": 1951021.6,
+      "age_fractions": {
+        "infant": 0.07023519376066292,
+        "child": 0.15265049963441385,
+        "working_age": 0.5837111056950199,
+        "elderly": 0.19340320090990332
+      }
+    },
+    {
+      "id": "29",
+      "label": "Missouri",
+      "population": 6270541,
+      "land_hectares": 17805763.6,
+      "parcel_count": 3329553.7,
+      "age_fractions": {
+        "infant": 0.06694860937836145,
+        "child": 0.1499589907792645,
+        "working_age": 0.5869157063162492,
+        "elderly": 0.19617669352612477
+      }
+    },
+    {
+      "id": "30",
+      "label": "Montana",
+      "population": 1144694,
+      "land_hectares": 37697276.9,
+      "parcel_count": 835693.0,
+      "age_fractions": {
+        "infant": 0.05977317955715676,
+        "child": 0.14259793446982338,
+        "working_age": 0.575934703947081,
+        "elderly": 0.2216941820259388
+      }
+    },
+    {
+      "id": "31",
+      "label": "Nebraska",
+      "population": 2018006,
+      "land_hectares": 19895964.9,
+      "parcel_count": 1123297.7,
+      "age_fractions": {
+        "infant": 0.07408600370861138,
+        "child": 0.16340040614349016,
+        "working_age": 0.5799913379841289,
+        "elderly": 0.18252225216376958
+      }
+    },
+    {
+      "id": "32",
+      "label": "Nevada",
+      "population": 3282188,
+      "land_hectares": 28453852.2,
+      "parcel_count": 1379505.1,
+      "age_fractions": {
+        "infant": 0.062047024728626145,
+        "child": 0.14468244963420743,
+        "working_age": 0.6107060290269783,
+        "elderly": 0.1825644966101881
+      }
+    },
+    {
+      "id": "33",
+      "label": "New Hampshire",
+      "population": 1415342,
+      "land_hectares": 2319253.4,
+      "parcel_count": 652917.9,
+      "age_fractions": {
+        "infant": 0.05285083040000226,
+        "child": 0.12029813288943592,
+        "working_age": 0.5969539517657216,
+        "elderly": 0.22989708494484018
+      }
+    },
+    {
+      "id": "34",
+      "label": "New Jersey",
+      "population": 9548215,
+      "land_hectares": 1904450.6,
+      "parcel_count": 3361273.0,
+      "age_fractions": {
+        "infant": 0.06587398796528984,
+        "child": 0.14263891208985136,
+        "working_age": 0.6064001491378231,
+        "elderly": 0.18508695080703566
+      }
+    },
+    {
+      "id": "35",
+      "label": "New Mexico",
+      "population": 2125498,
+      "land_hectares": 31420602.6,
+      "parcel_count": 1514544.2,
+      "age_fractions": {
+        "infant": 0.06024517548358079,
+        "child": 0.14650731263920266,
+        "working_age": 0.5823543470753677,
+        "elderly": 0.2108931648018488
+      }
+    },
+    {
+      "id": "36",
+      "label": "New York",
+      "population": 20002427,
+      "land_hectares": 12205319.0,
+      "parcel_count": 5584077.3,
+      "age_fractions": {
+        "infant": 0.06262200082020047,
+        "child": 0.13262385609506286,
+        "working_age": 0.6117500141357847,
+        "elderly": 0.19300412894895205
+      }
+    },
+    {
+      "id": "37",
+      "label": "North Carolina",
+      "population": 11197968,
+      "land_hectares": 12593007.8,
+      "parcel_count": 5780136.0,
+      "age_fractions": {
+        "infant": 0.06696250605466991,
+        "child": 0.1437848366775115,
+        "working_age": 0.5999827825905557,
+        "elderly": 0.18926987467726286
+      }
+    },
+    {
+      "id": "38",
+      "label": "North Dakota",
+      "population": 799358,
+      "land_hectares": 17869703.9,
+      "parcel_count": 708381.8,
+      "age_fractions": {
+        "infant": 0.07299733035761198,
+        "child": 0.15589885883421445,
+        "working_age": 0.5920363591782405,
+        "elderly": 0.179067451629933
+      }
+    },
+    {
+      "id": "39",
+      "label": "Ohio",
+      "population": 11900510,
+      "land_hectares": 10582124.9,
+      "parcel_count": 6316108.9,
+      "age_fractions": {
+        "infant": 0.06595582878380843,
+        "child": 0.14680034721201024,
+        "working_age": 0.5857290149749884,
+        "elderly": 0.20151480902919286
+      }
+    },
+    {
+      "id": "40",
+      "label": "Oklahoma",
+      "population": 4123288,
+      "land_hectares": 17766509.1,
+      "parcel_count": 2355112.9,
+      "age_fractions": {
+        "infant": 0.07187395107981785,
+        "child": 0.16039238588233468,
+        "working_age": 0.5880020992955137,
+        "elderly": 0.1797315637423338
+      }
+    },
+    {
+      "id": "41",
+      "label": "Oregon",
+      "population": 4273586,
+      "land_hectares": 24863076.5,
+      "parcel_count": 1843898.2,
+      "age_fractions": {
+        "infant": 0.05618068760053033,
+        "child": 0.13378015558830453,
+        "working_age": 0.599778265840444,
+        "elderly": 0.21026089097072106
+      }
+    },
+    {
+      "id": "42",
+      "label": "Pennsylvania",
+      "population": 13059432,
+      "land_hectares": 11588982.7,
+      "parcel_count": 5905103.4,
+      "age_fractions": {
+        "infant": 0.06057797919541983,
+        "child": 0.1362629707019417,
+        "working_age": 0.5887707061072794,
+        "elderly": 0.21438834399535905
+      }
+    },
+    {
+      "id": "44",
+      "label": "Rhode Island",
+      "population": 1114521,
+      "land_hectares": 267901.9,
+      "parcel_count": 407489.1,
+      "age_fractions": {
+        "infant": 0.05543278233429429,
+        "child": 0.12191156559634139,
+        "working_age": 0.6135424994235191,
+        "elderly": 0.20911315264584518
+      }
+    },
+    {
+      "id": "45",
+      "label": "South Carolina",
+      "population": 5570274,
+      "land_hectares": 7786556.4,
+      "parcel_count": 2917875.2,
+      "age_fractions": {
+        "infant": 0.06445787047459425,
+        "child": 0.14171511132127432,
+        "working_age": 0.5831984207599124,
+        "elderly": 0.21062859744421908
+      }
+    },
+    {
+      "id": "46",
+      "label": "South Dakota",
+      "population": 935094,
+      "land_hectares": 19634133.3,
+      "parcel_count": 727952.3,
+      "age_fractions": {
+        "infant": 0.073516673190075,
+        "child": 0.1619056479883306,
+        "working_age": 0.5709265592550054,
+        "elderly": 0.19365111956658904
+      }
+    },
+    {
+      "id": "47",
+      "label": "Tennessee",
+      "population": 7315076,
+      "land_hectares": 10679249.4,
+      "parcel_count": 3501830.3,
+      "age_fractions": {
+        "infant": 0.06924384654376797,
+        "child": 0.14616430505985173,
+        "working_age": 0.5985940542517945,
+        "elderly": 0.18599779414458578
+      }
+    },
+    {
+      "id": "48",
+      "label": "Texas",
+      "population": 31709821,
+      "land_hectares": 67667890.9,
+      "parcel_count": 14080852.5,
+      "age_fractions": {
+        "infant": 0.07558897919985105,
+        "child": 0.16410061097475132,
+        "working_age": 0.6117324345665653,
+        "elderly": 0.14857797525883226
+      }
+    },
+    {
+      "id": "49",
+      "label": "Utah",
+      "population": 3538904,
+      "land_hectares": 21335431.7,
+      "parcel_count": 1525194.3,
+      "age_fractions": {
+        "infant": 0.07838500281443068,
+        "child": 0.182223083757005,
+        "working_age": 0.6093575864165854,
+        "elderly": 0.13003432701197884
+      }
+    },
+    {
+      "id": "50",
+      "label": "Vermont",
+      "population": 644663,
+      "land_hectares": 2387645.3,
+      "parcel_count": 301527.7,
+      "age_fractions": {
+        "infant": 0.04905508769698277,
+        "child": 0.12097793730988128,
+        "working_age": 0.5890829782382423,
+        "elderly": 0.24088399675489364
+      }
+    },
+    {
+      "id": "51",
+      "label": "Virginia",
+      "population": 8880107,
+      "land_hectares": 10225596.8,
+      "parcel_count": 4222994.3,
+      "age_fractions": {
+        "infant": 0.0652069845554789,
+        "child": 0.14428429747524438,
+        "working_age": 0.6065142007860941,
+        "elderly": 0.18399451718318258
+      }
+    },
+    {
+      "id": "53",
+      "label": "Washington",
+      "population": 8001020,
+      "land_hectares": 17212089.7,
+      "parcel_count": 3186229.1,
+      "age_fractions": {
+        "infant": 0.0637748687042402,
+        "child": 0.14055357941862412,
+        "working_age": 0.6131244516324169,
+        "elderly": 0.1825471002447188
+      }
+    },
+    {
+      "id": "54",
+      "label": "West Virginia",
+      "population": 1766147,
+      "land_hectares": 6226493.3,
+      "parcel_count": 1378284.3,
+      "age_fractions": {
+        "infant": 0.05879012335892765,
+        "child": 0.13618175610523925,
+        "working_age": 0.5795718023471432,
+        "elderly": 0.22545631818868983
+      }
+    },
+    {
+      "id": "55",
+      "label": "Wisconsin",
+      "population": 5972787,
+      "land_hectares": 14028832.5,
+      "parcel_count": 3494190.9,
+      "age_fractions": {
+        "infant": 0.061623995632189794,
+        "child": 0.14298852445265503,
+        "working_age": 0.5875201978573822,
+        "elderly": 0.20786728205777302
+      }
+    },
+    {
+      "id": "56",
+      "label": "Wyoming",
+      "population": 588753,
+      "land_hectares": 25145951.8,
+      "parcel_count": 315650.4,
+      "age_fractions": {
+        "infant": 0.06305360652090096,
+        "child": 0.15322384769164657,
+        "working_age": 0.5771027918329079,
+        "elderly": 0.2066197539545446
+      }
+    }
+  ]
+}

@@ -5,8 +5,8 @@ Given a deferred EOH backlog, models how long it takes to recover under
 different fulfillment strategies. Answers the question: "how fast does the
 system recover from a shock, and what fulfillment rate is required?"
 
-Recovery is defined as the backlog dropping to ≤ annual_eoh (one year of
-demand — the manageable steady-state level). Any fulfillment_fraction > 1.0
+Recovery means the backlog drops to ≤ annual_eoh (one year of demand, the
+manageable steady-state level). Any fulfillment_fraction > 1.0
 directs surplus capacity to backlog paydown.
 
 Mission Statement: §"EOH compounding — threshold spike becomes unrecoverable
@@ -16,6 +16,7 @@ if deferred too long"; §"Regenerative offset reduces compounded backlog."
 from __future__ import annotations
 
 from hours_eoh.core.eoh_dynamics import eoh_compounding
+from hours_eoh.data import RECOVERY_FP_TOLERANCE
 
 
 def maintenance_recovery_schedule(
@@ -29,12 +30,12 @@ def maintenance_recovery_schedule(
     """
     Estimate how many years to recover from a deferred maintenance backlog.
 
-    Each year, `fulfillment_fraction × annual_eoh` is paid toward obligations.
+    Each year, `fulfillment_fraction × annual_eoh` goes toward obligations.
     The first `annual_eoh` covers current demand; any surplus reduces the backlog.
-    Recovery is declared when the backlog drops to ≤ annual_eoh (one year's demand).
+    Recovery comes when the backlog drops to ≤ annual_eoh (one year's demand).
 
     A fulfillment_fraction of exactly 1.0 covers only current demand — the backlog
-    never shrinks. Fractional values > 1.0 are required for active recovery.
+    never shrinks. Active recovery needs a value > 1.0.
 
     Args:
         epsilon: Automation level (affects compounding softener).
@@ -82,8 +83,10 @@ def maintenance_recovery_schedule(
             "compounding_ratio": compounding_ratio,
         })
 
-        # Recovered when backlog ≤ one year of demand (manageable steady state)
-        if deferred <= annual_eoh and recovery_year is None:
+        # Recovered when backlog ≤ one year of demand (manageable steady state),
+        # EQUAL within float rounding counting as ≤ (RECOVERY_FP_TOLERANCE).
+        if (deferred <= annual_eoh * (1.0 + RECOVERY_FP_TOLERANCE)
+                and recovery_year is None):
             recovery_year = year
             break
 
@@ -128,8 +131,9 @@ def minimum_fulfillment_for_recovery(
     """
     Find the minimum fulfillment fraction that allows recovery within max_years.
 
-    Sweeps fulfillment_fraction from 1.0 upward in steps of resolution,
-    calling maintenance_recovery_schedule() at each level until recovery is found.
+    Sweeps fulfillment_fraction from 1.0 upward in steps of resolution. At each
+    level it calls maintenance_recovery_schedule(), and it stops at the first
+    level that recovers.
 
     Args:
         epsilon: Automation level.

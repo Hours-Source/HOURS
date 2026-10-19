@@ -29,12 +29,25 @@ basket_price() as floor_price() is pending author sign-off (Workstream C PR).
 Mission Statement: §"Principle 5 — The floor rises with automation; it never
 falls"; §"TEH-denominated prices fall as automation handles more EOH, so the
 same nominal TEH buys more"; §"teh_price" in Phase 3.2 requirements.
+
+WHICH ε (author decision, 2026-09-30). Every function here takes ε as a number.
+The number callers pass is the OBSERVED machine share of obligation
+(`eoh_fulfillment.observable_epsilon`, the pipeline's `epsilon_observable`) —
+"ε as the theory defines it" — not the capability index a caller supplies.
+Under `per_component` the two differ by care's automation floor, which is the
+labour the floor price exists to keep paying for. Callers holding a pipeline or
+an obligation pass the observed value: `core/simulation.py`,
+`scenarios/long_run.py`, `scenarios/sweep.py`, `research/exchange.settlement_terms`,
+`utils/arc_cmd.py`. Callers holding only a bare ε (`capital.personal_reserve`,
+`dashboard`'s fiscal panel, the arc checks in this module) still pass it as
+given; see record/fulfilment.md#floor-reads-observed-epsilon.
 """
 
 from __future__ import annotations
 import math
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT, MEAN_MULTIPLIER_REFERENCE,
     BASKET_GOODS_WEIGHT, BASKET_SERVICES_WEIGHT,
     GOODS_PRICE_FLOOR, SERVICES_PRICE_FLOOR, SERVICES_PRICE_DECLINE_EXPONENT,
@@ -171,7 +184,7 @@ def teh_price_trajectory(
     base_price = teh_price(human_labor_hours_at_eps0, 0.0, mean_multiplier)
     result = []
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
         price = teh_price(human_labor_hours_at_eps0, eps, mean_multiplier)
         result.append({
             "epsilon":         eps,
@@ -460,7 +473,7 @@ def floor_monotonicity_guard(
 
     pp_at = {}
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
         result = floor_purchasing_power(floor_teh, eps, baseline_basket_cost)
         pp = result["pp_index"]
 
@@ -473,7 +486,7 @@ def floor_monotonicity_guard(
             })
 
         for target in (0.0, 0.40, 0.90, 0.99):
-            if abs(eps - target) < 0.99 / (2 * n_points):
+            if abs(eps - target) < EPSILON_ARC_MAX / (2 * n_points):
                 pp_at[target] = pp
 
         prev_pp = pp
@@ -512,7 +525,7 @@ def purchasing_power_sweep(
     """
     result = []
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
         result.append(purchasing_power(teh_amount, eps, baseline_basket_cost))
     return result
 
@@ -569,7 +582,7 @@ def full_price_monotonicity_audit(
     basket_vals, goods_vals, fp_vals = [], [], []
 
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
 
         b_price = basket_price(eps, baseline_cost_teh)
         g_price = teh_price(human_labor_hours_at_eps0, eps)

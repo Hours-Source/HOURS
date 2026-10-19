@@ -4,7 +4,7 @@ Tests for hours_eoh.core.fiscal
 Covers: levy_collection, stewardship_allocation, sufficiency_guarantee,
 trust_management, fiscal_snapshot, trust_solvency_trajectory,
 care_stipend, steward_eoh_obligation, collective_land_registration,
-stewardship_dividend_needed, min_levy_for_solvency,
+min_levy_for_solvency,
 ecological_allocation, aggregate_care_stipend_from_demographics,
 accumulation_ceiling_commitment.
 
@@ -32,7 +32,6 @@ from hours_eoh.core.fiscal import (
     care_stipend,
     steward_eoh_obligation,
     collective_land_registration,
-    stewardship_dividend_needed,
     min_levy_for_solvency,
     ecological_allocation,
     aggregate_care_stipend_from_demographics,
@@ -60,7 +59,9 @@ KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 class TestLevyCollection:
 
     def test_levy_is_circulatory(self):
-        """All levy revenue is accounted for — no TEH created or destroyed through fiscal mechanisms."""
+        """The levy moves TEH and does not create or destroy it: the net wage plus the
+        levy equals the income.
+        """
         labor_income = 2_200_000_000.0
         rates = {"sufficiency": 0.0125, "stewardship": 0.01}
 
@@ -175,7 +176,8 @@ class TestStewardshipAllocation:
         assert result["human_stewardship_eoh"] <= result["infrastructure_eoh_total"]
 
     def test_infra_eoh_override_used_directly(self):
-        """When infra_eoh_override is supplied, it is used without recomputation."""
+        """A supplied `infra_eoh_override` replaces the computed obligation, unchanged.
+        """
         override_value = 500_000.0
         result = stewardship_allocation(
             2e9, 0.5, 0.40, available_teh=1e12,
@@ -238,18 +240,13 @@ class TestSufficiencyGuarantee:
         assert g_90["floor_fraction"] < g_0["floor_fraction"]
 
     def test_v1_inverts_it_because_recipients_track_the_register(self):
-        """THE DEFAULT DESIGN RUNS THE OPPOSITE WAY, and it is not a defect.
+        """Under the default V1 design the recipient share RISES with ε: 0.000497 at
+        ε=0, 0.040468 at 0.90. This is not a defect.
 
-        V1 derives the recipient share instead of choosing it: r(ε) × the need
-        fraction. Registration RISES with automation, so the share covered rises
-        too — 0.000497 at ε=0 to 0.040468 at 0.90, which is 497 people per
-        million against 40,468.
-
-        The two designs answer different questions. Shipped asks how many people
-        NEED the floor, and says fewer as purchasing power rises. V1 asks how
-        many the Trust OWES it to, and says more as the ledger grows. The
-        unregistered remainder at low ε is not unserved — it is discharged by
-        households directly, which is what subsistence is.
+        V1 derives the share as r(ε) × the need fraction, and registration rises with
+        automation. The shipped design asks how many people NEED the floor. V1 asks how
+        many the Trust OWES. Households carry the unregistered remainder at low ε
+        directly, which is what subsistence is.
         """
         v1_0  = sufficiency_guarantee(1_000_000, 0.0)
         v1_90 = sufficiency_guarantee(1_000_000, 0.90)
@@ -277,10 +274,8 @@ class TestSufficiencyGuarantee:
     def test_guarantee_result_keys(self):
         """New EOH-reimbursement model returns expected keys."""
         result = sufficiency_guarantee(1_000_000, 0.40)
-        assert "capital_personal_eoh_fulfilled_per_person" not in result
         for key in ("raw_eoh_per_person", "personal_human_fraction",
                     "effective_personal_eoh_per_person", "teh_per_obligation_hour",
-                    "capital_personal_eoh_fulfilled_supplied_not_applied",
                     "eoh_reimbursement_per_person", "meaningful_activity_teh_effective",
                     "total_per_person", "eoh_reimbursement_total",
                     "meaningful_activity_total", "total_cost_teh"):
@@ -320,7 +315,9 @@ class TestSufficiencyGuarantee:
         assert g["teh_per_obligation_hour"] == M_FLOOR
 
     def test_reimbursement_falls_with_the_human_share(self):
-        """At ε=0 nothing is automated, so effective equals raw; above it, less."""
+        """At ε=0 machines carry nothing, so effective equals raw. Above ε=0, effective
+        is less.
+        """
         reimb = [sufficiency_guarantee(1_000_000, e)["eoh_reimbursement_per_person"]
                  for e in (0.0, 0.40, 0.90, 0.99)]
         g_0 = sufficiency_guarantee(1_000_000, 0.0)
@@ -329,8 +326,9 @@ class TestSufficiencyGuarantee:
         assert reimb[-1] > 0.0
 
     def test_automation_response_changes_the_reimbursement(self):
-        """The two curves coincide at ε=0 and diverge above it — so a test only at
-        ε=0 could not tell which one the guarantee is sized on."""
+        """The two curves agree at ε=0 and differ above it. A test at ε=0 alone cannot
+        tell which curve sizes the guarantee.
+        """
         for eps, differ in ((0.0, False), (0.90, True)):
             pc = sufficiency_guarantee(1_000_000, eps, automation_response="per_component")
             un = sufficiency_guarantee(1_000_000, eps, automation_response="uniform")
@@ -339,26 +337,6 @@ class TestSufficiencyGuarantee:
             else:
                 assert pc["eoh_reimbursement_per_person"] == pytest.approx(
                     un["eoh_reimbursement_per_person"], rel=1e-12)
-
-    def test_capital_fulfillment_default_is_silent(self):
-        import warnings as _w
-        with _w.catch_warnings():
-            _w.simplefilter("error", DeprecationWarning)
-            g = sufficiency_guarantee(1_000_000, 0.40)
-        assert g["capital_personal_eoh_fulfilled_supplied_not_applied"] == 0.0
-
-    def test_capital_fulfillment_is_deprecated_and_not_applied(self):
-        """A supplied subtraction warns, is echoed under a key saying it was not
-        applied, and moves nothing — the human share already carries it."""
-        g_base = sufficiency_guarantee(1_000_000, 0.40)
-        with pytest.warns(DeprecationWarning):
-            g = sufficiency_guarantee(
-                1_000_000, 0.40,
-                capital_personal_eoh_fulfilled_per_person=500.0,
-            )
-        assert g["capital_personal_eoh_fulfilled_supplied_not_applied"] == 500.0
-        assert g["eoh_reimbursement_per_person"] == g_base["eoh_reimbursement_per_person"]
-        assert g["total_cost_teh"] == g_base["total_cost_teh"]
 
 
 class TestEffectivePersonalEoh:
@@ -428,10 +406,10 @@ class TestTrustManagement:
         assert both["estate_levy_inflow"] == pytest.approx(3.0e6)
 
     def test_trust_stable_can_be_false_and_reports_what_it_cannot_fund(self):
-        """`trust_stable` must be able to fire in BOTH directions (2026-09-15).
-        Under retention the shipped configuration is stable at every ε — levy
-        inflow exceeds the guarantee across the arc — so the erosion case needs
-        its own pin, or the flag reads as an unfalsifiable True."""
+        """`trust_stable` must be able to read False as well as True (2026-09-15). The
+        shipped configuration is stable at every ε, so this test builds the erosion case
+        itself.
+        """
         eroding = trust_management(trust_balance=1.0e9, levy_revenue=1.0e6,
                                    stewardship_cost=0.0, guarantee_cost=5.0e7)
         assert eroding["trust_stable"] is False
@@ -620,28 +598,15 @@ class TestTrustSolvencyTrajectory:
             assert key in result
 
     def test_stewardship_cost_does_not_move_with_the_opening_balance(self):
-        """THE FOURTH AND LATENT SITE OF THE CAP (fixed and surfaced 2026-09-16).
-
-        This function sized `stewardship_cost_per_period` from
-        `stewardship_allocation(available_teh=initial_trust_balance)` and read
-        the ALLOCATED figure — capped by the OPENING balance and then held for
-        every period of the run, so a collective that starts poor would
-        understate its stewardship wage bill for the whole trajectory.
-
-        It was latent rather than misreported: the value went into
-        `trust_management` as `stewardship_cost`, which under the wage doctrine
-        enters no Trust figure, and the trajectory returned none of it. It is
-        surfaced now, because a quantity the function computes and hides is one
-        no test can pin.
-
-        The requirement at these defaults is 1.078067e8, so a 1.0e6 opening
-        balance sits well below it and the old cap genuinely binds here.
+        """The stewardship cost must not move with the opening Trust balance. At these
+        defaults the requirement (1.143469e8) is far above the 1.0e6 opening balance, so
+        the old cap binds here ([record](record/fulfilment.md#test-docstring-history)).
         """
         rich  = trust_solvency_trajectory(initial_trust_balance=3.5e10, n_periods=3)
         broke = trust_solvency_trajectory(initial_trust_balance=1.0e6, n_periods=3)
         assert broke["stewardship_cost_per_period"] == pytest.approx(
             rich["stewardship_cost_per_period"], rel=1e-12)
-        assert broke["stewardship_cost_per_period"] == pytest.approx(1.078067e8, rel=1e-4)
+        assert broke["stewardship_cost_per_period"] == pytest.approx(1.143469e8, rel=1e-4)
         # Larger than the balance that used to cap it, which is the whole point.
         assert broke["stewardship_cost_per_period"] > 1.0e6
         # An explicitly supplied cost is still honoured untouched.
@@ -679,7 +644,7 @@ class TestTrustSolvencyTrajectory:
         assert result["trend"] in ("GROWING", "STABLE")
 
     def test_insolvency_detected_when_floor_exceeded(self):
-        """Trust must be flagged insolvent once balance drops below the solvency floor."""
+        """The Trust reads insolvent once its balance drops below the solvency floor."""
         # A GUARANTEE IS NOW REQUIRED FOR THE BALANCE TO FALL AT ALL (2026-09-15):
         # what the Trust owes is what leaves it, so a Trust owing nothing holds
         # flat for ever and never crosses the floor. Before, the dividend drained
@@ -698,12 +663,11 @@ class TestTrustSolvencyTrajectory:
         assert result["first_insolvency"] < 50
 
     def test_first_insolvency_none_when_always_solvent(self):
-        """BOTH DIRECTIONS, because one of them stopped being reachable
-        (2026-09-15). With the levy above the guarantee the balance now GROWS
-        every period, so `solvent_throughout` is true by construction and pins
-        nothing on its own — the dividend used to drain it, and the levy had to
-        beat that. The companion below is what makes this pair falsifiable:
-        the same call with the guarantee above the levy crosses the floor."""
+        """With the levy above the guarantee, the balance grows every period, so
+        `solvent_throughout` holds by construction (since 2026-09-15). The companion
+        test makes the pair able to fail: with the guarantee above the levy, the balance
+        crosses the floor.
+        """
         result = trust_solvency_trajectory(
             initial_trust_balance=TRUST_BASE_TEH,
             n_periods=10,
@@ -734,7 +698,9 @@ class TestTrustSolvencyTrajectory:
             assert math.isfinite(p["trust_end"])
 
     def test_explicit_costs_override_auto(self):
-        """Explicit stewardship/guarantee costs must be used as-is."""
+        """Supplied stewardship and guarantee costs replace the computed ones,
+        unchanged.
+        """
         result_auto   = trust_solvency_trajectory(TRUST_BASE_TEH, n_periods=5)
         result_manual = trust_solvency_trajectory(
             TRUST_BASE_TEH,
@@ -767,7 +733,9 @@ class TestCareStipend:
                 > teen["epsilon_adjusted"])
 
     def test_adult_dependent_produces_zero_stipend(self):
-        """Adults (age ≥ 18) are not covered — no gaming via adult 'dependents'."""
+        """The stipend does not cover adults (age ≥ 18), so an adult 'dependent' earns
+        nothing.
+        """
         result = care_stipend([20, 30], epsilon=0.40)
         assert result["epsilon_adjusted"] == pytest.approx(0.0)
 
@@ -953,49 +921,6 @@ class TestFiscalSolvencyIntegration:
 
 
 # ===========================================================================
-# Stewardship Dividend Needed
-# ===========================================================================
-
-class TestStewardshipDividendNeeded:
-
-    def test_min_div_rate_computed(self):
-        result = stewardship_dividend_needed(
-            stewardship_teh_required=500.0,
-            dep_rate=0.10,
-            trust_balance=10_000.0,
-        )
-        assert result["min_div_rate"] == pytest.approx(0.5)
-
-    def test_feasible_when_min_div_rate_lte_one(self):
-        result = stewardship_dividend_needed(500.0, dep_rate=0.10, trust_balance=10_000.0)
-        assert result["feasible"] is True
-
-    def test_infeasible_when_trust_too_small(self):
-        result = stewardship_dividend_needed(5_000.0, dep_rate=0.10, trust_balance=1_000.0)
-        assert result["feasible"] is False
-        assert result["min_div_rate"] > 1.0
-
-    def test_zero_trust_balance_returns_none_div_rate(self):
-        result = stewardship_dividend_needed(500.0, dep_rate=0.10, trust_balance=0.0)
-        assert result["min_div_rate"] is None
-        assert result["feasible"] is False
-
-    def test_shortfall_at_div1_positive_when_infeasible(self):
-        result = stewardship_dividend_needed(5_000.0, dep_rate=0.10, trust_balance=1_000.0)
-        assert result["shortfall_at_div1"] > 0.0
-
-    def test_shortfall_zero_when_feasible(self):
-        result = stewardship_dividend_needed(50.0, dep_rate=0.10, trust_balance=10_000.0)
-        assert result["shortfall_at_div1"] == pytest.approx(0.0)
-
-    def test_result_keys(self):
-        result = stewardship_dividend_needed(500.0, dep_rate=0.10, trust_balance=10_000.0)
-        for key in ("stewardship_teh_required", "annual_dep", "min_div_rate",
-                    "trust_balance", "dep_rate", "feasible", "shortfall_at_div1"):
-            assert key in result
-
-
-# ===========================================================================
 # Min Levy For Solvency
 # ===========================================================================
 
@@ -1018,11 +943,10 @@ class TestMinLevyForSolvency:
             assert key in result
 
     def test_stable_trust_equals_the_guarantee(self):
-        """Until 2026-09-15 the levy that held the balance flat replaced the
-        DIVIDEND, because the dividend left whether or not anything was owed.
-        Only the guarantee leaves now, so that is what a flat balance needs —
-        and `cover_expenditures` (guarantee − dividend) can no longer exceed
-        it, which collapses full_solvency onto stable_trust."""
+        """Only the guarantee leaves the Trust (since 2026-09-15), so a flat balance
+        needs a levy equal to the guarantee. `cover_expenditures` (guarantee − dividend)
+        cannot exceed it, so full solvency and a stable Trust coincide.
+        """
         result = self._run()
         assert result["stable_trust"] == pytest.approx(result["guarantee_cost"])
         assert result["full_solvency"] == pytest.approx(result["stable_trust"])
@@ -1030,14 +954,10 @@ class TestMinLevyForSolvency:
         assert result["targets_collapsed"] is True
 
     def test_stewardship_cost_does_not_move_with_the_trust_balance(self):
-        """Same cap, same fix as fiscal_snapshot (2026-09-16), and this site
-        had no pin at all — the suite stayed green through the change, which
-        is failure mode 1: nobody was testing the quantity.
-
-        `stewardship_cost` is REPORTED here and paid at the mint; it is not in
-        `total_expenditure`. Sizing it by what the Trust happens to hold made a
-        poor collective look like it owed less stewardship labour than a rich
-        one with identical capital.
+        """The stewardship cost must not move with the Trust balance. The mint pays it,
+        and `total_expenditure` excludes it. A cap at the balance made a poor collective
+        owe less stewardship than a rich one with equal capital
+        ([record](record/fulfilment.md#mint-paid-cap-and-levy-pillar)).
         """
         rich  = self._run(trust_balance=3.5e10)
         broke = self._run(trust_balance=1.0e6)
@@ -1167,10 +1087,10 @@ class TestEcologicalAllocation:
         assert result["ecological_eoh_total"] == pytest.approx(999_999.0)
 
     def test_allocation_meets_the_requirement_when_funded(self):
-        """RESTATED 2026-09-16: `funding_coverage` was removed with the thermal
-        co-equality condition, its only consumer. The BEHAVIOUR it reported is
-        still here and still worth pinning — coverage was just a ratio of two
-        keys that remain."""
+        """A funded Trust allocates the full requirement. The `funding_coverage` key
+        left with its only consumer, the thermal co-equality condition (2026-09-16);
+        this test checks the two keys it divided.
+        """
         result = ecological_allocation(0.70, 0.40, available_teh=1e12, **PRE_PARTITION)
         # Without the obligation supplied this reads 0 == 0 and pins nothing —
         # the vacuity the sibling collapse test inherited from the old coverage
@@ -1181,13 +1101,9 @@ class TestEcologicalAllocation:
         assert result["fully_funded"] is True
 
     def test_allocation_collapses_when_nothing_is_available(self):
-        """AND THE OBLIGATION MUST BE SUPPLIED, OR THIS TESTS NOTHING.
-
-        The test this replaces ran without `PRE_PARTITION`, where the ecological
-        requirement is ZERO by default — the recurring cost moved to GUF — so
-        `coverage = 0 / max(0, 1) = 0.0` held whatever the allocation did. It
-        passed for four weeks on a configuration with nothing to fund. The
-        `teh_required > 0` guard below is what stops that recurring.
+        """With nothing available, the allocation is zero. The test supplies a nonzero
+        obligation (`PRE_PARTITION`). Without one the requirement is zero and the test
+        cannot fail; the `teh_required > 0` guard checks this.
         """
         result = ecological_allocation(0.70, 0.40, available_teh=0.0, **PRE_PARTITION)
         assert result["teh_required"] > 0.0, (
@@ -1198,12 +1114,8 @@ class TestEcologicalAllocation:
         assert result["fully_funded"] is False
 
     def test_allocation_is_proportional_in_between(self):
-        """THE CASE THE OLD NAME CLAIMED AND NEVER TESTED.
-
-        `test_funding_coverage_proportional_when_underfunded` asserted the ratio
-        at `available_teh=0.0` — the corner, where it is 0.0 by construction and
-        proportionality cannot be observed. A partial balance is what shows the
-        allocation tracking what is available, so the restatement tests it.
+        """A partial balance shows the allocation tracking what is available. At
+        `available_teh=0.0`, the old test's only case, the ratio is 0.0 by construction.
         """
         full = ecological_allocation(0.70, 0.40, available_teh=1e12, **PRE_PARTITION)
         assert full["teh_required"] > 0.0, (
@@ -1264,18 +1176,11 @@ class TestFiscalSnapshotEcological:
         assert result["paid_by_mint"] == pytest.approx(stew_req + eco_req, rel=1e-12)
 
     def test_a_starved_trust_does_not_shrink_what_the_mint_paid(self):
-        """THE CAP THAT SURVIVED THE WAGE DOCTRINE (fixed 2026-09-16).
-
-        `stewardship_allocation` caps its allocation at the Trust balance —
-        correct while the Trust funded stewardship, meaningless once the mint
-        does. `fiscal_snapshot` kept passing the ALLOCATED figure, so a Trust
-        with nothing in it reported a wage bill of whatever it happened to
-        hold: at trust_balance=1e6 the requirement is 1.4374e8 and
-        `paid_by_mint` read 1.0e6, understating the hours the mint paid by
-        99.3%. Failure mode 10 — the reported value was not the applied one.
-
-        The mint pays registered hours actually worked. No Trust balance
-        bounds that, so `paid_by_mint` must not move with one.
+        """`paid_by_mint` must not move with the Trust balance, because no balance
+        bounds the registered hours that the mint pays. Before 2026-09-16 the snapshot
+        reported the capped allocation (mode 10). At trust_balance=1e6 it read 1.0e6
+        against a 1.4374e8 requirement
+        ([record](record/fulfilment.md#mint-paid-cap-and-levy-pillar)).
         """
         rich   = self._snap(trust_balance=3.5e10)
         broke  = self._snap(trust_balance=1.0e6)
@@ -1291,16 +1196,13 @@ class TestFiscalSnapshotEcological:
         assert broke["paid_by_mint"] > broke["trust"]["trust_start"]
 
     def test_degraded_ecosystem_moves_the_mint_requirement_not_solvency(self):
-        """
-        PHASES 4e/4f: `ecosystem_health` no longer reaches the fisc through the
-        ecological domain — condition changes what the HOLDER owes via GUF, not
-        what the Trust allocates. Asserted by supplying the obligation the
-        pre-partition policy would have produced, which is what
-        `relocated_to_guf` now reports on every snapshot.
+        """A degraded ecosystem raises `paid_by_mint` and leaves the Trust's surplus
+        unchanged, because the mint pays ecological labour (since 2026-09-15).
 
-        Until 2026-09-15 a degraded ecosystem REDUCED Trust solvency. Ecological
-        labour is registered and paid at the mint, so the larger requirement
-        now shows in `paid_by_mint` and leaves the Trust's surplus unchanged.
+        Since Phases 4e/4f, ecosystem condition changes what the HOLDER owes through
+        GUF, not what the Trust allocates. The test therefore supplies the obligation
+        that the pre-partition policy gives; `relocated_to_guf` reports it on every
+        snapshot.
         """
         from hours_eoh.core.eoh_generation import ecological_eoh
         def snap_at(h):
@@ -1316,7 +1218,9 @@ class TestFiscalSnapshotEcological:
                 == pytest.approx(healthy["trust"]["surplus_deficit"], rel=1e-12))
 
     def test_health_no_longer_moves_the_fisc_by_default(self):
-        """The consequence, pinned: the relocation is reported, not silent."""
+        """By default, health does not move the Trust, and the snapshot reports the
+        relocated obligation instead.
+        """
         healthy, degraded = self._snap(ecosystem_health=0.95), self._snap(ecosystem_health=0.25)
         assert (degraded["trust"]["surplus_deficit"]
                 == healthy["trust"]["surplus_deficit"])
@@ -1385,10 +1289,10 @@ class TestFiscalSnapshotCareStipend:
         )
 
     def test_the_estate_levy_reaches_the_trust_through_the_snapshot(self):
-        """The third return path is wired end to end, not just accepted:
-        `simulate_period` computes D5 before the fiscal period closes and hands
-        the levy here, so the balance identity lives in `trust_management`
-        alone (2026-09-16)."""
+        """The estate levy (D5) reaches the Trust end to end (2026-09-16).
+        `simulate_period` computes D5 before the fiscal period closes and passes the
+        levy here, so only `trust_management` holds the balance identity.
+        """
         base = self._base()
         with_estate = self._base(estate_levy_aggregate=7.0e6)
         assert with_estate["trust"]["estate_levy_inflow"] == pytest.approx(7.0e6)
@@ -1474,21 +1378,14 @@ class TestAccumulationCeiling:
 
 
 class TestFiscalSnapshotStatesItsFrame:
-    """
-    THE SEAM BETWEEN THE TWO DOCUMENTED ENTRY POINTS (closed 2026-08-20).
+    """The pipeline and `fiscal_snapshot` must resolve the ecological obligation on the
+    same frame (closed 2026-08-20).
 
-    `docs/guides/implementation_guide.md` tells an institution to run
-    `eoh_to_teh_pipeline()` and `fiscal_snapshot()`. Until this fix those two
-    calls resolved the ecological obligation two different ways: the pipeline
-    derived the area from the population it was given (Phase 4b), while
-    fiscal_snapshot took its requirement from ECOLOGICAL_BASE_RATE, the whole
-    contiguous US, whatever population was passed. The guide's own worked
-    example — 5M people — therefore disagreed with itself by 92.8x, reported
-    `solvent: True` either way, and surfaced nothing.
-
-    This is the sixth instance of the frame defect and the first on the
-    institutional intake path. The static gate lives in
-    tests/test_ecological_scale_resolution.py; these are the runtime pins.
+    Before the fix, the snapshot took the whole-US `ECOLOGICAL_BASE_RATE` at any
+    population, while the pipeline derived the area from the population. The
+    implementation guide's 5M example disagreed with itself by 92.8× and reported
+    `solvent: True` either way. These are the runtime pins; the static gate is
+    tests/test_ecological_scale_resolution.py.
     """
 
     def _frame(self, population, hectares):
@@ -1582,18 +1479,12 @@ class TestFiscalSnapshotStatesItsFrame:
 
 
 class TestTheGuaranteeAndCareFloors:
-    """
-    THE THREE FISCAL FLOORS, migrated and pinned (2026-08-28).
+    """The three fiscal floors, pinned as BEHAVIOUR, not as levels: each floor exists,
+    binds, and no argument can lower it (2026-08-28).
 
     `SUFF_GUARANTEE_STRUCTURAL_MIN`, `CARE_AUTOMATION_FLOOR` and
-    `PROVIDER_CAP_EQUIVALENTS` lived in `core/fiscal.py` as shadow constants —
-    untagged, invisible to the provenance gate, and a +7% move failed no test.
-    All three are `normative`: they are commitments, not measurements, which is
-    exactly why they need pinning. A charter commitment nothing tests is a
-    commitment the code can quietly abandon.
-
-    Pinned as BEHAVIOUR — that the floor exists, binds, and cannot be argued
-    below — rather than at their levels.
+    `PROVIDER_CAP_EQUIVALENTS` are `normative` commitments. A commitment that no test
+    holds is one the code can quietly abandon.
     """
 
     def test_the_guarantee_floor_never_falls_below_the_structural_minimum(self):
@@ -1623,34 +1514,10 @@ class TestTheGuaranteeAndCareFloors:
         assert hi > SUFF_GUARANTEE_STRUCTURAL_MIN
 
     def test_the_structural_minimum_does_not_bind_under_the_default_design(self):
-        """THE FLOOR'S FLOOR IS A SHIPPED-DESIGN MECHANISM, AND SAYING SO IS THE
-        POINT (2026-09-16).
-
-        This class states it pins these floors "as BEHAVIOUR — that the floor
-        exists, binds, and cannot be argued below". Under V1, core's default
-        since 2026-09-16, it does not bind at any ε:
-
-            eps    v1 recipient share    structural min
-            0.00   0.000497              0.05
-            0.40   0.007032              0.05
-            0.90   0.040468              0.05
-            0.99   0.043476              0.05
-
-        497 people per million at subsistence, against the 50,000 the shipped
-        design guarantees. That is NOT the commitment being quietly abandoned —
-        it is the commitment meaning something different under a design that
-        DERIVES the recipient share from the register instead of CHOOSING it.
-        SUFF_GUARANTEE_STRUCTURAL_MIN clamps a chosen floor fraction; V1 has no
-        chosen floor fraction to clamp.
-
-        The unregistered remainder is not unserved: at ε=0 almost nothing is on
-        the ledger, and those obligations are discharged by households directly,
-        which is what subsistence is. What the Trust owes and what people need
-        are different quantities, and V1 books the first.
-
-        Pinned here so the divergence is a stated fact rather than an absence —
-        a charter commitment that silently stops binding is exactly what this
-        class was built to prevent.
+        """Under the default V1 design the structural minimum does not bind at any ε. V1
+        derives the recipient share from the register and has no chosen floor fraction
+        to clamp; the test states this so the divergence is a fact
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         for eps in (0.0, 0.40, 0.90, 0.99):
             v1 = sufficiency_guarantee(1_000_000.0, eps)
@@ -1665,11 +1532,9 @@ class TestTheGuaranteeAndCareFloors:
             "floor_fraction"] >= SUFF_GUARANTEE_STRUCTURAL_MIN
 
     def test_care_stipend_floors_at_the_relational_fraction(self):
-        """
-        THE CLAIM: some fraction of care is relational and cannot be automated
-        at any ε. Block II reached the same conclusion from the other side —
-        care is the least abatable component — so a non-zero floor here is
-        consistent with the abatement model rather than an independent guess.
+        """Some care is relational and no ε automates it, so the stipend has a non-zero
+        floor. Block II reached the same result from the abatement side: care is the
+        least abatable component.
         """
         assert care_stipend([0], epsilon=0.0)["automation_factor"] == pytest.approx(1.0)
         at_full = care_stipend([0], epsilon=1.0)["automation_factor"]
@@ -1693,8 +1558,9 @@ class TestTheGuaranteeAndCareFloors:
         assert many["capped_total"] <= many["provider_cap_teh"] + 1e-9
 
     def test_the_cap_is_the_declared_number_of_full_rate_dependents(self):
-        """It is denominated in full-infant-rate equivalents, so the cap must be
-        exactly that multiple of the base stipend at ε=0."""
+        """The cap counts full-infant-rate equivalents, so at ε=0 it is exactly that
+        multiple of the base stipend.
+        """
         c = care_stipend([0], epsilon=0.0, base_infant_stipend=200.0)
         assert c["provider_cap_teh"] == pytest.approx(
             200.0 * PROVIDER_CAP_EQUIVALENTS, rel=1e-12
@@ -1702,20 +1568,10 @@ class TestTheGuaranteeAndCareFloors:
 
 
 class TestGufRevenueReachesTheFisc:
-    """
-    THE PLUMBING GAP THE PARTITION CREATED, CLOSED (2026-08-29).
-
-    Phases 4e/4f moved the recurring ecological obligation out of the ecological
-    allocation and assigned it to the Ground Use Fee. Until GUF revenue reached
-    `fiscal_snapshot` there was no way to ask whether the fee covers what was
-    moved to it: the obligation left one side of the ledger and arrived nowhere,
-    and the Trust simply allocated nothing.
-
-    GUF is a SEPARATE revenue line, not folded into the levy, because the two
-    instruments behave oppositely across the arc — the levy contracts with
-    labour income while the fee scales with land held. `land/guf.py` claims GUF
-    "may become the Trust's dominant revenue source, replacing the contracting
-    labor levy base", and `guf_over_levy` is what makes that checkable.
+    """GUF revenue reaches `fiscal_snapshot` as its own line, so a caller can ask
+    whether the fee covers the obligation moved to it. `guf_over_levy` checks the claim
+    in `land/guf.py` that GUF may replace the contracting levy
+    ([record](record/guf.md#guf-revenue-wired-into-fisc)).
     """
 
     def _snap(self, **kw):
@@ -1725,7 +1581,7 @@ class TestGufRevenueReachesTheFisc:
         return fiscal_snapshot(**base)
 
     def test_guf_defaults_to_zero_and_changes_nothing(self):
-        """Additive: a caller who supplies no fee is unaffected."""
+        """A caller who supplies no fee gets the same result as before."""
         a = self._snap()
         b = self._snap(guf_revenue=0.0)
         assert a["trust"]["trust_end"] == b["trust"]["trust_end"]
@@ -1754,10 +1610,9 @@ class TestGufRevenueReachesTheFisc:
         )
 
     def test_guf_is_circulatory_not_minted(self):
-        """
-        `land/guf.py`: "GUF revenue is circulatory TEH flowing to the Trust."
-        It must move the Trust and the revenue line and NOT teh_created — the
-        fee redistributes, it does not mint. Condition III is untouched.
+        """GUF moves the Trust and the revenue line and does not change `teh_created`.
+        The fee redistributes TEH and does not mint it, so Condition III does not
+        change.
         """
         from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
         minted = eoh_to_teh_pipeline(epsilon=0.40, population=1e6)["teh_created"]
@@ -1821,14 +1676,10 @@ class TestGufRevenueReachesTheFisc:
         assert s["guf"]["covered"] is True
 
     def test_the_fee_is_an_order_of_magnitude_over_the_servicing_census(self):
-        """
-        THE COMPARISON WITH INFORMATION IN IT, and an independent corroboration
-        that the wiring is right. `coverage` against the relocated ECOLOGICAL
-        obligation is ~1e6 on this archetype and says almost nothing — the
-        denominator is tiny for the reason the domain-balance work records.
-        Against the SERVICING census, the same revenue reads ~21× over, which
-        matches the 18.1× urban overshoot `scenarios/servicing_census` measured
-        by a completely separate route.
+        """Against the servicing census, the urban fee reads about 21× over. That agrees
+        with the 18.1× urban overshoot that `scenarios/servicing_census` measures by a
+        separate route. Coverage of the relocated ecological obligation (~1e6) tells
+        almost nothing, because that denominator is tiny.
         """
         from hours_eoh.core.eoh_fulfillment import human_eoh_share
         from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
@@ -1846,19 +1697,9 @@ class TestGufRevenueReachesTheFisc:
 
 
 class TestFiscalSnapshotAcceptsAState:
-    """
-    THE CONTAINER EXISTED AND THIS FUNCTION DID NOT ACCEPT IT (closed 2026-08-29).
-
-    `make_economy_state()` has carried ten of `fiscal_snapshot`'s quantities
-    since the first commit, and `simulate_period` was unpacking it into NINETEEN
-    loose keyword arguments to make the call. Every unpack is a place two paths
-    can disagree — which is how the ecological frame came to differ by 92.8×
-    between the pipeline and the fiscal layer.
-
-    This is not a layer-rule change. `fiscal_snapshot`'s parameter count grew
-    20 → 27 between May and August, and only ONE of its nine injected values
-    (`guf_revenue`) is caused by the layer rule at all; four are physical state
-    the model learned it does not carry, which is what a state container is for.
+    """`fiscal_snapshot` accepts the state that `make_economy_state()` builds, instead
+    of loose keyword arguments (2026-08-29). Each unpack is a place where two paths can
+    disagree ([record](record/fulfilment.md#injection-pressure-assembly-point)).
     """
 
     def _state(self, **kw):
@@ -1879,7 +1720,6 @@ class TestFiscalSnapshotAcceptsAState:
             ecosystem_health=st["ecosystem_health"],
             deferred_ecological=st["deferred_ecological"],
             capital_eoh_eliminated=st["capital_eoh_eliminated"],
-            capital_personal_eoh_fulfilled_per_person=st["capital_personal_eoh_fulfilled"],
         )
         assert via_state["trust"]["trust_end"] == via_loose["trust"]["trust_end"]
         assert via_state["solvent"] == via_loose["solvent"]
@@ -1887,10 +1727,8 @@ class TestFiscalSnapshotAcceptsAState:
             via_loose["guarantee"]["total_cost_teh"]
 
     def test_every_mapped_key_actually_reaches_the_result(self):
-        """
-        A state key that is accepted and ignored is worse than one that is
-        absent — the failure `test_each_domain_base_actually_moves_the_ledger`
-        exists to catch. Each mapped quantity must move something.
+        """Each mapped state key must move something in the result. A key that the
+        function accepts and ignores is worse than an absent key.
         """
         from hours_eoh.core.fiscal import _STATE_TO_PARAM
         base = fiscal_snapshot(state=self._state())
@@ -1900,7 +1738,10 @@ class TestFiscalSnapshotAcceptsAState:
             # ε is bounded, so it gets a perturbation inside its own range;
             # everything else scales. A perturbation that raises ValueError is
             # not evidence the key is inert.
-            st[key] = 0.55 if key == "epsilon" else st[key] * 1.5 + 1.0
+            # The register (2026-10-01) is bounded like ε and defaults to None
+            # (tracks ε), so it too gets an in-range value apart from ε.
+            st[key] = (0.55 if key in ("epsilon", "registration_epsilon")
+                       else st[key] * 1.5 + 1.0)
             if fiscal_snapshot(state=st) != base:
                 moved.append(key)
         assert set(moved) == set(_STATE_TO_PARAM), (
@@ -1934,10 +1775,9 @@ class TestFiscalSnapshotAcceptsAState:
             fiscal_snapshot(state={"population": 1e6, "epsilon": 0.40})
 
     def test_policy_is_not_state_and_stays_explicit(self):
-        """
-        `levy_rates`, `dep_rate`, `div_rate` and the cross-layer values are NOT
-        state and must not be readable from one — a levy rate is a charter
-        decision, not a fact about the economy.
+        """Policy values (`levy_rates`, `dep_rate`, `div_rate`) and cross-layer values
+        must not come from a state. A levy rate is a charter decision, not a fact about
+        the economy.
         """
         from hours_eoh.core.fiscal import _STATE_TO_PARAM
         for policy in ("levy_rates", "dep_rate", "div_rate", "guf_revenue",
@@ -1953,28 +1793,10 @@ class TestFiscalSnapshotAcceptsAState:
 
 
 class TestTheInheritanceTravelsWithTheFrame:
-    """
-    THE TRUST FRAME, CLOSED 2026-09-17 (author-directed).
-
-    `TRUST_BASE_TEH` is declared "at the 1M reference population", and every
-    caller that moved the population without moving it inherited a Trust sized
-    for a million people. Measured on `trust_depletion_stress` before the fix:
-
-        population      trust floor per capita
-        1e5             350,037.40    (10x the then-intended 35,000)
-        1e6              35,007.39    (the reference frame)
-        3.35e8              111.87    (understated 335x)
-
-    Those figures are AT THE PRE-REPRICE 35,000 TEH/person. The inheritance
-    was repriced to 8,760 TEH/person on 2026-09-17, so the same measurement
-    now reads 8,767.39 per capita at every population. The DEFECT and its
-    ratios are what this table records, and they are unchanged by the level.
-
-    THE DEFECT WAS DOCUMENTED AND HAPPENED ANYWAY, which is why it is code now
-    and not a note. The constant's own `supplied_by` field already said "every
-    fiscal function takes trust_balance as an argument … pass your own", and
-    `utils/scenario_cmd.py` writes the scaling rule out in full — then applies
-    it by hand at ONE call site out of 89.
+    """The Trust inheritance must scale with the population: `TRUST_BASE_TEH` states its
+    value at the 1M reference population (closed 2026-09-17). See
+    [trust-frame-closed](record/fulfilment.md#trust-frame-closed) and [the defect's
+    figures](record/fulfilment.md#test-docstring-history).
     """
 
     _BASE = dict(labor_income=1e9, capital_stock_teh=2.4e9,
@@ -1996,32 +1818,26 @@ class TestTheInheritanceTravelsWithTheFrame:
         assert r["trust"]["trust_start"] == 7.5e9
 
     def test_no_inheritance_stays_sayable(self):
-        """ZERO IS NOT NONE, and the distinction is load-bearing.
-
-        A collective converting from subsistence brings nothing — which is what
-        `scenarios/stationarity` defaults `trust_start` to. If 0.0 were treated
-        as "unspecified" it would silently acquire an inheritance it does not
-        have, and the arc's starting condition would become unrepresentable.
+        """A Trust balance of 0.0 means no inheritance, not 'unspecified'. A collective
+        converting from subsistence brings nothing, as `scenarios/stationarity`
+        defaults. Reading 0.0 as None would give it an inheritance it does not have.
         """
         r = fiscal_snapshot(trust_balance=0.0, population=3.35e8, **self._BASE)
         assert r["trust"]["trust_start"] == 0.0
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.99])
     def test_the_resolution_is_epsilon_free(self, eps):
-        """An inheritance is a stock, not a trajectory. Adoption can be tested
-        at any ε without the frame moving underneath it."""
+        """An inheritance is a stock, not a trajectory, so its resolution does not
+        depend on ε.
+        """
         r = fiscal_snapshot(trust_balance=None, population=1e6,
                             labor_income=1e9, capital_stock_teh=2.4e9,
                             capital_age_ratio=0.3, epsilon=eps)
         assert r["trust"]["trust_start"] == pytest.approx(TRUST_BASE_TEH)
 
     def test_the_guard_still_bites_for_everything_else(self):
-        """ONLY the balance became resolvable, and only against a stated frame.
-
-        The missing-quantities error exists so a caller cannot silently forget a
-        required input. It is weakened for exactly one value — the one the
-        framework can honestly derive — and a probe that found the other five
-        had gone quiet would mean the guard had been traded away wholesale.
+        """Only the Trust balance resolves from a stated frame. The other five required
+        inputs must still raise when they are missing.
         """
         with pytest.raises(ValueError, match="missing required quantities"):
             fiscal_snapshot(trust_balance=None, population=None, **self._BASE)
@@ -2031,20 +1847,11 @@ class TestTheInheritanceTravelsWithTheFrame:
                             epsilon=0.40, labor_income=None)
 
     def test_the_state_builder_honours_a_supplied_balance_untouched(self):
-        """THE PATH WHERE THE RESOLVER IS THE ONLY PROTECTION, and it had no
-        test until a mutation found the hole (2026-09-17).
-
-        `fiscal_snapshot` calls the resolver only when the balance is None, so
-        the "never rescaled" doctrine is enforced there by the CALL SITE. But
-        `make_economy_state` calls it unconditionally — on that path the
-        resolver itself is what stands between a caller's explicit Trust and a
-        silent rescaling. A mutation making the resolver scale supplied values
-        passed all eight pins, because every one of them reached it through
-        `fiscal_snapshot`'s guard.
-
-        Both branches are exercised here, at an OFF-REFERENCE population where
-        a wrongly-applied scale factor is 335x rather than 1.0 and therefore
-        cannot hide.
+        """`make_economy_state` calls the resolver every time, so on this path the
+        resolver alone keeps a supplied Trust unscaled. A mutation that scaled supplied
+        values passed the eight other pins, which all go through `fiscal_snapshot`'s
+        guard (2026-09-17). The test runs off the reference population, where a wrong
+        scale is 335×.
         """
         from hours_eoh.core.simulation import make_economy_state
         supplied = make_economy_state(population=3.35e8, trust_balance=7.5e9)
@@ -2069,15 +1876,10 @@ class TestTheInheritanceTravelsWithTheFrame:
 
 
 class TestTheInjectionRegisterIsComplete:
-    """
-    THE REGISTER IS CHECKED, NOT JUST WRITTEN (2026-08-29).
-
-    `core/fiscal.INJECTION_REGISTER` classifies every value `fiscal_snapshot`
-    takes because core may not fetch it. The classification decides what
-    happens when a measurement lands — promote to state, or leave it as the
-    honest record of a layer boundary — so it is only useful if it stays
-    complete. A prose list of nine parameters goes stale the moment a tenth is
-    added, which is the `unused_innocuous_names` failure in a new place.
+    """`core/fiscal.INJECTION_REGISTER` must classify every value that `fiscal_snapshot`
+    takes because core may not fetch it (2026-08-29). The class decides what happens
+    when a measurement lands, so the register must stay complete
+    ([record](record/fulfilment.md#injection-pressure-assembly-point)).
     """
 
     #: What makes a parameter an injection: it names a value core cannot compute
@@ -2088,28 +1890,20 @@ class TestTheInjectionRegisterIsComplete:
                "_response")
 
     def _injected(self):
-        """
-        Marker-shaped AND not readable from state. The second half is what makes
-        this a live definition rather than a name pattern: once a quantity is in
-        `_STATE_TO_PARAM`, core can be handed it rather than told it, and it has
-        been promoted out of the injection class.
+        """Parameters that match a marker and that a state cannot supply. A quantity in
+        `_STATE_TO_PARAM` leaves the injection class.
         """
         import inspect
         from hours_eoh.core.fiscal import (
-            fiscal_snapshot, _STATE_TO_PARAM, DEPRECATED_NOT_APPLIED)
+            fiscal_snapshot, _STATE_TO_PARAM)
         state_readable = set(_STATE_TO_PARAM.values())
         return {p for p in inspect.signature(fiscal_snapshot).parameters
-                if any(m in p for m in self.MARKERS) and p not in state_readable
-                and p not in DEPRECATED_NOT_APPLIED}
+                if any(m in p for m in self.MARKERS) and p not in state_readable}
 
     def test_promotion_removes_a_parameter_from_the_injection_class(self):
-        """
-        The rule, demonstrated on the one still promoted.
-        `capital_eoh_eliminated` is still a parameter — a caller may pass it —
-        but it is no longer an INJECTION, because `make_economy_state` carries
-        it and core can be handed it. The register caught this overlap on its
-        first run. `capital_personal_eoh_fulfilled_per_person` was promoted with
-        it and left state on 2026-09-15, when the guarantee stopped applying it.
+        """`capital_eoh_eliminated` is still a parameter but not an injection, because
+        `make_economy_state` carries it. The register caught this overlap on its first
+        run.
         """
         import inspect
         from hours_eoh.core.fiscal import (
@@ -2119,17 +1913,6 @@ class TestTheInjectionRegisterIsComplete:
         assert promoted <= params, "still reachable as parameters"
         assert promoted <= set(_STATE_TO_PARAM.values()), "readable from state"
         assert not (promoted & set(INJECTION_REGISTER)), "no longer injections"
-
-    def test_a_deprecated_parameter_is_accepted_and_in_neither_register(self):
-        """Accepted for compatibility, not applied, and so neither state (a key
-        accepted and ignored) nor an injection (a value core is told and uses)."""
-        import inspect
-        from hours_eoh.core.fiscal import (
-            fiscal_snapshot, INJECTION_REGISTER, _STATE_TO_PARAM, DEPRECATED_NOT_APPLIED)
-        params = set(inspect.signature(fiscal_snapshot).parameters)
-        assert DEPRECATED_NOT_APPLIED <= params
-        assert not (DEPRECATED_NOT_APPLIED & set(_STATE_TO_PARAM.values()))
-        assert not (DEPRECATED_NOT_APPLIED & set(INJECTION_REGISTER))
 
     def test_every_injected_parameter_is_classified(self):
         from hours_eoh.core.fiscal import INJECTION_REGISTER
@@ -2163,23 +1946,92 @@ class TestTheInjectionRegisterIsComplete:
         assert not (set(INJECTION_REGISTER) & set(_STATE_TO_PARAM.values()))
 
     def test_the_cross_layer_entry_is_not_promotable(self):
-        """
-        `guf_revenue` must stay injected. Promoting it into core would assert
-        that land tenure is physics — a theory claim smuggled in as an
-        engineering convenience, and `land/` is a separate layer precisely
-        because it is not physics.
+        """`guf_revenue` must stay injected. Promoting it into core would claim that
+        land tenure is physics, and `land/` is a separate layer because it is not.
         """
         from hours_eoh.core.fiscal import INJECTION_REGISTER, PROMOTABLE_CATEGORIES
         assert INJECTION_REGISTER["guf_revenue"] == "cross_layer"
         assert "cross_layer" not in PROMOTABLE_CATEGORIES
 
     def test_theory_switches_are_not_an_architectural_cost(self):
-        """
-        They would exist under any architecture, so they are excluded from the
-        promotable set too — they retire by a sign-off deleting a branch, not
-        by a refactor.
+        """Theory switches would exist under any architecture, so they are not
+        promotable either. A sign-off that deletes a branch retires them, not a
+        refactor.
         """
         from hours_eoh.core.fiscal import INJECTION_REGISTER, PROMOTABLE_CATEGORIES
         switches = [p for p, c in INJECTION_REGISTER.items() if c == "theory_switch"]
         assert set(switches) == {"health_response", "standing_response"}
         assert "theory_switch" not in PROMOTABLE_CATEGORIES
+
+
+def test_floor_fraction_reaches_only_the_shipped_design():
+    """Only `design="shipped"` reads `SUFF_GUARANTEE_FLOOR_FRACTION`; the default V1
+    sets its share from the register. The test checks both sides, so the parameter
+    cannot go inert under `shipped` without a failure.
+    """
+    from hours_eoh.data import SUFF_GUARANTEE_FLOOR_FRACTION
+    for eps in (0.0, 0.40, 0.90):
+        a = sufficiency_guarantee(1.0e6, eps, floor_fraction=SUFF_GUARANTEE_FLOOR_FRACTION)
+        b = sufficiency_guarantee(1.0e6, eps, floor_fraction=2 * SUFF_GUARANTEE_FLOOR_FRACTION)
+        assert a["total_cost_teh"] == b["total_cost_teh"]
+        s = sufficiency_guarantee(1.0e6, eps, design="shipped",
+                                  floor_fraction=SUFF_GUARANTEE_FLOOR_FRACTION)
+        t = sufficiency_guarantee(1.0e6, eps, design="shipped",
+                                  floor_fraction=2 * SUFF_GUARANTEE_FLOOR_FRACTION)
+        assert t["total_cost_teh"] > s["total_cost_teh"]
+
+
+class TestTheAgeMixAndTheRetirementRegister:
+    """The guarantee pays on the population's age mix (2026-10-03). Before, it reported
+    an age-weighted obligation and paid on the shipped ages (mode 10), so an ageing
+    population cost the Trust nothing more. Retirement as a register event is opt-in.
+    """
+
+    @staticmethod
+    def _g(**kw):
+        from hours_eoh.core.fiscal import sufficiency_guarantee
+        return sufficiency_guarantee(1.0e6, 0.40, **kw)
+
+    def test_off_is_bit_identical(self):
+        from hours_eoh.data import AGE_GROUPS
+        shipped = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        base = self._g()
+        for kw in ({"age_fractions": shipped}, {"retired_share": 0.0},
+                   {"retired_share": 0.12, "retiree_vested_fraction": 0.0}):
+            assert self._g(**kw)["total_cost_teh"] == base["total_cost_teh"], kw
+
+    def test_the_applied_payment_reads_the_mix(self):
+        from hours_eoh.data import AGE_GROUPS
+        older = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        older["working_age"] -= 0.05
+        older["elderly"] += 0.05
+        g = self._g(age_fractions=older)
+        assert g["total_cost_teh"] > self._g()["total_cost_teh"]
+        assert g["effective_personal_eoh_per_person"] == pytest.approx(
+            g["raw_eoh_per_person"] * g["personal_human_fraction"])
+
+    def test_vesting_sets_the_claim_and_zero_is_off(self):
+        from hours_eoh.core.fiscal import vested_fraction
+        cost = [self._g(retired_share=0.12, retiree_vested_fraction=vested_fraction(y))["total_cost_teh"]
+                for y in (0.0, 2.5, 5.0, 10.0)]
+        assert cost[0] == self._g()["total_cost_teh"]
+        assert cost[0] < cost[1] < cost[2] == cost[3]
+
+    def test_no_one_is_counted_twice(self):
+        """Need recipients come from the population NOT on the register."""
+        g = self._g(retired_share=0.12, retiree_vested_fraction=0.5)
+        off = self._g()
+        assert g["recipients"] == pytest.approx(off["recipients"] * (1 - 0.12 * 0.5))
+        assert g["retiree_total"] == pytest.approx(1.0e6 * 0.12 * 0.5 * g["retiree_per_person"])
+
+    def test_more_retired_than_elderly_is_refused(self):
+        with pytest.raises(ValueError):
+            self._g(retired_share=0.5)
+
+    def test_contestability_reads_the_same_vesting_curve(self):
+        from hours_eoh.core.fiscal import vested_fraction
+        from hours_eoh.research import contestability as C
+        assert C._vested_fraction is vested_fraction
+        assert vested_fraction(2.5, 5.0) == 0.5 and vested_fraction(50.0) == 1.0
+        with pytest.raises(ValueError):
+            vested_fraction(-1.0)

@@ -1,19 +1,13 @@
-"""
-Tests for the provenance scanner and the coverage gate over ``hours_eoh/data.py``.
+"""Tests for the provenance scanner and the coverage gate over ``hours_eoh/data.py``.
 
 utils/provenance.py: scan, live_constants, problems, audit_csv, doc_table, render_doc
 
-Two halves, and the split matters:
+Two halves:
 
-  * The PARSER tests run against synthetic source strings. They pin the inline
-    format's behaviour — family globs, orphaned blocks, continuations, the
-    scheme's own rules — independently of what ``data.py`` currently says, so a
-    tagging change cannot quietly redefine what the format means.
-
-  * The GATE tests run against the real ``data.py``. They are what stops
-    provenance coverage regressing: a constant added without a tag, a CHOSEN
-    constant with no epistemic pointer, or a value changed without regenerating
-    the audit CSV and the doc tables all fail here.
+  * The PARSER tests run on synthetic source strings. They pin the inline format
+    independently of what ``data.py`` says, so a tagging change cannot redefine it.
+  * The GATE tests run on the real ``data.py``. A constant with no tag, a CHOSEN
+    constant with no pointer, or a stale audit CSV or doc table fails here.
 """
 
 from __future__ import annotations
@@ -73,11 +67,8 @@ def test_field_line_beats_continuation_when_it_names_a_known_field():
 
 
 def test_unindented_prose_closes_the_block_rather_than_joining_a_field():
-    """A wrong pointer is worse than a missing one — nothing downstream can tell.
-
-    Continuations must be indented. Un-indented prose between the block and the
-    constant ends the block, so trailing commentary cannot be swept into
-    ``resolves_by`` and shipped in the audit CSV as though someone wrote it there.
+    """Un-indented prose between the block and the constant ends the block. Trailing
+    commentary cannot then join ``resolves_by`` and ship in the audit CSV as a pointer.
     """
     src = (
         "# tag: CHOSEN | units: fraction\n"
@@ -253,7 +244,9 @@ def test_err_direction_is_parsed_off_the_leading_token():
 
 
 def test_band_on_a_non_bounded_tag_is_a_violation():
-    """A band means the value was picked inside measured bounds — that IS bounded."""
+    """A band means someone picked the value inside measured bounds, and that IS
+    `bounded`.
+    """
     src = ("# tag: placeholder | units: fraction\n"
            "# band: 0.5–1.5\n"
            "# resolves_by: a study\n"
@@ -578,7 +571,9 @@ def test_coverage_is_total(scanned):
 
 
 def test_tag_vocabulary_is_closed(scanned):
-    """No sixth tag creeps in. 'Physics-adjacent' was one; it is retired."""
+    """The tag vocabulary is closed: no new tag gets in. 'Physics-adjacent' was one; it
+    is retired.
+    """
     outside = sorted({r.tag for r in scanned.records} - pv.VALID_TAGS)
     assert not outside, (
         f"tag(s) outside the scheme: {outside}. The vocabulary is "
@@ -631,11 +626,9 @@ def test_audit_csv_is_current(scanned):
 
 
 def test_generated_doc_tables_are_current(scanned):
-    """THE DRIFT KILLER.
-
-    Every table region in docs/parameter_provenance.md is generated from data.py.
-    A value or tag change that skips the doc fails here:
-        python3 utils/eoh_cli.py provenance doc --write
+    """Every table region in docs/parameter_provenance.md comes from data.py. A value or
+    tag change that skips the doc fails here; fix it with `python3 utils/eoh_cli.py
+    provenance doc --write`.
     """
     current = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
     assert pv.render_doc(scanned, current) == current, (
@@ -645,7 +638,7 @@ def test_generated_doc_tables_are_current(scanned):
 
 
 def test_every_block_has_a_doc_table(scanned):
-    """A new provenance-block must be given a home in the doc, not left invisible."""
+    """A new provenance block must have a table in the doc."""
     markers = pv.doc_markers(pv.PROVENANCE_DOC.read_text(encoding="utf-8"))
     orphaned = [b for b in scanned.blocks() if b not in markers]
     assert not orphaned, (
@@ -735,20 +728,16 @@ def _doc_live_prose() -> str:
 
 
 def test_retag_logs_are_excluded_from_the_stale_figure_scan():
-    """Guard the guard: if the log headings are renamed, the exclusion must fail loudly."""
+    """If someone renames the log headings, the exclusion must fail loudly."""
     doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
     assert "## Retag log" in doc, "no retag log — _doc_live_prose() excludes nothing"
     assert len(_doc_live_prose()) < len(doc), "exclusion removed nothing"
 
 
 def test_live_prose_does_not_print_the_pre_reprice_derived_figures():
-    """The specific stale figures this migration found, kept out of live prose.
-
-    These are DERIVED PRODUCTS restated in sentences — a value-equality check
-    cannot see them, which is exactly where the reprice drift hid. If
-    `PERSONAL_EOH_BASE` is repriced again these strings change legitimately;
-    update them here together with the prose, which is the point of the test:
-    the doc and the constant have to move in the same commit.
+    """Live prose must not print the stale derived figures that the reprice left behind.
+    A value-equality check cannot see a derived product in a sentence. A new reprice
+    changes these strings, and the doc and the constant must move in one commit.
     """
     prose = _doc_live_prose()
     stale = {
@@ -788,25 +777,13 @@ def _domain_shares_at(epsilons: tuple[float, ...]) -> dict[float, dict[str, floa
 
 
 def test_domain_balance_table_restates_the_shares_the_model_computes():
-    """The doc's Current table must equal what `arc --domain-shares` prints.
-
-    THIS IS THE TEST THAT WAS MISSING. On 2026-08-10 the table's ε=0.40 and
-    ε=0.99 columns were wrong (infrastructure and knowledge were also transposed
-    at the top of the arc), and the paragraph above it drew a FINDING from the
-    error — that the two moves "pulled in opposite directions" and personal's
-    share ended HIGHER at ε=0.99. It ended lower. Both moves cut it.
-
-    A value-equality check over `data.py` cannot see this: the shares are not
-    constants, they are computed products restated in a hand-written markdown
-    table. That is the residual the coverage gate explicitly does not close, and
-    here it produced an inverted conclusion rather than a stale number.
-
-    Tolerance is 1 percentage point — the doc quotes to 0.1pp, and this test
-    exists to catch a table that is wrong, not one rounded differently.
+    """The doc's Current table must equal what `arc --domain-shares` prints, within 1
+    percentage point. A hand-written table of computed shares is outside the coverage
+    gate ([record](record/provenance.md#provenance-test-history)).
     """
     doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
 
-    marker = "### Current (post-K-IV, re-anchored to the ε_ref fixed point nine times)"
+    marker = "### Current (post-K-IV, re-anchored to the ε_ref fixed point twelve times)"
     assert marker in doc, (
         "the Current domain-balance section was renamed — this test no longer "
         "checks anything, so update the marker deliberately"
@@ -883,17 +860,9 @@ def test_a_band_resting_on_a_placeholder_is_refused():
 
 
 def test_the_ancestry_check_is_TRANSITIVE_not_one_level():
-    """The whole reason this gate exists, and it is not hypothetical.
-
-    `derived` inherits its authority from what is beneath it, so a `derived`
-    input can bottom out on a placeholder two or three steps down. A one-level
-    check sees TOP <- MID (derived) and passes. Both anchored-inversion
-    candidates examined on 2026-08-15 had exactly this shape:
-
-        CONTESTABILITY_CAPITAL_YIELD_RATE <- FORMATION_DEPRECIATION_RATE
-            (derived) <- CAPITAL_MACHINE_PROFILES (PLACEHOLDER)
-
-    Hand-tracing caught them. This is that trace, in code.
+    """The ancestry check is transitive: a `derived` input can rest on a placeholder two
+    or three steps down, which a one-level check passes. This is the hand trace of
+    2026-08-15, in code ([record](record/provenance.md#provenance-test-history)).
     """
     src = (
         "# tag: placeholder | units: fraction\n"
@@ -943,6 +912,71 @@ def test_ancestry_terminates_on_a_cycle():
     )
     scanned = pv.scan(src, {"A": 1.0, "B": 2.0})
     assert pv.unanchored_ancestors("A", scanned) == []
+
+
+class TestTheExpressionIsAnEdge:
+    """The right-hand side of an assignment states a dependency whether or not
+    `band_from:` declares it (2026-10-16; record/provenance.md#expression-edges)."""
+
+    def test_an_undeclared_edge_is_walked_and_a_derived_on_placeholder_reported(self):
+        src = (
+            "# tag: placeholder | units: fraction\n"
+            "# resolves_by: a measurement\n"
+            "BOTTOM: float = 3.0\n"
+            "# tag: derived | units: fraction\n"
+            "MID: float = BOTTOM * 2\n"
+            "# tag: derived | units: fraction\n"
+            "TOP: float = MID + 1\n"
+        )
+        scanned = pv.scan(src, {"BOTTOM": 3.0, "MID": 6.0, "TOP": 7.0})
+        assert scanned.expr_parents == {"MID": {"BOTTOM"}, "TOP": {"MID"}}
+        assert pv.derived_on_placeholder(scanned) == {
+            "MID": ["MID -> BOTTOM"], "TOP": ["TOP -> MID -> BOTTOM"]}
+
+    def test_a_derived_on_placeholder_must_say_it_inherits(self):
+        """A derived constant on a placeholder is not a placeholder itself, because its
+        parent carries the debt. The scheme still requires it to SAY so, naming the
+        parent or its family.
+        """
+        base = (
+            "# tag: placeholder | units: fraction\n"
+            "# resolves_by: a measurement\n"
+            "PART_RATE: float = 3.0\n"
+            "# tag: derived | units: fraction\n"
+        )
+        silent = base + "WHOLE: float = PART_RATE * 2\n"
+        named = base + "# resolves_by: n/a — it inherits PART_RATE's standing\nWHOLE: float = PART_RATE * 2\n"
+        family = base + "# resolves_by: n/a — it inherits the PART_* constants'\nWHOLE: float = PART_RATE * 2\n"
+        unnamed = base + "# note: inheritance is a charter matter\nWHOLE: float = PART_RATE * 2\n"
+        vals = {"PART_RATE": 3.0, "WHOLE": 6.0}
+        refused = lambda src: any(i.startswith("WHOLE: derived") for i in pv.problems(pv.scan(src, vals)))
+        assert refused(silent) and refused(unnamed)
+        assert not refused(named) and not refused(family)
+
+
+class TestTheTagBlockIsReadWhole:
+    """The block parser must keep everything a block says (2026-10-16;
+    record/provenance.md#derived-is-not-placeholder). It dropped content three ways:
+    prose beginning "band:" overwrote the measured band, a second `note:` replaced the
+    first, and a bare '#' ended the block.
+    """
+
+    def test_indents_repeats_and_paragraph_breaks(self):
+        src = (
+            "# tag: bounded | units: fraction\n"
+            "# band: [0.1, 0.2] — measured\n"
+            "#   band: a sentence that merely begins with the word\n"
+            "# note: first\n"
+            "# note: second\n"
+            "# form: one\n"
+            "#\n"
+            "#   two\n"
+            "X: float = 0.1\n"
+        )
+        r = pv.scan(src, {"X": 0.1}).by_name["X"]
+        assert r.band.startswith("[0.1, 0.2]") and "band: a sentence" in r.band
+        assert r.note == "first second"
+        assert r.form == "one two"
 
 
 # --- the `baseline` tag: a refuted value kept RUNNABLE as a comparison -------
@@ -1009,12 +1043,9 @@ def test_a_baseline_with_no_expected_is_refused():
 
 
 def test_an_expectation_that_names_no_test_is_refused():
-    """THE CONDITION THAT MAKES THIS A CHECK RATHER THAN A SENTENCE.
-
-    `DEFAULT_SEGMENTS` carried an exemplary expectation in prose — the synthetic
-    mean sits ON the band ceiling because it was built to, the measured one
-    sits inside on its own evidence — and nothing evaluated it. Prose drifts
-    from the number it describes; this repo has caught that nine times.
+    """An expectation must name the test that evaluates it, or it is only a sentence.
+    Prose drifts from its number, and nothing evaluated `DEFAULT_SEGMENTS`' expectation
+    ([record](record/provenance.md#provenance-test-history)).
     """
     fields = (
         "# tag: baseline | units: fraction\n"
@@ -1055,8 +1086,9 @@ class TestTheShippedBaselinesNameTestsThatExist:
                 )
 
     def test_every_baseline_names_its_readers(self, scanned):
-        """A baseline that operative code reads must name every reader, so the
-        exemption stays as narrow as the comparison it is granted for."""
+        """A baseline that operative code reads must name every reader, so the exemption
+        stays as narrow as the comparison it covers.
+        """
         for rec in self._baselines(scanned):
             if pv.operative_consumers(rec.name):
                 assert rec.baseline_in.strip(), (
@@ -1096,8 +1128,9 @@ def test_baseline_in_parses_a_module_list():
 
 
 def test_baseline_in_on_a_live_constant_is_refused():
-    """The field exempts a SUPERSEDED constant. On a live one it claims nothing,
-    and silently ignoring it would let a reader think a check had been made."""
+    """`baseline_in` exempts a SUPERSEDED constant. On a live one it claims nothing, and
+    silence would let a reader think a check ran.
+    """
     src = (
         "# provenance-block: Demo\n"
         "# tag: placeholder | units: fraction\n"
@@ -1110,12 +1143,9 @@ def test_baseline_in_on_a_live_constant_is_refused():
 
 
 def test_a_baseline_claim_does_not_excuse_a_parameter_default(tmp_path):
-    """THE CONDITION THAT KEEPS THIS FROM BEING A LOOPHOLE.
-
-    A default is precisely how a superseded value keeps governing output after
-    everyone has stopped thinking about it — the `decay=SKILL_DECAY_RATE` and
-    `skill_decay_rate=0.10` defects were both exactly this. So `baseline_in`
-    buys exemption from "no readers" and never from "no parameter defaults".
+    """`baseline_in` buys exemption from "no readers" and never from "no parameter
+    defaults". A default is how a superseded value keeps governing output
+    ([record](record/provenance.md#provenance-test-history)).
     """
     pkg = tmp_path / "hours_eoh" / "core"
     pkg.mkdir(parents=True)
@@ -1144,9 +1174,9 @@ def test_a_reported_baseline_is_not_a_parameter_default(tmp_path):
 
 
 def test_baseline_in_must_name_every_reader():
-    """An undeclared reader is the case the exemption must not silently cover:
-    it is how a value creeps back onto a computing path under cover of a claim
-    made about two other modules."""
+    """An undeclared reader must fail. Otherwise a value creeps back onto a computing
+    path under a claim made about two other modules.
+    """
     # Uses the REAL constant name, because `problems()` resolves readers
     # against the real package — which is the whole point of the check.
     src = (
@@ -1221,23 +1251,17 @@ def test_reporting_positions_are_accepted(tmp_path, body, kind, label):
     ],
 )
 def test_non_reporting_positions_are_refused(tmp_path, body):
-    """Each of these is the value going somewhere the check cannot follow, which
-    is exactly what the exemption is supposed to rule out.
-
-    `handed-to-a-call` is refused deliberately even though `round` is harmless:
-    a call is a handoff, and assuming any of them safe would make the rule
-    unenforceable at the first helper function.
+    """Each of these positions sends the value where the check cannot follow. A call is
+    a handoff, so `handed-to-a-call` fails even for a harmless `round`; otherwise the
+    first helper function would defeat the rule.
     """
     reads = _reads(tmp_path, body)
     assert reads and not any(r.ok for r in reads), [r.kind for r in reads]
 
 
 def test_the_tightening_bites_on_the_real_constant():
-    """Verified by breaking it, per the gate's own discipline.
-
-    A synthetic scan of the real SKILL_DECAY_RATE with a fabricated
-    non-reporting read must be refused — the check is wired into `problems()`,
-    not merely available.
+    """A synthetic scan of the real SKILL_DECAY_RATE with a fabricated non-reporting
+    read must fail. This shows that `problems()` runs the check.
     """
     src = (
         "# provenance-block: Demo\n"
@@ -1288,15 +1312,9 @@ def _label_problems(labels: str) -> list[str]:
 
 
 def test_landing_in_a_dict_is_not_evidence_of_being_a_comparison():
-    """WHY THE LABEL MUST BE DECLARED, found by the check failing its own bite
-    test.
-
-    The first version accepted any dict value under a literal key. Nearly every
-    function in this package returns a dict, so a retired constant could
-    contaminate a live figure under the key "total" and pass — verified by
-    breaking it exactly that way. The label now has to be declared, which makes
-    adding one a visible act in the diff rather than an emergent property of
-    Python syntax.
+    """A comparison label must be DECLARED. A literal dict key is not enough, because
+    nearly every function returns a dict
+    ([record](record/provenance.md#provenance-test-history)).
     """
     issues = _label_problems("")
     assert any("baseline_labels does not declare" in i for i in issues), issues
@@ -1315,9 +1333,8 @@ def test_declared_labels_satisfy_the_check():
 
 
 def test_a_declared_label_nothing_uses_is_refused():
-    """A permission nobody exercises is a permission nobody reviews. It also
-    hides the shrinking of a comparison: drop the last read under a label and
-    the declaration would otherwise sit there implying the read still exists.
+    """A declared label that nothing uses must fail. An unused permission gets no
+    review, and it would hide a comparison that shrank to nothing.
     """
     issues = _label_problems(
         "# baseline_labels: shipped, ratio_to_shipped, shipped_over_split, "
@@ -1327,9 +1344,9 @@ def test_a_declared_label_nothing_uses_is_refused():
 
 
 def test_the_known_limit_is_the_documented_one():
-    """The tuple form is accepted on its label and the loop variable is NOT
-    followed. Stated in `baseline_reads`' docstring; asserted here so the
-    limit cannot quietly widen into 'tuples are always fine'.
+    """The check accepts the tuple form on its label and does NOT follow the loop
+    variable. `baseline_reads`' docstring states this limit; the test keeps it from
+    widening into 'tuples are always fine'.
     """
     doc = " ".join((pv.baseline_reads.__doc__ or "").split())
     assert "does not follow a loop variable bound from it" in doc, (
@@ -1400,12 +1417,9 @@ def test_flow_trace_is_clean_and_actually_ran_something(scanned):
 
 
 def test_the_trace_catches_what_position_alone_cannot(tmp_path, monkeypatch):
-    """THE CASE THIS WAS BUILT FOR, reproduced end to end.
-
-    A read in an ACCEPTED labelled-tuple position whose loop variable carries
-    the value into an undeclared live key. The static classifier passes it —
-    asserted here, so the gap is demonstrated rather than described — and the
-    trace catches it.
+    """A read in an accepted labelled-tuple position, whose loop variable carries the
+    value into an undeclared live key. The static classifier passes it, and the test
+    shows that; the trace catches it.
     """
     pkg = tmp_path / "hours_eoh" / "core"
     pkg.mkdir(parents=True)
@@ -1480,8 +1494,9 @@ def test_a_reader_needing_arguments_is_reported_not_ignored(tmp_path, monkeypatc
 
 
 def test_the_trace_restores_the_constant_afterwards(scanned):
-    """The swap must not leak into the rest of the suite — a `Refuted` left in a
-    module global would silently taint every later test in the session."""
+    """The swap must not leak into the rest of the suite. A `Refuted` left in a module
+    global would taint every later test in the session.
+    """
     import hours_eoh.core.eoh_generation as eg
 
     before = eg.SKILL_DECAY_RATE
@@ -1504,9 +1519,10 @@ def test_no_retired_constant_leaks_into_a_live_figure(scanned):
 
 
 def test_key_path_lets_an_outer_label_cover_a_nested_field(tmp_path):
-    """`{"shipped": {"renewal_rate": OLD}}` reports under both keys and either
-    may be declared. Stopping at the innermost would force the vocabulary toward
-    field names like `renewal_rate`, which say nothing about being superseded."""
+    """`{"shipped": {"renewal_rate": OLD}}` reports under both keys, and either may be
+    declared. The innermost key alone would push labels toward field names that say
+    nothing about supersession.
+    """
     pkg = tmp_path / "hours_eoh" / "core"
     pkg.mkdir(parents=True)
     (pkg / "demo.py").write_text(
@@ -1519,13 +1535,10 @@ def test_key_path_lets_an_outer_label_cover_a_nested_field(tmp_path):
 
 
 def test_skill_decay_rate_is_retired_as_a_baseline_and_still_reported(scanned):
-    """The live case this mechanism was built for, asserted end to end.
-
-    `SKILL_DECAY_RATE` is the pre-K-IV renewal rate the repo refuted: 0.10
-    against a measured split of 0.0294. It is retired, it governs nothing, and
-    `scenario run knowledge_base` still prints it beside the split — which is
-    the point. If it ever becomes a parameter default again, `problems()`
-    fails; if a third module starts reading it, `problems()` fails.
+    """`SKILL_DECAY_RATE`, the refuted pre-K-IV renewal rate, governs nothing and still
+    prints beside the measured split. `problems()` fails if it becomes a parameter
+    default or gains a third reader
+    ([record](record/provenance.md#provenance-test-history)).
     """
     rec = scanned.by_name["SKILL_DECAY_RATE"]
     assert rec.retired is True
@@ -1559,11 +1572,9 @@ def test_shadow_scan_finds_a_module_level_constant(tmp_path):
 
 
 def test_an_alias_of_a_data_constant_is_not_a_shadow(tmp_path):
-    """The FIX for a shadow, not an instance of one.
-
-    `TRANSMISSION_WORKING_LIFE_YEARS = SKILL_WORKING_LIFE_YEARS` is exactly
-    what the 2026-08-16 pass did to the constant that broke a structural
-    identity. It must not then be reported as debt.
+    """An alias of a `data.py` constant is the FIX for a shadow, so the scan must not
+    report it as debt (for example `TRANSMISSION_WORKING_LIFE_YEARS =
+    SKILL_WORKING_LIFE_YEARS`).
     """
     pkg = tmp_path / "hours_eoh" / "core"
     pkg.mkdir(parents=True)
@@ -1577,14 +1588,9 @@ def test_an_alias_of_a_data_constant_is_not_a_shadow(tmp_path):
 
 
 def test_shadow_scan_ignores_lowercase_but_not_innocuous_values(tmp_path):
-    """Lowercase is not a constant. An innocuous VALUE no longer buys silence.
-
-    This test used to assert that `HALF = 0.5` and `PERCENT = 100.0` were
-    ignored on the strength of their values alone. That rule hid real
-    calibration: `_STEW_REG_SIGMOID_RATE = 10.0` is deliberately tuned — its own
-    comment reads "raised from 6.0 to 10.0" — and vanished from the scan while
-    its two siblings in the same sigmoid were counted. Masking is now a DECLARED
-    status via `_INNOCUOUS_NAMES`, not a property of which literal you wrote.
+    """Lowercase names are not constants. An innocuous VALUE no longer buys silence:
+    masking is a DECLARED status in `_INNOCUOUS_NAMES`
+    ([record](record/provenance.md#provenance-test-history)).
     """
     pkg = tmp_path / "hours_eoh" / "core"
     pkg.mkdir(parents=True)
@@ -1609,13 +1615,8 @@ def test_a_declared_innocuous_name_is_exempt(tmp_path):
 
 
 def test_no_innocuous_exemption_goes_stale():
-    """A declared exemption must still exempt something.
-
-    `_INNOCUOUS_NAMES` entries survive the constants they covered — two went
-    stale within an hour of the allowlist shipping, when `_PERS_REG_START` and
-    `_KNOW_REG_BASE` were bound to `data.py` by the registration migration. A
-    permission nobody exercises is a permission nobody reviews, which is the
-    same reasoning that makes an unused `baseline_labels:` entry a failure.
+    """Each `_INNOCUOUS_NAMES` entry must still exempt something. An exemption outlives
+    the constant it covered ([record](record/provenance.md#provenance-test-history)).
     """
     stale = pv.unused_innocuous_names()
     assert not stale, (
@@ -1625,11 +1626,8 @@ def test_no_innocuous_exemption_goes_stale():
 
 
 def test_nothing_hides_behind_the_innocuous_filter():
-    """Every fully-masked constant is either declared innocuous or counted.
-
-    `masked_constants()` reports the ones a value filter alone would hide. They
-    must all now appear in the shadow scan, so being cheap to overlook is no
-    longer the same as being ungoverned.
+    """Every constant that a value filter alone would hide is either declared innocuous
+    or counted in the shadow scan.
     """
     counted = {s.name for s in pv.shadow_constants()}
     unaccounted = [
@@ -1667,16 +1665,9 @@ def test_repeated_default_literals_needs_repetition(tmp_path):
 
 
 def test_shadow_constant_count_does_not_grow(scanned):
-    """A RATCHET, not a gate, and the difference is deliberate.
-
-    76 shadow constants existed when the scan was written, so an unconditional
-    gate would have failed the build on pre-existing honest states — the same
-    reason `band_from:` shipped opt-in. What must not happen is the number
-    going UP: every new one is a fresh copy of a value whose source is
-    elsewhere, which is the failure mode all four known instances share.
-
-    Lowering this number is the migration; it should be lowered deliberately,
-    with the constants moved into data.py and tagged, not by loosening the scan.
+    """A RATCHET, not a gate: the shadow count may fall and may not rise. Lower it on
+    purpose, by moving constants into data.py and tagging them, never by loosening the
+    scan ([record](record/provenance.md#provenance-test-history)).
     """
     free = [s for s in pv.shadow_constants() if not s.bound]
     # 78 -> 57 on 2026-08-16: the 21 registration sigmoid and labour-weight
@@ -1711,8 +1702,13 @@ def test_shadow_constant_count_does_not_grow(scanned):
     # deleted from reference/care_demand.py rather than migrated — nothing read
     # it, and the live one is in reference/atus_time_use.py. Removing a
     # duplicate is a better outcome than tagging it.
-    assert len(free) <= 33, (
-        f"{len(free)} shadow constants, was 33. New ones: a domain constant "
+    # 33 -> 30 on 2026-10-02: three retyped copies of the reference-frame
+    # population (ecological_floor, thermal_load, indust_overshoot) BOUND to
+    # data.REFERENCE_FRAME_POPULATION — the frame declaration they copied.
+    # 30 -> 29 on 2026-10-03: scenarios/maintenance's _IRREVERSIBILITY_MULTIPLE
+    # moved to data.py as MAINTENANCE_IRREVERSIBILITY_MULTIPLE, with a tag.
+    assert len(free) <= 29, (
+        f"{len(free)} shadow constants, was 29. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."
@@ -1837,14 +1833,9 @@ def test_superseded_by_accepts_a_module_path():
 
 
 def test_retired_constants_have_no_operative_consumers(scanned):
-    """`retired` is verified, not asserted.
-
-    A constant excluded from the debt count on the grounds that it governs no
-    current output must actually govern none. This check falsified two of the
-    four retirement claims made on 2026-08-09 — `DEFAULT_SEGMENTS` was the live
-    default in `core/multipliers.py`, and `SKILL_DECAY_RATE` was still read by
-    `core/eoh_generation.py` — and both were returned to the debt count rather
-    than the check being loosened.
+    """A `retired` constant must govern no current output; the check verifies the claim.
+    It falsified two of four retirement claims on 2026-08-09
+    ([record](record/provenance.md#provenance-test-history)).
     """
     for r in scanned.records:
         if not r.retired:
@@ -1886,13 +1877,9 @@ def test_there_are_guides_to_check():
 
 @pytest.mark.parametrize("path", _guide_docs(), ids=lambda p: p.name)
 def test_guides_do_not_quote_stale_constant_values(path, scanned):
-    """Every `NAME = number` claim in a guide must match data.py.
-
-    This is a value-equality check, so it sees the class of drift that actually
-    happened — a constant repriced in data.py while the sentence naming it in a
-    guide stayed put. It cannot see a derived product restated in prose; that
-    residual is covered for the provenance doc by the curated stale-figure test
-    above, and remains a human problem here, which the guides say plainly.
+    """Every `NAME = number` claim in a guide must match data.py. This value-equality
+    check cannot see a derived product in prose; the guides say so, and it stays a human
+    problem.
     """
     stale = pv.stale_doc_claims(path.read_text(encoding="utf-8"), scanned)
     assert not stale, f"{path.name} quotes stale value(s): " + "; ".join(stale)
@@ -1900,11 +1887,9 @@ def test_guides_do_not_quote_stale_constant_values(path, scanned):
 
 @pytest.mark.parametrize("path", _guide_docs(), ids=lambda p: p.name)
 def test_guides_do_not_use_the_retired_tag_vocabulary(path):
-    """The binary Physics|Calibration scheme is retired; guides must not teach it.
-
-    It is not a cosmetic rename. That scheme is what let six constitutional
-    commitments and desk estimates be filed as "physics" and handed to an
-    analyst as things not to touch.
+    """Guides must not teach the retired Physics|Calibration scheme. It filed
+    constitutional commitments and desk estimates as "physics", things an analyst must
+    not touch.
     """
     text = path.read_text(encoding="utf-8")
     banned = {
@@ -1961,21 +1946,16 @@ _SIGMOID_GROUPS: dict[str, dict[str, str]] = {
 
 
 class TestTheSigmoidsStaySplit:
-    """
-    The five registration sigmoids were one `placeholder` dict each, covering
-    four fields whose leverage on the money supply differs 25-fold and whose
-    epistemic states differ outright — seven of the twenty turned out to be
-    `normative` or `convention` rather than awaiting measurement.
-
-    A split like that is undone by one careless edit: type the numbers back into
-    the dict and every scalar becomes decorative while the composite keeps
-    working. These pin the structure, not the values.
+    """The five registration sigmoids stay split into tagged scalars. The tests pin the
+    structure, not the values: one careless edit back into a dict would make every
+    scalar decorative ([record](record/provenance.md#provenance-test-history)).
     """
 
     def test_each_composite_is_assembled_from_its_scalars(self) -> None:
-        """The dict must READ the constants, not repeat them. If a value is
-        typed back into the literal this still passes on equality — which is why
-        the next test checks the source text as well."""
+        """Each composite dict must READ the constants, not repeat them. Equality alone
+        passes a value typed back into the literal, so the next test checks the source
+        text too.
+        """
         from hours_eoh import data as d
         for composite, fields in _SIGMOID_GROUPS.items():
             got = getattr(d, composite)
@@ -1985,9 +1965,9 @@ class TestTheSigmoidsStaySplit:
                     f"{composite}[{key!r}] has drifted from {scalar}")
 
     def test_the_composite_reads_the_names_rather_than_the_numbers(self) -> None:
-        """The bind the equality test cannot make. Assembled from names, the two
-        can never diverge; assembled from literals they diverge silently, which
-        is failure mode 4 — a copy of a value whose source is elsewhere."""
+        """Built from names, the composite and the scalars cannot diverge; built from
+        literals they diverge silently (mode 4).
+        """
         src = pv.DATA_PY.read_text(encoding="utf-8")
         for composite, fields in _SIGMOID_GROUPS.items():
             start = src.index(f"\n{composite}: dict[str, float] = {{")
@@ -1998,9 +1978,9 @@ class TestTheSigmoidsStaySplit:
                     "was typed back in and the split is now decorative")
 
     def test_a_split_group_carries_more_than_one_tag(self) -> None:
-        """THE POINT OF THE SPLIT. If every field of a group ends up under one
-        tag again, the composite's tag was not hiding anything and the split
-        bought nothing — or, more likely, someone retagged them uniformly."""
+        """Each split group must carry more than one tag. If every field returns to one
+        tag, the split bought nothing, or someone retagged them all at once.
+        """
         by = {r.name: r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records}
         multi = 0
         for composite, fields in _SIGMOID_GROUPS.items():
@@ -2028,16 +2008,10 @@ class TestTheSigmoidsStaySplit:
     })
 
     def test_the_normative_fields_are_exactly_these_and_name_a_decider(self) -> None:
-        """
-        `normative` forbids a pointer for a reason: these are commitments about
-        what a ledger SHOULD recognise, and a `resolves_by` would promise a
-        measurement that cannot arrive.
-
-        WHAT CATCHES WHAT, since neither check is sufficient alone. A lazy retag
-        — changing the tag and leaving `decided_by` — is caught by the scheme
-        gate, which demands a pointer from a `placeholder`. A THOROUGH retag,
-        adding a plausible pointer too, passes the scheme gate and is caught only
-        here, because this asserts the set by name rather than by count.
+        """The `normative` fields are exactly these, each with a decider; a
+        `resolves_by` would promise a measurement that cannot arrive. The scheme gate
+        catches a lazy retag. Only this named set catches a thorough retag that adds a
+        plausible pointer.
         """
         by = {r.name: r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records}
         found = {s for fields in _SIGMOID_GROUPS.values() for s in fields.values()
@@ -2052,3 +2026,202 @@ class TestTheSigmoidsStaySplit:
             r = by[name]
             assert r.decided_by, f"{name}: normative with no decided_by"
             assert not r.resolves_by, f"{name}: normative must not point at data"
+
+
+class TestTheEcosystemHealthDefaultIsNamed:
+    """`ECOSYSTEM_HEALTH_DEFAULT` was a bare 0.70 at 24 sites until 2026-10-02 —
+    every entry point, EohParams and two CLI flags (failure mode 4). By AST:
+    no parameter, `.get()` or CLI flag whose name carries `ecosystem_health`
+    may default to a float LITERAL equal to it. STATES ITS GAP: a different
+    literal is a different quantity and passes (the shock's 0.30 'after')."""
+
+    def test_no_site_retypes_it(self):
+        import ast
+        import pathlib
+        from hours_eoh.data import ECOSYSTEM_HEALTH_DEFAULT
+        root = pathlib.Path(__file__).resolve().parents[1]
+        bad = []
+        for d in ("hours_eoh", "utils"):
+            for f in sorted((root / d).rglob("*.py")):
+                for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+                    pairs = []
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        a = n.args
+                        pos = a.posonlyargs + a.args
+                        pairs += [(x.arg, v) for x, v in zip(pos[len(pos) - len(a.defaults):], a.defaults)]
+                        pairs += [(x.arg, v) for x, v in zip(a.kwonlyargs, a.kw_defaults) if v is not None]
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "get" and len(n.args) == 2:
+                        k, v = n.args
+                        if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                            pairs.append((k.value, v))
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "add_argument":
+                        flag = next((x.value for x in n.args if isinstance(x, ast.Constant)), "")
+                        pairs += [(str(flag).replace("-", "_"), kw.value) for kw in n.keywords if kw.arg == "default"]
+                    if isinstance(n, ast.Dict):
+                        pairs += [(k.value, v) for k, v in zip(n.keys, n.values)
+                                  if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+                    for name, v in pairs:
+                        if ("ecosystem_health" in str(name) and isinstance(v, ast.Constant)
+                                and v.value == ECOSYSTEM_HEALTH_DEFAULT):
+                            bad.append(f"{f.relative_to(root)}:{v.lineno} {name}")
+        assert not bad, "bind to data.ECOSYSTEM_HEALTH_DEFAULT:\n  " + "\n  ".join(bad)
+
+    def test_the_entry_points_read_it(self):
+        import inspect
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.data import ECOSYSTEM_HEALTH_DEFAULT
+        from hours_eoh.params import EohParams
+        assert inspect.signature(eoh_to_teh_pipeline).parameters[
+            "ecosystem_health"].default == ECOSYSTEM_HEALTH_DEFAULT
+        assert EohParams()["ecosystem_health"] == ECOSYSTEM_HEALTH_DEFAULT
+
+
+class TestTheReferencePopulationIsNamed:
+    """A default population of 1M must read `data.REFERENCE_FRAME_POPULATION`, checked
+    by AST ([record](record/provenance.md#provenance-test-history)).
+
+    STATES ITS GAP: a 1M population passed at a CALL site (not a default) is a caller's
+    choice and is not flagged.
+    """
+
+    def test_no_default_retypes_it(self):
+        import ast
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parents[1]
+        bad = []
+        for d in ("hours_eoh", "utils"):
+            for f in sorted((root / d).rglob("*.py")):
+                for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+                    pairs = []
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        a = n.args
+                        pos = a.posonlyargs + a.args
+                        pairs += [(x.arg, v) for x, v in zip(pos[len(pos) - len(a.defaults):], a.defaults)]
+                        pairs += [(x.arg, v) for x, v in zip(a.kwonlyargs, a.kw_defaults) if v is not None]
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "get" and len(n.args) == 2:
+                        k, v = n.args
+                        if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                            pairs.append((k.value, v))
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "add_argument":
+                        flag = next((x.value for x in n.args if isinstance(x, ast.Constant)), "")
+                        pairs += [(str(flag), kw.value) for kw in n.keywords if kw.arg == "default"]
+                    for name, v in pairs:
+                        if ("pop" in str(name).lower() and isinstance(v, ast.Constant)
+                                and v.value == 1_000_000):
+                            bad.append(f"{f.relative_to(root)}:{v.lineno} {name}")
+        assert not bad, "bind to data.REFERENCE_FRAME_POPULATION:\n  " + "\n  ".join(bad)
+
+    def test_no_module_imports_a_data_name_twice(self):
+        """No module may import a `data.py` name twice. Seven such duplicates turned up
+        the day of the binding, two of them from the binding itself.
+        """
+        import ast
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parents[1]
+        dups = []
+        for d in ("hours_eoh", "utils"):
+            for f in sorted((root / d).rglob("*.py")):
+                seen: set[str] = set()
+                for s in ast.parse(f.read_text(encoding="utf-8")).body:
+                    if isinstance(s, ast.ImportFrom) and s.module == "hours_eoh.data":
+                        for a in s.names:
+                            nm = a.asname or a.name
+                            if nm in seen:
+                                dups.append(f"{f.relative_to(root)} {nm}")
+                            seen.add(nm)
+        assert not dups, dups
+
+
+def test_the_capital_age_default_is_the_named_canonical_base():
+    """The canonical capital age reads `CANONICAL_CAPITAL_AGE_BASE`, not a retyped 0.30
+    ([record](record/provenance.md#provenance-test-history)).
+
+    STATES ITS GAP: eoh_to_teh_pipeline, total_eoh and EohParams default to 0.50, the
+    arc's ε=1 age. That second value for one default is reported in the record, not
+    unified here.
+    """
+    import ast
+    import pathlib
+    from hours_eoh.data import CANONICAL_CAPITAL_AGE_BASE
+    from hours_eoh.core.trajectory import canonical_physical_state
+    assert canonical_physical_state(0.0)["capital_age_ratio"] == CANONICAL_CAPITAL_AGE_BASE
+    root = pathlib.Path(__file__).resolve().parents[1]
+    bad = []
+    for f in sorted((root / "hours_eoh").rglob("*.py")):
+        for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                a = n.args
+                pos = a.posonlyargs + a.args
+                for x, v in list(zip(pos[len(pos) - len(a.defaults):], a.defaults)) + [
+                        (x, v) for x, v in zip(a.kwonlyargs, a.kw_defaults) if v is not None]:
+                    if (x.arg == "capital_age_ratio" and isinstance(v, ast.Constant)
+                            and v.value == CANONICAL_CAPITAL_AGE_BASE):
+                        bad.append(f"{f.relative_to(root)}:{v.lineno}")
+    assert not bad, bad
+
+
+def test_the_arc_bound_is_read_not_retyped():
+    """Arc-bound uses read `EPSILON_ARC_MAX`, not a retyped 0.99; reporting points such
+    as `(0.0, 0.40, 0.90, 0.99)` stay as written
+    ([record](record/provenance.md#provenance-test-history)).
+
+    STATES ITS GAP: the check matches patterns, so a new arc-bound form it does not list
+    passes. The ecosystem-health clamp in `research/coasean.py` is the same number for a
+    DIFFERENT quantity and is allowed by name.
+    """
+    import pathlib
+    import re
+    cats = [r"min\(0\.99,", r"<= 0\.99:", r"\* 0\.99 /", r"\* 0\.99 if", r"round\(0\.99 /",
+            r"_EPS_MAX: float = 0\.99", r"epsilon_end: float = 0\.99",
+            r"--epsilon-end.*default=0\.99", r"lo, hi = (0\.0|epsilon), 0\.99"]
+    allowed = {("hours_eoh/research/coasean.py",
+                "eco = max(0.01, min(0.99, ecosystem_health_schedule[i]))")}
+    pat = re.compile("|".join(cats))
+    root = pathlib.Path(__file__).resolve().parents[1]
+    bad = []
+    for d in ("hours_eoh", "utils"):
+        for f in sorted((root / d).rglob("*.py")):
+            if f.name == "data.py":
+                continue
+            rel = f.relative_to(root).as_posix()
+            for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+                code = line.split("#")[0]
+                if pat.search(code) and (rel, line.strip()) not in allowed:
+                    bad.append(f"{rel}:{i} {line.strip()[:80]}")
+    assert not bad, "read data.EPSILON_ARC_MAX:\n  " + "\n  ".join(bad)
+
+
+class TestTheCensusHasOneSource:
+    """The counted figures have ONE source (2026-10-03). `utils/census.py` computes
+    them, `tests/census_snapshot.json` acknowledges them, and only GENERATED `<!--
+    census:… -->` blocks quote them
+    ([record](record/provenance.md#provenance-test-history)).
+    """
+
+    def test_the_census_is_acknowledged(self):
+        from utils import census
+        bad = census.stale()
+        assert not bad, ("the census moved — if intended, run "
+                         "`eoh provenance census --write` and say why in the commit:\n  "
+                         + "\n  ".join(bad))
+
+    def test_every_figure_has_its_generated_block(self):
+        from utils import census
+        names = {d.name: {n for n, _ in census.blocks(d.read_text(encoding="utf-8"))}
+                 for d in census.DOCS}
+        assert names["CLAUDE.md"] >= {"state", "confidence"}
+        assert names["provenance.md"] >= {"provenance", "tags", "confidence"}
+
+    def test_a_moved_figure_fails_until_written(self):
+        """The gate can fire (mode 12): a census one constant off is caught."""
+        from utils import census
+        s = census.snapshot()
+        assert census.stale({**s, "shadow_unbound": s["shadow_unbound"] + 1})
+        assert census.stale({**s, "tiers": {**s["tiers"], "POSSIBLE": s["tiers"]["POSSIBLE"] + 1}})
+
+    def test_regeneration_cannot_move_a_ratchet(self):
+        """--write rewrites prose and the snapshot only. The ratchet BOUNDS
+        (BASELINE_WITHOUT, the shadow bound) stay deliberate edits."""
+        from utils import census
+        assert all(d.suffix == ".md" for d in census.DOCS)
+        assert census.SNAPSHOT.suffix == ".json"

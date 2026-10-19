@@ -2,23 +2,25 @@
 Infrastructure-EOH statutory floor — the B+D design demonstrated.
 
 This scenario builds the currency-free floor of infrastructure_eoh_breakdown()
-from a physical condition census and proves the property that motivated the
-redesign: the floor is INVARIANT to the maintenance doctrine, because a doctrine
-is a set of accounting/ambition choices and the floor contains none.
+from a physical condition census. It shows the property that motivated the
+redesign: the floor is INVARIANT to the maintenance doctrine. A doctrine is a
+set of accounting/ambition choices, and the floor contains none. That holds BY
+CONSTRUCTION, so `floor_spread` cannot fail; `total_spread` > 1 is what shows
+the doctrine is live (`record/verification.md`).
 
 The contrast is with the monetized `capital_stock_teh` path
 (the infrastructure-floor handoff): there, switching doctrine moved infrastructure EOH by
 10.26× — and the flip-one-field decomposition showed 100% of that came from
-money→hours conversion conventions and 0% from any physical knob. Here, switching
-doctrine moves the floor by exactly 1.000×; the only thing that changes is the
-explicitly-labelled `discretionary` term, which belongs in the fulfilment/fiscal
-layer, not the physical generation floor.
+money→hours conversion conventions and 0% from any physical knob. Here, a switch of
+doctrine moves the floor by exactly 1.000×. The only thing that changes is the
+explicitly-labelled `discretionary` term. That term belongs in the
+fulfilment/fiscal layer, not the physical generation floor.
 
 Layer: scenarios/ imports core/ and data.py only. Pure — no I/O. The row-level
 NBI ingest and the full doctrine dollar model stay in the handoff / utils.
 
-ε-coherence: the floor is ε-invariant (physical); the breakdown is exercised at
-ε ∈ {0, 0.40, 0.99} in the tests via the monitoring/deferred terms.
+ε-coherence: the floor is ε-invariant (physical). The tests run the breakdown
+at ε ∈ {0, 0.40, 0.99} through the monitoring/deferred terms.
 """
 
 from __future__ import annotations
@@ -59,16 +61,16 @@ def census_from_condition_counts(
     crew-hours); a real deployment replaces the defaults with a state DOT's
     maintenance-activity manual rates.
 
-    THERMAL FIELDS (optional). Supplying `asset_type` and `teh_per_unit` also
-    emits the keys the dissipation twin needs, so ONE survey yields both the
-    labour floor in hours and the dissipation floor in watts
+    THERMAL FIELDS (optional). With `asset_type` and `teh_per_unit`, the
+    function also emits the keys the dissipation twin needs. So ONE survey
+    yields both the labour floor in hours and the dissipation floor in watts
     (research/thermal_capital.infrastructure_thermal_floor). Buckets without them
     are still valid — they simply go unpriced thermally, and the twin reports the
     coverage gap rather than silently treating them as zero.
 
     The condition defaults map NBI-style good/fair/poor onto the [0, 1] condition
-    scale the capital profiles use. They are CHOSEN, not measured: a real census
-    carries per-asset condition and should pass it rather than accept these.
+    scale the capital profiles use. They are CHOSEN, not measured. A real census
+    carries per-asset condition, and should pass it instead of these.
 
     Args:
         good, fair, poor: asset counts in each condition class.

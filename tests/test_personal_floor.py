@@ -192,7 +192,7 @@ class TestFloorValidation:
             personal_statutory_floor([{"component": "a", "hours_per_unit": 1.0}])
 
     def test_missing_hours_per_unit_rejected_not_defaulted(self):
-        """Omitting the key must not be read as 'free'; None must be explicit."""
+        """A missing key must not read as "free"; None must be explicit."""
         with pytest.raises(ValueError, match="hours_per_unit"):
             personal_statutory_floor(
                 [{"component": "a", "quantity_per_person_year": 1.0}]
@@ -226,7 +226,9 @@ class TestFloorArc:
         assert 0.0 <= result["coverage"] <= 1.0
 
     def test_health_steps_in_across_the_arc(self):
-        """Below the threshold health has no path; above it, it is merely uncosted."""
+        """Below the threshold health has no delivery path. Above it, health has a path
+        that nothing costs yet.
+        """
         def reason(epsilon):
             rows = personal_statutory_floor(FULL_BASKET, epsilon)["unreachable"]
             return next(r["reason"] for r in rows if r["component"] == "health")
@@ -253,13 +255,10 @@ class TestReferenceBasket:
         spread = abs(kcal_route - NUTRITION_CROSSCHECK_HOURS_PER_YEAR) / kcal_route
         assert spread < 0.10
 
-    def test_only_nutrition_production_is_priced(self):
-        """
-        Guards the discipline, not the number: an invented delivery productivity
-        would enter the floor with the same standing as the measured one, and
-        afterwards nothing could tell them apart. If a component is costed here,
-        it must arrive with a measurement and this test must be updated
-        deliberately.
+    def test_only_the_measured_components_are_priced(self):
+        """This guards the discipline, not the number. An invented delivery productivity
+        would enter the floor with the same standing as a measured one. So a newly
+        costed component needs a measurement and a deliberate edit here.
         """
         priced = [c["component"] for c in FULL_BASKET if c["hours_per_unit"] is not None]
         assert priced == ["nutrition_production", "nutrition_processing", "care"], (
@@ -295,12 +294,9 @@ class TestReferenceBasket:
         assert "nutrition_production" in names
 
     def test_care_is_in_the_survival_core(self):
-        """
-        Care is a requirement of human survival, and TEH is denominated in human
-        labour hours — so human continuation is the precondition for the ledger
-        existing at all. It also has an ε=0 delivery path (humans have always
-        cared for each other unassisted), so it belongs in the core and not among
-        the step-in entitlements.
+        """Care is a requirement of human survival, and TEH is denominated in human
+        labour hours, so the ledger depends on it. Care also has an ε=0 delivery path,
+        so it belongs in the core and not among the step-in entitlements.
         """
         care = next(c for c in SURVIVAL_CORE if c["component"] == "care")
         assert care.get("min_epsilon", 0.0) == 0.0
@@ -315,12 +311,9 @@ class TestReferenceBasket:
         assert care["hours_per_unit"] is not None
 
     def test_shares_mirror_the_data_decomposition(self):
-        """
-        `reference/` may not import the package, so the desk estimate's four
-        terms are restated in the basket. This holds the two copies together —
-        one decomposition of the personal obligation, not two. Before care was
-        added they disagreed and `coverage` was flattered by the absence of the
-        largest term.
+        """`reference/` may not import the package, so the basket restates the desk
+        estimate's four terms. This test holds the two copies together. Before care was
+        added they disagreed, and the missing largest term flattered `coverage`.
         """
         from hours_eoh.data import PERSONAL_EOH_COMPONENTS
 
@@ -416,11 +409,13 @@ class TestATUSExtract:
 
 class TestObservedHours:
 
+    # 763.8 / 937.3 over the round 335M; 761.9 / 934.9 at the survey year's own
+    # Census 15+ share (2026-10-15). The ATUS hours per person 15+ did not move.
     def test_unpaid_core_2025(self):
-        assert observed_hours(2025, "unpaid_core") == pytest.approx(763.8, abs=0.5)
+        assert observed_hours(2025, "unpaid_core") == pytest.approx(761.9, abs=0.5)
 
     def test_paid_2025(self):
-        assert observed_hours(2025, "paid") == pytest.approx(937.3, abs=0.5)
+        assert observed_hours(2025, "paid") == pytest.approx(934.9, abs=0.5)
 
     def test_conventions_are_ordered_by_breadth(self):
         core = observed_hours(2025, "unpaid_core")
@@ -462,7 +457,7 @@ class TestIdentityReport:
 
     def test_reports_current_values(self):
         report = identity_report(2025)
-        assert report["observed_hours"] == pytest.approx(763.8, abs=0.5)
+        assert report["observed_hours"] == pytest.approx(761.9, abs=0.5)  # 763.8 at 335M
         assert report["floor_priced"] == pytest.approx(899.2, abs=0.5)
         assert report["coverage"] == pytest.approx(0.759, abs=0.001)
 
@@ -486,21 +481,18 @@ class TestFloorVsConstants:
         assert floor_vs_constants()["age_weight"] == pytest.approx(1.3528)
 
     def test_floor_sits_below_every_standard(self):
-        """The only ordering compatible with 6.9% coverage (the docstring said
-        30% and coverage has been 6.9% since the basket was itemised)."""
+        """The priced floor sits below every standard. At 75.9% coverage that is a lower
+        bound under each standard, not agreement with it.
+        """
         shares = floor_vs_constants()["floor_share_of"]
         assert all(0.0 < value < 1.0 for value in shares.values())
 
     def test_the_floor_cannot_falsify_the_base_and_the_gap_is_coverage(self):
-        """
-        THE FLOOR IS THE FALSIFIER, NOT THE DEFAULT — and at this coverage it
-        falsifies nothing. It is a strict LOWER bound, so it can only refute a
-        constant by EXCEEDING it, and it prices one component of seven.
-
-        The ordering below is therefore not evidence that the constants are
-        right. It is what 6.9% coverage forces, and quoting it as agreement
-        would be reading a coverage artefact as a corroboration — the shape
-        `floor_share_of` exists to make visible.
+        """The floor is the falsifier, not the default. It is a strict LOWER bound, so
+        it can refute a constant only by EXCEEDING it. Today it prices 3 of 7 components
+        (75.9% of the share). The ordering is therefore not evidence that the constants
+        are right; the function computes the verdict text
+        ([record](record/personal.md#personal-floor-test-history)).
         """
         r = floor_vs_constants()
         # 0.069 → 0.690 on 2026-09-09: care priced as a declared LOWER BOUND from
@@ -534,12 +526,10 @@ class TestFloorVsConstants:
         assert "3 of 7" in r["verdict"] and "75.9%" in r["verdict"]
 
     def test_what_the_unpriced_remainder_would_have_to_deliver(self):
-        """
-        The threshold, stated so nobody has to re-derive it: the floor binds on
-        `PERSONAL_EOH_BASE` when priced hours exceed the base's per-capita
-        claim. Care alone is 62.1% of the basket by share and is unpriced, so
-        whether the remainder clears that gap is a question about CARE, not
-        about coverage in the abstract.
+        """The floor binds on `PERSONAL_EOH_BASE` when priced hours exceed the base's
+        per-capita claim. Care is priced as a declared lower bound, so the test pins the
+        gap and how hard the unpriced remainder must work to close it
+        ([record](record/personal.md#care-priced-as-a-bound)).
         """
         r = floor_vs_constants()
         gap = r["constants_per_capita"]["PERSONAL_EOH_BASE"] - r["floor_priced_per_capita"]
@@ -547,7 +537,7 @@ class TestFloorVsConstants:
         # 1021.9 → 853.8 on 2026-09-09: care closed 168.1 h of it.
         assert gap == pytest.approx(453.6, abs=1.0), (
             "the gap between the priced floor and the base has moved; it is "
-            "quoted in record/personal.md and in this test's docstring."
+            "quoted in record/personal.md#personal-floor-test-history."
         )
         care = [c for c in FULL_BASKET if c["component"] == "care"][0]
         assert care["hours_per_unit"] is not None and care["share"] > 0.60
@@ -610,9 +600,9 @@ class TestTheBasketSeam:
         assert shipped_basket() == FULL_BASKET
 
     def test_quantities_are_supplied_not_stored(self):
-        """A different diet standard must produce a different basket — if the
-        quantity were still baked in, this would silently return the shipped
-        figure and the migration would be cosmetic."""
+        """A different diet standard must give a different basket. A baked-in quantity
+        would return the shipped figure silently, and the migration would be cosmetic.
+        """
         hot = full_basket(2500.0, BASKET_WATER_LITRES_PER_DAY,
                           BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
                           BASKET_SHELTER_M2_PER_PERSON,
@@ -631,10 +621,11 @@ class TestTheBasketSeam:
         assert personal_statutory_floor(hot)["floor_hours"] > shipped
 
     def test_the_dormant_quantities_move_nothing_yet(self):
-        """Water and thermal carry hours_per_unit=None, so they are EXCLUDED,
-        not costed at zero — changing them must not move the floor. They become
-        load-bearing the moment either component is priced, which is why they
-        are tagged in data.py rather than left where nothing watched them."""
+        """The unpriced quantities (water, shelter and its degree-days) carry
+        hours_per_unit=None. The floor EXCLUDES them rather than costing them at zero,
+        so changing them must not move it. data.py tags them because they carry weight
+        the moment their component has a price.
+        """
         odd = full_basket(BASKET_DIET_KCAL_PER_DAY, 500.0, 9000.0, 40.0,
                           BASKET_HEALTH_MIN_EPSILON, 5_000.0,
                           CARE_CHILDCARE_HOURS_PER_PERSON_YEAR)
@@ -670,9 +661,9 @@ class TestPIChangesNothing:
         """`personal_eoh` must still run off the constants, not off the basket."""
         from hours_eoh.core.eoh_generation import personal_eoh
 
-        # 1,301.6 h/person·yr × 1e6 people — the constants path, untouched by
-        # P-I. It moved from 1,475 with the 2026-08-10 AGE_GROUPS elderly
-        # revalue, which is a CONSTANTS change; the basket still feeds nothing,
+        # 1,352.8 h/person·yr × 1e6 people — the constants path, untouched by
+        # P-I. It moved from 1,475 to 1,301.6 with the 2026-08-10 AGE_GROUPS
+        # elderly revalue, and has moved since by constants changes; the basket still feeds nothing,
         # which is what this test is for.
         assert personal_eoh(population=1e6, epsilon=0.0) == pytest.approx(
             1.3528e9, rel=1e-6
@@ -680,11 +671,9 @@ class TestPIChangesNothing:
 
 
 class TestClimateProvenance:
-    """
-    The one priced number in the basket is a rainfed tropical smallholder
-    figure. These guard that the scope is STATED — a measurement whose
-    conditioning is undocumented gets quoted out of scope, which is how a
-    calibration becomes a claim it cannot support.
+    """The nutrition production figure is rainfed tropical smallholder data. These tests
+    guard that its scope is STATED, because a measurement without its conditioning gets
+    quoted out of scope.
     """
 
     def test_the_measurement_names_its_countries(self):
@@ -705,23 +694,11 @@ class TestClimateProvenance:
             assert CLIMATE_NOTES.get(name), f"{name} has no climate note"
 
     def test_climate_now_enters_through_exactly_one_channel(self):
-        """
-        MERGED 2026-09-04. `thermal` was the one component where climate was the
-        QUANTITY rather than the delivery cost, and that was the defect, not a
-        feature: degree-days is a property of a PLACE, not a per-person
-        quantity, so one row violated the basket's own form
-        (Σ quantity_per_person_year × hours_per_unit). A village of 100 and a
-        city of a million in one climate both face 2,500.
-
-        Thermal is now an intensity on shelter's quantity — m² × degree-days ×
-        hours per (m²·degree-day) — carried as `degree_days_per_year` on the
-        shelter row. That also makes the substitution representable: insulation
-        is shelter capital and heating is thermal flow, they TRADE OFF, and two
-        additive line items could only add one point from each curve.
-
-        The consequence is unchanged and now stated once: costing shelter makes
-        the floor climate-indexed, so `PERSONAL_EOH_BASE` must declare which
-        climate it is for.
+        """MERGED 2026-09-04: thermal is an intensity on shelter's quantity, carried as
+        `degree_days_per_year` on the shelter row. Degree-days is a property of a PLACE,
+        not a per-person quantity, so a thermal row broke the basket's form. Costing
+        shelter makes the floor climate-indexed
+        ([record](record/personal.md#thermal-merged-base-framed)).
         """
         assert "thermal" not in CLIMATE_CONDITIONING
         assert set(CLIMATE_CONDITIONING.values()) == {"delivery", "none"}, (
@@ -794,27 +771,15 @@ class TestClimateProvenance:
 
 
 class TestTheBaseDeclaresItsClimate:
-    """
-    The base and its falsifier now refer to the same place.
-
-    THE MISMATCH THIS CLOSES. `PERSONAL_EOH_BASE` was a single global float.
-    The only priced basket component — nutrition production — is measured in
-    rainfed tropical and sub-tropical Sub-Saharan Africa and its own note says
-    it "does not transfer without restratification by agro-ecological zone". So
-    the check was stratified and the checked was global: you cannot falsify a
-    global scalar with a Sahelian measurement without saying which climate the
-    scalar is for. That mismatch existed at 6.9% coverage, not at some future
-    one, and was masked only because a 6.9% floor cannot falsify anything.
-
-    AND IT WAS NOT THERMAL'S DOING. The earlier reading — that costing thermal
-    would break the single global scalar — had the wrong culprit: nutrition
-    already had, being the first component priced. Of the components, all but
-    care are climate-conditioned, and care is 62.1% of the obligation, so there
-    is no climate-free component to price first.
+    """The base and its falsifier refer to the same place. Nutrition production, the
+    first component priced, is measured in rainfed Sub-Saharan Africa, so a global base
+    could not be checked against it. All components but care are climate-conditioned, so
+    no climate-free component could be priced first
+    ([record](record/personal.md#thermal-merged-base-framed)).
 
     STATED GAP: declaring the frame makes the two commensurable. It does not
-    make the base right for that zone — 1,000 is still CHOSEN, at the top of a
-    427–1092 band, and only `personal_statutory_floor` at 6.9% coverage can
+    make the base right for that zone. The 1,000 is still CHOSEN inside the
+    482–1147 band, and only `personal_statutory_floor` (75.9% coverage today) can
     settle the point inside it.
     """
 
@@ -853,17 +818,16 @@ class TestTheBaseDeclaresItsClimate:
 
 
 class TestTheComponentStatusTableCannotDrift:
-    """
-    `COMPONENT_STATUS` says what KIND of unknown each basket component is, so
-    that "five are unmeasured" is not read as one homogeneous backlog. A table
-    like that is worthless the moment it disagrees with the basket, so every
-    field here is bound to the data rather than restated beside it.
+    """`COMPONENT_STATUS` says what KIND of unknown each basket component is, so nobody
+    reads the unmeasured ones as one backlog. The test binds every field to the data
+    rather than restating it beside the table
+    ([record](record/personal.md#floor-component-kinds)).
     """
 
     def test_every_component_is_classified_and_none_is_invented(self) -> None:
-        """An unclassified component would be excluded from the work order
-        without anyone having decided to exclude it — the same failure the
-        obligation-work registry guards against."""
+        """An unclassified component would leave the work order without a decision to
+        exclude it.
+        """
         in_basket = {c["component"] for c in FULL_BASKET}
         classified = set(COMPONENT_STATUS)
         assert classified == in_basket, (
@@ -893,22 +857,10 @@ class TestTheComponentStatusTableCannotDrift:
             )
 
     def test_the_place_properties_are_named_and_set_the_indexing_grain(self) -> None:
-        """
-        TWO components carry a place property on the quantity side, and the
-        second one changed the argument rather than repeating it.
-
-        This test previously asserted `== {"shelter"}` and said in its own
-        docstring that a second quantity-instance would need the argument
-        restated. Water became one on 2026-09-09, the assertion fired, and the
-        restatement is this: degree-days makes the floor CLIMATE-indexed;
-        distance-to-source makes it SITE-indexed, which is strictly finer. Two
-        collectives in one climate, one beside a spring and one 3 km from it,
-        share a climate and do not share a floor.
-
-        So the ceiling on how well `PERSONAL_EOH_BASE` can ever be stated is a
-        SITE, not a climate zone — and each place property is pinned to the row
-        that carries it, so neither can be quietly folded into a delivery
-        productivity where its distribution would become invisible.
+        """Two components carry a place property: shelter (degree-days, climate-indexed)
+        and water (distance to source, site-indexed, which is finer). So the finest
+        frame for `PERSONAL_EOH_BASE` is a SITE, not a climate zone. The test pins each
+        property to its row ([record](record/personal.md#water-is-site-indexed)).
         """
         instance_q = {k for k, v in COMPONENT_STATUS.items()
                       if v["quantity"] == "instance"}
@@ -924,9 +876,10 @@ class TestTheComponentStatusTableCannotDrift:
             )
 
     def test_a_place_property_is_carried_and_never_costed(self) -> None:
-        """Both intensities are carried so the row has its unit and are NOT
-        multiplied into the floor. Moving either must not move a single hour —
-        which is what makes them declarations rather than silent multipliers."""
+        """The basket carries both intensities for their unit and does NOT multiply them
+        into the floor. Moving either must not move an hour, which makes them
+        declarations, not silent multipliers.
+        """
         from hours_eoh.reference.personal_basket import full_basket
         from hours_eoh.data import (
             BASKET_DIET_KCAL_PER_DAY, BASKET_WATER_LITRES_PER_DAY,
@@ -957,9 +910,9 @@ class TestTheComponentStatusTableCannotDrift:
                 assert COMPONENT_STATUS[comp]["delivery"] == expected, comp
 
     def test_health_is_undefined_rather_than_unmeasured(self) -> None:
-        """The distinction the whole table exists to protect: health's gap is
-        not a data gap. Q/P(0) is undefined, not large, so more measurement does
-        not close it and it must never be filled with a plausible number."""
+        """Health's gap is not a data gap. Q/P(0) is undefined, not large, so more
+        measurement does not close it, and no plausible number may fill it.
+        """
         assert COMPONENT_STATUS["health"]["status"] == "undefined"
         assert COMPONENT_STATUS["health"]["delivery"] == "none"
         health = next(c for c in FULL_BASKET if c["component"] == "health")
@@ -983,15 +936,10 @@ class TestTheComponentStatusTableCannotDrift:
 
 
 class TestProcessingIsInvariantToTheDietStandard:
-    """
-    The consequence of writing the per-kcal conversion at the call site, pinned
-    so it is a stated property rather than an accident of the arithmetic.
-
-    Production scales 1:1 with the diet quantity; processing does not, because
-    dividing by THIS basket's kcal cancels against multiplying by it. That is
-    the conservative reading: 400.2 h was measured at whatever the MTUS sample
-    ate, not at 2,100 kcal, so a genuine h/kcal would need a denominator that
-    was never observed.
+    """Processing does not scale with the diet quantity, because the per-kcal conversion
+    at the call site cancels against this basket's kcal. That is the conservative
+    reading: the 400.2 h was measured at whatever the MTUS sample ate, not at 2,100 kcal
+    ([record](record/personal.md#processing-priced-and-the-scope-artefact)).
     """
 
     def _floor_at(self, kcal: float) -> dict:
@@ -1017,23 +965,19 @@ class TestProcessingIsInvariantToTheDietStandard:
         )
 
     def test_the_row_still_declares_kcal_even_though_they_cancel(self) -> None:
-        """The unit is not decorative by accident. It is the basket's form, and
-        the row returns to being quantity x productivity the moment the sample's
-        dietary intake is known — which is what its resolves_by names."""
+        """The unit is the basket's form. The row returns to quantity × productivity
+        once the sample's dietary intake is known, as its resolves_by says.
+        """
         row = next(c for c in FULL_BASKET if c["component"] == "nutrition_processing")
         assert row["unit"] == "kcal"
         assert row["hours_per_unit"] is not None
 
 
 class TestWaterIsDeclaredAndBounded:
-    """
-    WATER RESOLVES BY DECLARATION PLUS A BOUND, NOT BY ACQUISITION
-    (2026-09-11, author decision — the same move as the register cadence).
-
-    The component was blocked on DHS water-collection time. `COMPONENT_STATUS`
-    already said that would not have settled it: four independent variables sit
-    inside one hours-per-litre, each spanning an order of magnitude, so a
-    measured central value describes no actual collective.
+    """Water resolves by declaration plus a bound, not by acquisition (2026-09-11,
+    author decision). Four independent variables sit inside one hours-per-litre, so a
+    measured central value would describe no actual collective
+    ([record](record/personal.md#water-declared-not-acquired)).
     """
 
     def test_the_form_spans_the_range_that_makes_a_single_figure_wrong(self):
@@ -1064,10 +1008,8 @@ class TestWaterIsDeclaredAndBounded:
         assert "no survey of another population transfers" in r["note"]
 
     def test_only_walking_speed_is_not_an_instance(self):
-        """
-        Three declarations and one physics term. If a second universal appears
-        in the chain, the component has stopped being an instance and the
-        framework is claiming something about a place it cannot know.
+        """Three declarations and one physics term. A second universal in the chain
+        would mean the framework claims something about a place it cannot know.
         """
         from hours_eoh.reference.personal_basket import water_collection_hours
         r = water_collection_hours(1000, 20, 1.0, 50, 1.2)
@@ -1083,12 +1025,9 @@ class TestWaterIsDeclaredAndBounded:
         assert r["fits"] is True
 
     def test_the_shipped_declarations_do_NOT_clear(self):
-        """
-        **THE DEFAULTS ERR HIGH ON PURPOSE AND THE BOUND SAYS SO.**
-        `BASKET_WATER_CARRIED_FRACTION` ships at 1.0 — all water carried home,
-        the conservative corner — and at the stand-in 1 km distance the
-        configuration does not clear. A default that quietly fitted would be a
-        default calibrated to pass its own check.
+        """The defaults err HIGH on purpose: all water carried home, at the stand-in 1
+        km, does not clear. A default that fitted would be calibrated to pass its own
+        check.
         """
         from hours_eoh.scenarios.personal_floor import water_feasibility
         r = water_feasibility()
@@ -1103,14 +1042,10 @@ class TestWaterIsDeclaredAndBounded:
         assert r["share_of_obligation"] < 0.05
 
     def test_the_walk_is_a_ROUND_trip(self):
-        """
-        **THIS CLASS MISSED THIS ON ITS FIRST WRITING.** Dropping the factor of
-        2 — collecting water without walking home — halved every figure and
-        passed all nine other tests, because they were all RELATIVE: ratios,
-        orderings and spans. A relative test cannot see a constant factor.
-
-        Pinned two ways: against an independently computed absolute, and
-        structurally against the one-way walk.
+        """Dropping the walk home halved every figure and passed every relative test,
+        because a relative test cannot see a constant factor. This test pins the
+        absolute and the one-way walk
+        ([record](record/personal.md#water-declared-not-acquired)).
         """
         from hours_eoh.reference.personal_basket import water_collection_hours
 

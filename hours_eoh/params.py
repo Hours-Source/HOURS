@@ -18,6 +18,9 @@ from collections.abc import Iterator
 from typing import Any
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
+    ECOSYSTEM_HEALTH_DEFAULT,
+    AGE_GROUPS,
     PERSONAL_EOH_BASE, INFRA_MAINT_RATE, INFRA_AGE_FACTOR_MAX,
     ECOLOGICAL_BASE_RATE, ECOLOGICAL_THRESHOLD,
     KNOWLEDGE_EOH_BASE, KNOWLEDGE_EPS_EXPONENT, SKILL_TRANSMISSION_RATE,
@@ -36,7 +39,10 @@ from hours_eoh.data import (
 EOH_DEFAULTS: dict[str, Any] = {
     # --- Population & Workforce ---
     "population":           1_000_000,
-    "workforce_fraction":   0.50,          # fraction of pop that is employed
+    # The WORKING-AGE share (author, 2026-10-01): one headcount for the
+    # workforce, the one the shocks, simulation and Condition IV read. Was 0.50,
+    # a second figure that sized the dashboard's certified pool a sixth smaller.
+    "workforce_fraction":   AGE_GROUPS["working_age"]["fraction"],
     "h_ref":                H_REF,         # reference work-year hours
     "h_min":                H_MIN,         # minimum annual obligation (Condition IV)
 
@@ -50,11 +56,11 @@ EOH_DEFAULTS: dict[str, Any] = {
     # population — see CAPITAL_STOCK_DEFAULT's own tag block on the frame.
     "capital_stock_teh":       CAPITAL_STOCK_DEFAULT,
     "infra_maintenance_rate":  INFRA_MAINT_RATE,
-    "capital_age_ratio":       0.50,              # mean(current_age / design_life)
+    "capital_age_ratio":       CAPITAL_AGE_RATIO_DEFAULT,              # mean(current_age / design_life)
     "infra_age_factor_max":    INFRA_AGE_FACTOR_MAX,
 
     # --- Ecological EOH domain ---
-    "ecosystem_health":     0.70,                 # 0=collapsed, 1=pristine
+    "ecosystem_health":     ECOSYSTEM_HEALTH_DEFAULT,                 # 0=collapsed, 1=pristine
     "ecological_base_rate": ECOLOGICAL_BASE_RATE,
     "ecological_threshold": ECOLOGICAL_THRESHOLD,
     "deferred_ecological":  0.0,                  # accumulated deferred EOH (hours)

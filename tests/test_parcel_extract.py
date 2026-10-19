@@ -374,3 +374,55 @@ class TestExclusionCleansTheTailAndNotTheNumerator:
         v = service_point_denominator_verdict()
         assert v["buildable"] is False
         assert "LOWER BOUND" in str(v["verdict"])
+
+
+class TestTheContiguous48MatchesTheFramesLand:
+    """The US frame's land is the contiguous 48 (ERS MLU); the national count
+    sums 56 state codes, AK, HI, PR and four territories among them
+    (2026-10-14). The frame's parcels are its land's."""
+
+    def test_it_is_the_national_count_less_the_named_codes(self):
+        from hours_eoh.reference.parcels import (
+            NOT_CONTIGUOUS_48_FIPS, contiguous_48_parcel_count, parcels_by_state)
+        by = parcels_by_state()
+        assert contiguous_48_parcel_count() == national_parcel_count() - sum(
+            by.get(f, 0) for f in NOT_CONTIGUOUS_48_FIPS)
+        kept = [f for f in by if f not in NOT_CONTIGUOUS_48_FIPS]
+        assert len(kept) == 49                       # 48 states + DC
+        assert {"02", "15", "72"} <= set(by)         # the excluded codes are really there
+
+
+class TestThePrivateParcelsPay:
+    """2026-10-14 (author): the collective does not pay itself on parcels it
+    holds. Government parcels are the collective's; an unknown owner type is
+    not a private owner, so the private count is a band."""
+
+    @pytest.mark.parametrize("scope", ["contiguous_48", "fifty_states"])
+    def test_the_band_and_its_definition(self, scope):
+        from hours_eoh.reference import parcels as P
+        p = getattr(P, f"{scope}_private_parcels")()
+        assert p["total"] == getattr(P, f"{scope}_parcel_count")()
+        assert p["government"] > 0.0
+        assert p["low"] < p["central"] < p["high"] == p["total"] - p["government"]
+        known = p["owner_known_share"] * p["total"]
+        assert p["low"] == pytest.approx(known - p["government"], rel=1e-12)
+        assert p["central"] == pytest.approx(
+            p["total"] * (1 - p["government"] / known), rel=1e-12)
+
+
+    def test_the_default_count_excludes_the_collectives_parcels(self):
+        """2026-10-15 (author): a frame that states no parcels scales the
+        PRIVATE count, not every parcel."""
+        from hours_eoh.data import US_REFERENCE_POPULATION
+        from hours_eoh.land.collective import default_parcel_count
+        from hours_eoh.reference import parcels as P
+        for pop in (1e4, 1e6, US_REFERENCE_POPULATION):
+            got = default_parcel_count(pop)
+            assert got == pytest.approx(
+                pop * P.fifty_states_private_parcels()["central"] / US_REFERENCE_POPULATION,
+                rel=1e-12)
+            assert got < pop * P.fifty_states_parcel_count() / US_REFERENCE_POPULATION
+        # the territories are out (2026-10-15): the population's coverage
+        assert P.fifty_states_parcel_count() == P.national_parcel_count() - sum(
+            P.parcels_by_state().get(k, 0) for k in P.NOT_50_STATES_FIPS)
+        assert set(P.NOT_50_STATES_FIPS) == {"60", "66", "69", "72", "78"}

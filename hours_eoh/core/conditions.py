@@ -18,7 +18,11 @@ the constitution's test bench"
 
 from __future__ import annotations
 
-from hours_eoh.data import M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, COMPETENCY_THRESHOLD, MEAN_MULTIPLIER_REFERENCE
+
+from hours_eoh.data import (
+    M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, COMPETENCY_THRESHOLD,
+    MEASURED_CAPACITY_H_YR,
+)
 from hours_eoh.core.multipliers import multiplier_band_check
 
 
@@ -331,91 +335,111 @@ def dashboard_snapshot(
 # Domain-level EOH coverage check
 # ---------------------------------------------------------------------------
 
-def domain_eoh_coverage(
+
+def condition_iv_coverage(
     reserve_result: dict,
-    domain_eoh_demands: dict[str, float],
-    epsilon: float = 0.40,
-    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
-    coverage_warning_threshold: float = 0.80,
+    pipeline: dict,
+    demand: str = "registered",
+    hours_per_certified_worker: float = MEASURED_CAPACITY_H_YR,
+    weights: dict[str, dict[str, float]] | None = None,
 ) -> dict:
     """
-    Check whether certified workforce capacity can actually cover per-domain EOH.
+    Can the people certified in each essential domain carry its work?
+    Condition IV in hours (2026-10-01).
 
-    Condition IV verifies certified fractions but not whether those workers can
-    fulfill the domain's full EOH demand. If a domain's EOH has grown faster
-    than certified capacity (e.g., infrastructure aged while reserve stayed flat),
-    the Condition IV check passes but the domain is in real shortfall.
+    Governing relation, per essential domain d:
 
-    Capacity per certified worker = h_min × mean_multiplier × (1-ε).
-    (At high ε, each worker's human-labor share shrinks — more workers are
-    needed to cover the same human EOH demand.)
+        capacity_d = certified_d × hours_per_certified_worker         [h/yr]
+        demand_d   = Σ_k  w(d, k) × D_k                               [h/yr]
+        covered_d  ⇔  capacity_d ≥ demand_d
+
+    where D_k is the demand in EOH domain k read off `pipeline` (an
+    `eoh_to_teh_pipeline` result) and w the essential-domain bridge
+    (`eoh_generation.eoh_to_essential_domains`). No threshold is chosen: a
+    domain is covered or it is not.
+
+    THREE DECLARED CHOICES — what the verdict rests on:
+
+    1. CAPACITY is a certified adult's measured annual capacity
+       (`MEASURED_CAPACITY_H_YR`, the one settled account of adult supply),
+       independent of ε — a worker's hours do not shrink as machines take
+       share. `H_MIN`, which the retired `domain_eoh_coverage` used, is the MINIMUM a
+       member owes, not what one can give.
+    2. DEMAND defaults to the REGISTERED hours: the register is what the
+       collective carries (author, 2026-10-01), and certified workers are the
+       collective's competency — household self-maintenance off the ledger is
+       not theirs to cover. `demand="personal"` reads only the registered
+       PERSONAL hours: the survivability tier (author, 2026-10-01: "the people
+       (agent needs) should be what needs to be covered, the rest can build back
+       over time"), the same priority `labor_constrained_fulfillment` serves
+       first. `demand="human"` reads all human-carried hours.
+       Any shortfall sits in a band of the upper arc, which the four
+       reporting points can miss (mode 3) — call the function on a fine grid.
+       `dashboard.system_dashboard` and the shocks read both "personal"
+       (a shortfall fails Condition IV) and "registered" (a warning).
+    3. THE BRIDGE. Its personal column is DERIVED from the obligation's
+       components (`data.ESSENTIAL_BRIDGE_PERSONAL`, 2026-10-01); the other
+       three columns are the original judgement. Care has its own essential
+       domain since 2026-10-01 and is most of the personal obligation, so it is
+       the domain that binds. Hours no domain is certified for are reported as
+       `unattributed_eoh`, never counted as a shortfall. Pass `weights=` to
+       test another bridge.
+
+    ε-behaviour: capacity is ε-invariant; demand follows the pipeline, so
+    coverage moves only through what people are asked to carry.
 
     Args:
-        reserve_result: Return dict from competency_reserve().
-        domain_eoh_demands: {domain_name: annual_eoh_hours} for domains to check.
-        epsilon: Automation level. Scales certified capacity by (1-ε).
-        mean_multiplier: Worker EOH throughput per hour (default: 2.10).
-        coverage_warning_threshold: Flag domains below this coverage ratio.
-                                    Default: 0.80 (80% of demand covered).
+        reserve_result: `workforce.competency_reserve(...)` — certified counts.
+        pipeline: An `eoh_to_teh_pipeline(...)` result at the state in question.
+        demand: "registered" (default), "personal" or "human".
+        hours_per_certified_worker: h/yr one certified adult can supply.
+        weights: Bridge override, {essential_domain: {eoh_domain: share}}.
 
     Returns:
-        dict: {
-          "per_domain": {domain: {
-            "eoh_demand":     float,
-            "certified_count": float,
-            "capacity_eoh":   float,
-            "coverage_ratio": float,
-            "meets_coverage": bool,
-          }},
-          "domains_at_risk":            list[str],
-          "all_covered":                bool,
-          "status":                     "OK" or "COVERAGE_GAP",
-          "epsilon":                    float,
-          "coverage_warning_threshold": float,
-        }
-
-    Reference: Mission Statement §"Condition IV — Distributed Competency" —
-    reserve size is necessary but not sufficient; coverage requires capacity
-    to match demand, not just a fraction to exceed a threshold.
+        dict with `per_domain` {d: {demand_eoh, certified_count, capacity_eoh,
+        coverage_ratio, covered}}, `domains_short`, `all_covered`, `status`
+        ("OK" / "COVERAGE_GAP"), `demand_reading`, `hours_per_certified_worker`.
     """
-    from hours_eoh.data import H_MIN
+    from hours_eoh.core.eoh_generation import UNATTRIBUTED_ESSENTIAL, eoh_to_essential_domains
 
-    per_domain_reserve = reserve_result.get("per_domain", {})
-    human_fraction     = 1.0 - epsilon
-    domain_coverage: dict[str, dict] = {}
-    domains_at_risk: list[str] = []
+    readings = {"registered": "registered_eoh_by_domain", "personal": "registered_eoh_by_domain",
+                "human": "human_eoh_by_domain"}
+    if demand not in readings:
+        raise ValueError(f"demand must be one of {sorted(readings)}, got {demand!r}")
+    if hours_per_certified_worker <= 0.0:
+        raise ValueError(
+            f"hours_per_certified_worker must be > 0, got {hours_per_certified_worker}")
+    source = pipeline[readings[demand]]
+    by_eoh = {k: float(source[k]) for k in
+              ("personal", "infrastructure", "ecological", "knowledge")}
+    if demand == "personal":
+        by_eoh = {k: (v if k == "personal" else 0.0) for k, v in by_eoh.items()}
+    by_essential = eoh_to_essential_domains(by_eoh, weights)
+    unattributed = float(by_essential.pop(UNATTRIBUTED_ESSENTIAL, 0.0))
 
-    for domain, eoh_demand in domain_eoh_demands.items():
-        certified = float(
-            per_domain_reserve.get(domain, {}).get("certified_count", 0.0)
-        )
-        # Each certified worker contributes H_MIN hours × multiplier × human_fraction
-        capacity_eoh = certified * H_MIN * mean_multiplier * human_fraction
-
-        if eoh_demand <= 0.0:
-            coverage_ratio = 1.0
-        else:
-            coverage_ratio = capacity_eoh / eoh_demand
-
-        meets_coverage = coverage_ratio >= coverage_warning_threshold
-        domain_coverage[domain] = {
-            "eoh_demand":     eoh_demand,
+    reserve = reserve_result.get("per_domain", {})
+    per_domain: dict[str, dict] = {}
+    short: list[str] = []
+    for d, demand_eoh in by_essential.items():
+        certified = float(reserve.get(d, {}).get("certified_count", 0.0))
+        capacity = certified * hours_per_certified_worker
+        ratio = capacity / demand_eoh if demand_eoh > 0.0 else float("inf")
+        covered = capacity >= demand_eoh
+        per_domain[d] = {
+            "demand_eoh":      demand_eoh,
             "certified_count": certified,
-            "capacity_eoh":   capacity_eoh,
-            "coverage_ratio": coverage_ratio,
-            "meets_coverage": meets_coverage,
+            "capacity_eoh":    capacity,
+            "coverage_ratio":  ratio,
+            "covered":         covered,
         }
-
-        if not meets_coverage:
-            domains_at_risk.append(domain)
-
-    all_covered = len(domains_at_risk) == 0
-
+        if not covered:
+            short.append(d)
     return {
-        "per_domain":                 domain_coverage,
-        "domains_at_risk":            domains_at_risk,
-        "all_covered":                all_covered,
-        "status":                     "OK" if all_covered else "COVERAGE_GAP",
-        "epsilon":                    epsilon,
-        "coverage_warning_threshold": coverage_warning_threshold,
+        "per_domain":                 per_domain,
+        "domains_short":              short,
+        "all_covered":                not short,
+        "status":                     "OK" if not short else "COVERAGE_GAP",
+        "demand_reading":             demand,
+        "unattributed_eoh":           unattributed,
+        "hours_per_certified_worker": hours_per_certified_worker,
     }

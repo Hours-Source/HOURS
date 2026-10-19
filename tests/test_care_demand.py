@@ -126,11 +126,9 @@ def test_self_maintenance_is_absent_below_fifteen_not_zero():
 
 
 def test_ages_are_top_coded_consistently():
-    """Both ATUS age variables top-code at 85, and the denominator must match.
-
-    Before this was handled, the 85 cell divided a top-coded numerator by the
-    single-year population and reported 932 minutes per person-day — over 15
-    hours, for an average.
+    """Both ATUS age variables top-code at 85, so the denominator must too. Before this
+    fix the 85 cell divided a top-coded numerator by one year's population and reported
+    932 minutes per person-day.
     """
     care = cd.care_by_age(care_curve.pooled_years())
     assert max(care) == cd.ATUS_TOP_CODED_AGE
@@ -184,7 +182,7 @@ def test_non_household_care_is_excluded_and_material():
 
 
 def test_providers_per_household_refuses_rather_than_guesses():
-    """Limit 1 is exposed, not silently applied."""
+    """The function exposes limit 1 and does not apply it silently."""
     with pytest.raises(NotImplementedError, match="ONE provider"):
         cd.providers_per_household()
 
@@ -201,11 +199,9 @@ def test_census_extract_partitions_the_population():
 # ---------------------------------------------------------------------------
 
 def test_care_alone_would_overstate_the_infant_weight_enormously():
-    """Why `personal_profile` exists, demonstrated rather than asserted.
-
-    Care received counts everything done FOR an infant and nothing an adult does
-    for themselves, so on care alone an infant looks like ~25 working-age
-    adults. This test pins the error the composition corrects.
+    """Care received counts everything done FOR an infant and nothing an adult does for
+    themselves. On care alone an infant reads as ~56 working-age adults today (the test
+    asserts more than 15); the composition in `personal_profile` corrects that.
     """
     profile = cd.personal_profile(care_curve.pooled_years())
     care_ratio = profile[0]["care"] / profile[40]["care"]
@@ -215,11 +211,9 @@ def test_care_alone_would_overstate_the_infant_weight_enormously():
 
 
 def test_measured_weights_bracket_the_shipped_infant_and_child_values():
-    """Infant and child are LOWER bounds and land just under their shipped values.
-
-    Both bands contain ages ATUS does not survey, so their self-maintenance is
-    missing and their totals can only rise. Reading just below 3.0 and 1.5 is
-    therefore consistent with those weights, not evidence against them.
+    """Infant and child are LOWER bounds: both bands contain ages ATUS does not survey,
+    so their totals can only rise. Infant reads just under its shipped 3.0. Child reads
+    well under its shipped 1.82, which took the MTUS measurement this curve cannot see.
     """
     rows = {r["band"]: r for r in care_curve.implied_weights()["rows"]}
     for band in ("infant", "child"):
@@ -235,29 +229,29 @@ def test_measured_weights_bracket_the_shipped_infant_and_child_values():
 
 
 def test_the_elderly_weight_was_adopted_from_this_measurement():
-    """The one band where both components are measured, and the one that moved.
-
-    Adopted 2.5 → 1.48 on 2026-08-10. The shipped constant is the rounded
-    measurement, so if a later ATUS vintage moves the measured value the two
-    part company here rather than drifting quietly — the bind-by-test pattern
-    `TestCarbonKappaReconciliation` uses, since data.py cannot import a
-    measurement it sits below.
+    """The elderly weight was adopted from this measurement (2.5 → 1.48, 2026-08-10).
+    Read with the 80 cell binned, it is 1.47 today, and re-adoption is the author's
+    call, so the test pins both sides and fails if either moves
+    ([record](record/personal.md#eighty-cell-binned)).
     """
     row = {r["band"]: r for r in care_curve.implied_weights()["rows"]}["elderly"]
     assert row["bound"] == "measured"
-    assert round(float(row["implied_weight"]), 2) == AGE_GROUPS["elderly"]["eoh_weight"]
+    # RE-ADOPTION PENDING (2026-10-02). The measurement 1.48 was read from
+    # counted ATUS's 80 cell — ages 80–84 (TEAGE_EC, 2024 data dictionary) —
+    # against the age-80 population alone, and ages 81–84 found no cell in the
+    # band average and dropped out. Corrected, it reads 1.4680 → 1.47.
+    # Re-adopting moves 27 pins and the knowledge-base fixed point, so it is the
+    # author's; until then BOTH sides are pinned, and either moving fails here.
+    assert AGE_GROUPS["elderly"]["eoh_weight"] == 1.48
+    assert round(float(row["implied_weight"]), 2) == 1.47
 
 
 def test_the_institutional_caveat_is_why_this_is_a_lower_bound():
-    """1.48 is the HOUSEHOLD-RESIDENT reading, and the gap is named not closed.
-
-    ATUS covers the household population only, so the institutionalised
-    elderly — who need the most care — are outside the frame entirely. The
-    adopted weight is therefore a lower bound for the elderly population as a
-    whole. What would close it is CMS Payroll-Based Journal staffing hours per
-    resident-day; what would NOT is recipient-side activity monitoring, which
-    measures the monitored person's own movement and physiology rather than
-    anyone's care hours.
+    """1.48 is the HOUSEHOLD-RESIDENT reading. ATUS covers households only, so the
+    institutionalised elderly, who need the most care, are outside the frame, and the
+    weight is a lower bound. CMS Payroll-Based Journal staffing hours would close the
+    gap; recipient-side activity monitoring would not, because it measures no one's care
+    hours.
     """
     from utils import provenance as pv
 
@@ -298,37 +292,27 @@ def test_measured_population_shares_are_close_to_the_shipped_fractions():
         assert abs(measured[band] - group["fraction"]) < 0.03, band
 
 
-class TestOnlyTheElderlyWeightWasAdopted:
-    """Exactly one weight moved, and the other three did not.
-
-    Infant and child measure 2.55 and 1.35 against shipped 3.0 and 1.5, but
-    both bands contain ages ATUS does not survey, so their totals are lower
-    bounds that can only rise. Adopting a lower bound as a point estimate would
-    revise those weights DOWN on the strength of a measurement that is missing
-    a term — the opposite of what the evidence supports. They stay.
+class TestTheAgeWeightRevaluations:
+    """Of the 2026-08-10 decision, the elderly weight moved and infant and child stayed,
+    because their ATUS totals are lower bounds. Child moved on 2026-09-01, when MTUS, a
+    survey that covers children, arrived
+    ([record](record/personal.md#care-demand-test-history)).
     """
 
     def test_the_infant_band_still_has_not_moved(self):
-        """
-        INFANT is unchanged, and 2026-09-01 CHECKED it rather than assumed it.
-        MTUS surveys children, but 92% of its infant-band diaries are ages 3-5
-        and an infant's maintenance IS the caregiver's work, already counted on
-        the care-received side — so extrapolating into ages 0-2 would double
-        count. Applying the ages-3-5 figure to the whole band gives 3.21;
-        assuming 0-2 self-maintain at ~0 gives 2.85. The shipped 3.0 sits
-        between them and the measurement does not move it.
+        """The infant weight stays 3.0, and 2026-09-01 checked it. 92% of MTUS
+        infant-band diaries are ages 3-5, and an infant's maintenance is already counted
+        as care received. The two readings give 3.21 and 2.85, and 3.0 sits between
+        them.
         """
         assert AGE_GROUPS["infant"]["eoh_weight"] == 3.0
 
     def test_the_child_band_MOVED_when_a_survey_covering_children_arrived(self):
-        """
-        THE HALF OF THE 2026-08-10 DECISION THAT WAS REVERSED, and its own
-        `resolves_by` is what licensed it: "a time-use survey covering children
-        would close the band from below." MTUS is that survey — 977,809
-        diaries, children from age 3 — and the child band reads 171.1 min/day
-        of self-maintenance against the 24.5 ATUS reports from its 15-17
-        sliver. Band [1.68, 1.82], and 1.82 is the high end because errs is
-        HIGH: a weight set too low is paid in unserved care.
+        """The child weight moved to 1.82, as its own `resolves_by` allowed. MTUS reads
+        171.1 min/day of child self-maintenance against the 24.5 from ATUS's 15-17
+        sliver. The band is [1.68, 1.82], and 1.82 is the high end because a weight set
+        too low is paid in unserved care
+        ([record](record/personal.md#child-weight-measured)).
         """
         assert AGE_GROUPS["child"]["eoh_weight"] == 1.82
 
@@ -346,11 +330,9 @@ class TestOnlyTheElderlyWeightWasAdopted:
         assert w / 1.3016 - 1.0 == pytest.approx(0.0393, abs=5e-4)
 
     def test_the_fractions_were_not_touched(self):
-        """The weights were revalued; the population split is a separate question.
-
-        Moving both together would make the change in `w` impossible to
-        attribute to either, and the fractions describe a jurisdiction rather
-        than a measurement this framework owes.
+        """The weights changed and the population split did not. Moving both would make
+        the change in `w` impossible to attribute, and the fractions describe a
+        jurisdiction, not a measurement.
         """
         assert [g["fraction"] for g in AGE_GROUPS.values()] == [0.07, 0.16, 0.60, 0.17]
 
@@ -374,12 +356,9 @@ class TestOnlyTheElderlyWeightWasAdopted:
 
 
 class TestAgeGroupsSplit:
-    """One constant carrying four epistemic states, separated 2026-08-10.
-
-    `AGE_GROUPS` was tagged `placeholder` because a single tag reads its
-    weakest element — so a chosen partition, jurisdiction data, a numeraire and
-    two grades of measurement all inherited the tag of the worst one, and a
-    reader learned nothing true about any of them.
+    """`AGE_GROUPS` held four epistemic states under one `placeholder` tag, because a
+    single tag reads its weakest element. The split (2026-08-10) gives each part its own
+    tag.
     """
 
     def test_the_composite_is_byte_identical_to_its_parts(self):
@@ -469,3 +448,40 @@ class TestAgeGroupsSplit:
         record = pv.load().by_name["AGE_GROUP_FRACTIONS"]
         assert "census" in record.supplied_by.lower()
         assert record.default, "an instance default with nothing said about it"
+
+
+class TestTheEightyCellIsAFiveYearBin:
+    """ATUS codes ages 80–84 as 80 and 85+ as 85 (2024 ATUS Interview Data Dictionary).
+    Until 2026-10-02 the 80 cell's eldercare was divided by the age-80 population alone
+    ([record](record/personal.md#eighty-cell-binned)).
+    """
+
+    def test_no_survey_year_records_ages_81_to_84(self):
+        import csv
+        from hours_eoh.reference.care_demand import _ELDER_FILE
+        ages = {int(r["recipient_age"]) for r in csv.DictReader(_ELDER_FILE.open())}
+        assert {80, 85} <= ages and not ages & {81, 82, 83, 84}
+
+    @pytest.mark.parametrize("age,code", [(79, 79), (80, 80), (84, 80), (85, 85), (99, 85)])
+    def test_the_mapping(self, age, code):
+        from hours_eoh.reference.care_demand import atus_age
+        assert atus_age(age) == code
+
+    def test_the_eighty_cell_divides_by_eighty_to_eighty_four(self):
+        from hours_eoh.reference.care_demand import elderly_per_capita
+        pc = elderly_per_capita()
+        assert pc[80] < 1440.0 / 10.0          # well under a tenth of the day
+        assert pc[80] < 2.0 * max(pc[78], pc[79], pc[85])
+
+    def test_a_knot_inside_the_bin_reads_the_bin(self):
+        from hours_eoh.reference.care_demand import curve_knots
+        k = curve_knots((80, 82))["elder_nonhh"]
+        assert k[82] == k[80] > 0.0
+
+
+def test_ages_81_to_84_are_in_the_band_average():
+    """`band_relative_demand` read `profile.get(min(age, top))`, so 81–84 found
+    no cell and 6.09M people dropped out of the elderly band (2026-10-02)."""
+    from hours_eoh.reference.care_demand import band_relative_demand
+    r = band_relative_demand({"inside": (81, 84), "working_age": (18, 64)}, "working_age")
+    assert r["inside"]["total"] is not None and r["inside"]["total"] > 0.0

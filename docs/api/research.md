@@ -357,6 +357,19 @@ inter-collective relative inflation as FX in transition; system-wide
 impossibility as the ε→1 limit), settlement rules, and Trust/capital dynamics
 with the §8.3 Piketty-inversion check.
 
+**Settlement basis (author decision, 2026-09-30).** The federation settles
+hour for hour: `exchange_rates(collectives)` defaults to `basis="registered"`,
+r(i, j) = m_j / m_i, via `research/exchange.registered_rate`. Register capture
+does not move it; a collective minting at a higher multiplier depreciates; the
+rate stays within the Condition II band ratio only while both sides honour the
+band, which `exchange.settlement_terms` reports alongside the floor reading
+(purchasing power, at both the supplied and the observed ε, applied to
+nothing). A `discovery_premium` is refused on this basis. `basis="parity"`
+(per-capita mint over per-capita mint) reproduces pre-adoption figures and is
+superseded because it rewards register capture. `make_federation(...,
+multiplier_schedule=[...])` is the lever the settlement basis reads; without
+it every rate is 1.0.
+
 ### Phase 4 — boundary events and the federation commons (§8.7)
 
 - **`merge_collectives(absorber, absorbed, rate, indivisible_fraction) → dict`** —

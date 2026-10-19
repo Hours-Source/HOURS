@@ -1,13 +1,12 @@
 """
 Formation feedback — proposed §8.9c (who actually builds K(ε)).
 
-EXPERIMENTAL TIER — not stable API. Closes the circularity the §8.9b static
-model flagged as open: the charter share s(ε) is an implicit tax on private
-capital formation, yet the static model assumed K(ε) = K₀ + ν·Y(ε)
-materializes regardless. Here formation is FINANCED or it does not happen,
-and ε is DERIVED from the capital the simulation actually forms — inverting
-the module's own physics (ε = (K − K₀)/(ν·total_eoh), the aggregate
-analogue of core's compute_epsilon; typed-capital integration via
+EXPERIMENTAL TIER — not stable API. Closes the circularity the §8.9b static model
+flagged as open. The charter share s(ε) is an implicit tax on private capital formation,
+yet the static model assumed K(ε) = K₀ + ν·Y(ε) materializes regardless. Here formation
+is FINANCED or it does not happen, and ε is DERIVED from the capital the simulation
+actually forms — inverting the module's own physics (ε = (K − K₀)/(ν·total_eoh), the
+aggregate analogue of core's compute_epsilon; typed-capital integration via
 core/civilization.py is the core-grade follow-up).
 
 The three coupled loops, closed:
@@ -52,10 +51,11 @@ Mission Statement: §"Contestability — the invariant the arc must preserve."
 
 from __future__ import annotations
 
-from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     ANNUAL_DEATH_RATE,
-    CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     CONTESTABILITY_PHI_FLOOR,
     CONTESTABILITY_UNDERWRITE_FRACTION,
@@ -77,7 +77,7 @@ from hours_eoh.research.recalibration import (
 )
 
 # Top of the ε range (CLAUDE.md design invariant: ε ∈ [0, 0.99]).
-_EPS_MAX: float = 0.99
+_EPS_MAX: float = EPSILON_ARC_MAX
 
 # Formation-demand tolerance: below this (TEH/yr) demand counts as met, so
 # the terminal arc plateau is not misreported as a stall. Numerics only.
@@ -147,8 +147,8 @@ def investment_supply_fraction(
     compensation remains. r_full = FORMATION_FULL_SUPPLY_RATE is the return
     at which formation demand is fully supplied.
 
-    Worked example (defaults): f = 1 for s ≤ 0.5 (the charter is FREE up to
-    the incentive-compatible share); f = 0.5 at s = 0.7; f = 0 at s ≥ 0.9.
+    Worked example (defaults): f = 1 for s ≤ 0.5, so the charter is FREE up to the
+    incentive-compatible share. The fraction is 0.5 at s = 0.7 and 0 at s ≥ 0.9.
 
     Args:
         s: Charter share of new formation (∈ [0, 1]).
@@ -183,9 +183,9 @@ def incentive_compatible_share(
         s* = 1 − r_full / (1/ν − δ)
 
     Worked example (defaults): s* = 1 − 0.10/0.20 = 0.50. Compare
-    formation_share_required(ε): s_required crosses s* at ε ≈ 0.33 — below
-    that the charter doctrine is genuinely free; above it the commons must
-    co-fund formation from its own income.
+    formation_share_required(ε): s_required crosses s* at ε ≈ 0.20 (2026-10-18; ≈ 0.33
+    when written). Below that the charter doctrine is genuinely free; above it the
+    commons must co-fund formation from its own income.
 
     Args:
         capital_output_ratio: ν (> 0).
@@ -208,7 +208,7 @@ def formation_feedback_simulation(
     n_years: int = 100,
     priority: str = "share",
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     depreciation_rate: float = FORMATION_DEPRECIATION_RATE,
@@ -245,18 +245,18 @@ def formation_feedback_simulation(
                    attaches to NET NEW formation only)
         ε_next   = clamp((K − K₀)/(ν·E), 0, 0.99)    (capacity-derived)
 
-    Estate flow: death_rate · share · K_priv (share = estate_escheat_share,
-    or RECAL_ESCALATION_ESTATE_SHARE while escalation is latched). The
-    §8.9b escalation trigger (escalation=True: adversarial regime AND
-    capacity < floor or invariant failing) latches, as in the arc.
+    Estate flow: death_rate · share · K_priv (share = estate_escheat_share, or
+    RECAL_ESCALATION_ESTATE_SHARE while escalation holds). The §8.9b escalation trigger
+    (escalation=True: adversarial regime AND capacity < floor or invariant failing)
+    latches, as in the arc.
 
     charter_share_override pins s (0.0 = the NULL ANCHOR: no charter, full
     private funding — must reproduce the canonical ~50-year arc pace; the
     baseline every feedback effect is measured against).
 
-    Conservation (T_K + K_priv = K) is exact by construction; asserted in
-    tests. Exit channels are evaluated each year at ACTUAL ε and the NET
-    dividend — the feedback-consistent invariant check.
+    Conservation (T_K + K_priv = K) is exact by construction; asserted in tests. The
+    simulation evaluates exit channels each year at ACTUAL ε and the NET dividend: the
+    feedback-consistent invariant check.
 
     Args:
         n_years: Simulation horizon in years.
@@ -298,7 +298,9 @@ def formation_feedback_simulation(
             f"charter_share_override must be in [0, 1], got {charter_share_override}"
         )
 
-    k0 = CAPITAL_STOCK_DEFAULT
+    # K₀ in THIS frame (2026-09-30), matching `capital_stock_epsilon`, which
+    # this loop compares it against. Was the 1M constant beside a population.
+    k0 = resolve_capital_stock(None, None, population=population)
     eps = 0.0
     k = k0
     t_k = CONTESTABILITY_PHI_FLOOR * k0  # the §8.9 initial endowment
@@ -494,4 +496,145 @@ def formation_verdict(
         "min_dividend_after_takeoff": min(post_takeoff) if post_takeoff else None,
         "terminal_dividend": rows[-1]["dividend_per_capita"],
         "n_years": rows[-1]["year"],
+    }
+
+
+# ---------------------------------------------------------------------------
+# The arc speed solved against the pace it produces — RECAL_EPSILON_RATE_PER_YEAR
+# ---------------------------------------------------------------------------
+
+# Numerics only. The horizon is a multiple of the schedule's own length, so a
+# run that stalls below the cap is seen as stalled rather than cut short.
+_PACE_HORIZON_FACTOR: float = 3.0
+_PACE_DAMPING: float = 0.5
+_PACE_REL_TOL: float = 1e-4
+_PACE_MAX_ITER: int = 60
+# A schedule shorter than this many yearly steps is paced by the step, not the
+# dynamics: at r → EPSILON_ARC_MAX every run reaches the cap in one period, so
+# pace(r) = r there for any model. The solve leaves the range before it.
+_PACE_MIN_PERIODS: float = 2.0
+
+
+def realised_pace(
+    epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
+    charter_share_override: float | None = 0.0,
+    **simulation_kwargs: object,
+) -> dict:
+    """
+    The mean arc pace a formation run REALISES at a given schedule rate.
+
+        pace = EPSILON_ARC_MAX / T,   T = first year ε_actual reaches the cap
+
+    T reads between years. The last unclamped step's slope extends the arc to the cap,
+    so the pace does not jump by a whole year at a year boundary. A run that never
+    reaches the cap within `_PACE_HORIZON_FACTOR` × the schedule's own length reports
+    `reached=False` and pace = ε_final / n_years.
+
+    units: ε per year. ε-behaviour: the run covers the whole arc [0, 0.99].
+
+    Args:
+        epsilon_rate_per_year: the schedule rate dε/dt the run chases (> 0).
+        charter_share_override: as in formation_feedback_simulation; 0.0 (the
+            default here) is the NULL ANCHOR, None the endogenous charter.
+        **simulation_kwargs: passed to formation_feedback_simulation.
+
+    Returns:
+        dict with `rate`, `pace`, `ratio` (pace / rate), `years_to_cap`
+        (fractional, None if not reached), `reached`, `n_years`.
+    """
+    if epsilon_rate_per_year <= 0.0:
+        raise ValueError(
+            f"epsilon_rate_per_year must be > 0, got {epsilon_rate_per_year}"
+        )
+    n_years = int(_PACE_HORIZON_FACTOR * _EPS_MAX / epsilon_rate_per_year) + 1
+    rows = formation_feedback_simulation(
+        n_years=n_years,
+        epsilon_rate_per_year=epsilon_rate_per_year,
+        charter_share_override=charter_share_override,
+        **simulation_kwargs,  # type: ignore[arg-type]
+    )
+    eps = [r["eps_actual"] for r in rows]
+    hit = next((i for i, e in enumerate(eps) if e >= _EPS_MAX), None)
+    if hit is None:
+        pace = eps[-1] / n_years
+        years: float | None = None
+    else:
+        prev = eps[hit - 1]
+        step = prev - eps[hit - 2] if hit >= 2 else prev
+        years = (hit - 1) + ((_EPS_MAX - prev) / step if step > 0.0 else 1.0)
+        pace = _EPS_MAX / years
+    return {
+        "rate": epsilon_rate_per_year,
+        "pace": pace,
+        "ratio": pace / epsilon_rate_per_year,
+        "years_to_cap": years,
+        "reached": hit is not None,
+        "n_years": n_years,
+    }
+
+
+def epsilon_rate_fixed_point(
+    charter_share_override: float | None = 0.0,
+    rate_start: float = RECAL_EPSILON_RATE_PER_YEAR,
+    **simulation_kwargs: object,
+) -> dict:
+    """
+    Solve the schedule rate and the pace it realises together — the pointer
+    RECAL_EPSILON_RATE_PER_YEAR named, and what it finds.
+
+        r_{k+1} = r_k + d · (pace(r_k) − r_k)          (d = _PACE_DAMPING)
+
+    stopped when |pace − r| < _PACE_REL_TOL · r, or reported unconverged when
+    r leaves the range — at or below 0, or a schedule shorter than
+    _PACE_MIN_PERIODS yearly steps, where the step sets the pace and every
+    model has the trivial fixed point at the cap — or the budget runs out. Same damped shape as
+    scenarios/knowledge_base.epsilon_ref_fixed_point.
+
+    WHAT A FIXED POINT WOULD MEAN is for the caller to read from `ratio_at_start` and
+    `path`, not for this docstring: a pace that scales with the rate returns the input
+    times the arc's shape and selects no rate, and a crossing that appears only where
+    formation cannot keep up is a ceiling on the rate, not a reading of it. The function
+    reports both and asserts neither.
+
+    units: ε per year. ε-behaviour: each evaluation runs the whole arc.
+
+    Args:
+        charter_share_override: 0.0 (default) the null anchor, None the
+            endogenous charter, or a pinned share.
+        rate_start: the first iterate; the shipped constant by default.
+        **simulation_kwargs: passed to formation_feedback_simulation.
+
+    Returns:
+        dict with `converged`, `epsilon_rate_fixed_point` (None unless
+        converged), `rate_start`, `pace_at_start`, `ratio_at_start`,
+        `iterations`, `path` (one realised_pace dict per iterate) and `exit`
+        ("converged" / "left_range" / "max_iter").
+    """
+    if not 0.0 < rate_start or _EPS_MAX / rate_start < _PACE_MIN_PERIODS:
+        raise ValueError(
+            f"rate_start must be in (0, {_EPS_MAX / _PACE_MIN_PERIODS}], got {rate_start}"
+        )
+    rate = float(rate_start)
+    path: list[dict] = []
+    exit_ = "max_iter"
+    for _ in range(_PACE_MAX_ITER):
+        if not 0.0 < rate or _EPS_MAX / rate < _PACE_MIN_PERIODS:
+            exit_ = "left_range"
+            break
+        point = realised_pace(rate, charter_share_override, **simulation_kwargs)
+        path.append(point)
+        gap = point["pace"] - rate
+        if abs(gap) < _PACE_REL_TOL * rate:
+            exit_ = "converged"
+            break
+        rate = rate + _PACE_DAMPING * gap
+    return {
+        "converged": exit_ == "converged",
+        "epsilon_rate_fixed_point": path[-1]["rate"] if exit_ == "converged" else None,
+        "rate_start": rate_start,
+        "pace_at_start": path[0]["pace"],
+        "ratio_at_start": path[0]["ratio"],
+        "iterations": len(path),
+        "path": path,
+        "exit": exit_,
     }

@@ -1,12 +1,11 @@
 """
 The stability corridor — success as a stable feasible band, not ε → 1.
 
-Framework decision (2026-08-01, author sign-off): ε = 1 (full automation) is
-demoted from *the* target to ASPIRATIONAL — the target to reach. Success is a
-STABLE MEASURABLE CORRIDOR: a band of ε over which every invariant holds, with
-positive width sustained over the horizon and the sufficiency floor met. A
-collective stable at ε = 0.6 with a positive corridor is a success by this
-framework's standard, not a failed run at ε = 1.
+Framework decision (2026-08-01, author sign-off): ε = 1 (full automation) is no longer
+*the* target. It is ASPIRATIONAL, the target to reach. Success is a STABLE MEASURABLE
+CORRIDOR: a band of ε over which every invariant holds, with positive width sustained
+over the horizon and the sufficiency floor met. A collective stable at ε = 0.6 with a
+positive corridor is a success by this framework's standard, not a failed run at ε = 1.
 
 The corridor is the region where the framework's invariants hold simultaneously:
 
@@ -27,14 +26,14 @@ the thermal ceiling is INCONCLUSIVE at P0 (research/thermal.py) and enters as a
 non-binding, advisory ceiling until measured ι (handoff §13.1 path C) lands.
 
 CONTESTABILITY AXIS MIGRATION (2026-08-05). This module previously took its
-contestability ceiling from the bare margin χ = P/K_entry, which §8.9 had
-already superseded — so the recorded "corridor CLOSED at defaults" finding was
-produced by a retired invariant. `contestability_ceiling()` now runs the adopted
-three-channel financeability test; the bare-χ form survives, explicitly labelled,
-as `contestability_ceiling_bare_chi()`. At defaults the two DISAGREE (bare-χ
-binds at ε ≈ 0.24, the adopted test does not bind at all), and
-`contestability_axes()` exists to report that disagreement rather than bury it.
-The closed-corridor result stands only as a statement about the stricter test.
+contestability ceiling from the bare margin χ = P/K_entry, which §8.9 had already
+superseded. So a retired invariant produced the recorded "corridor CLOSED at defaults"
+finding. `contestability_ceiling()` now runs the adopted three-channel financeability
+test; the bare-χ form survives, explicitly labelled, as
+`contestability_ceiling_bare_chi()`. At defaults the two DISAGREE: bare-χ binds from ε
+0.00 on 2026-10-18 (ε ≈ 0.24 when written), and the adopted test does not bind at all.
+`contestability_axes()` exists to report that disagreement, not bury it. The
+closed-corridor result stands only as a statement about the stricter test.
 
 Layer: research/ — composes research/thermal + research/contestability + core
 inventory; experimental until the API stabilizes (same discipline as those two).
@@ -46,7 +45,13 @@ from __future__ import annotations
 
 from typing import Callable, TypedDict
 
-from hours_eoh.data import CONTESTABILITY_CHI_CRIT, THERMAL_U_FLOOR
+from hours_eoh.data import (
+    CONTESTABILITY_CHI_CRIT,
+    REFERENCE_FRAME_POPULATION,
+    THERMAL_DT_LO,
+    THERMAL_LAMBDA_FEEDBACK,
+    THERMAL_U_FLOOR,
+)
 from hours_eoh.research.contestability import contestability_margin
 from hours_eoh.research.recalibration import exit_financing
 from hours_eoh.research.thermal import provable_ceiling_bound
@@ -63,20 +68,19 @@ _ARC = tuple(i / 100 for i in range(100))  # 0.00 … 0.99
 # ---------------------------------------------------------------------------
 
 def survival_inventory(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     **kwargs: float,
 ) -> dict[str, float]:
     """
     An EOH inventory taken at the SURVIVAL standard — the correct input to
     `survival_floor_epsilon`.
 
-    Why this exists (2026-08-06). ε_suff was being computed from an inventory at
-    the *operating* personal standard, which is a sufficiency-shaped number. That
-    is a category error: it asks "how much automation is needed before nobody
-    goes without a decent life", and then reports the answer as a survival floor.
-    Run at the survival standard (S_a = 600 per working-age-equivalent) the floor
-    is ε_suff = 0 — subsistence survives with no automation, which is what the
-    historical record shows.
+    Why this exists (2026-08-06). The module computed ε_suff from an inventory at the
+    *operating* personal standard, which is a sufficiency-shaped number. That is a
+    category error. It asks "how much automation does it take before nobody goes without
+    a decent life", and then reports the answer as a survival floor. Run at the survival
+    standard (S_a = 600 per working-age-equivalent) the floor is ε_suff = 0 —
+    subsistence survives with no automation, which is what the historical record shows.
 
     The corrected reading of the two numbers together: **subsistence can survive
     but cannot reach sufficiency without automation.** The gap between them is
@@ -89,14 +93,14 @@ def survival_inventory(
     Args:
         population: Total population.
         **kwargs: Forwarded to `core.eoh_generation.total_eoh` (epsilon,
-            capital_stock, ecosystem_health, …). `personal_standard` is set here
-            and must not be passed.
+            capital_stock, ecosystem_health, …). This function sets `personal_standard`,
+            and the caller must not pass it.
 
     Returns:
         The `total_eoh` dict with personal taken at the survival standard.
 
     Raises:
-        TypeError: if `personal_standard` is supplied by the caller.
+        TypeError: if the caller supplies `personal_standard`.
     """
     if "personal_standard" in kwargs:
         raise TypeError(
@@ -115,11 +119,11 @@ def survival_floor_epsilon(
     E22 — the survival floor ε_suff: the minimum machine-fulfillment share needed
     to cover survival EOH beyond what available human labor can do.
 
-    IMPORTANT — which inventory you pass decides what this measures. Build it
-    with `survival_inventory()` so the personal domain is taken at the SURVIVAL
-    standard. Passing an inventory at the operating (abatement-collapsed) or
-    sufficiency standard makes this report a SUFFICIENCY floor under a survival
-    name, which is the category error this signature note exists to prevent:
+    IMPORTANT — which inventory you pass decides what this measures. Build it with
+    `survival_inventory()`, so the personal domain reads at the SURVIVAL standard.
+    Passing an inventory at the operating (abatement-collapsed) or sufficiency standard
+    makes this report a SUFFICIENCY floor under a survival name, which is the category
+    error this signature note exists to prevent:
 
         survival standard   S_a = 600   →  ε_suff = 0.00   (subsistence survives)
         operating           1000        →  ε_suff = 0.31
@@ -132,10 +136,10 @@ def survival_floor_epsilon(
 
     EOH_surv is the survival-critical EOH (the `survival_domains` subset of the
     breakdown — personal EOH by default, the biological necessity floor). If human
-    labor alone covers survival (L_avail ≥ EOH_surv), ε_suff = 0: no automation is
-    required to survive. When survival demand outruns human labor, the shortfall
-    must be machine-fulfilled, and ε_suff is that shortfall as a fraction of total
-    EOH — the LOWER edge of the corridor.
+    labour alone covers survival (L_avail ≥ EOH_surv), ε_suff = 0: survival needs no
+    automation. When survival demand outruns human labor, the shortfall must be
+    machine-fulfilled, and ε_suff is that shortfall as a fraction of total EOH — the
+    LOWER edge of the corridor.
 
     units: dimensionless ∈ [0, 1]. ε-behavior: ε_suff is a level quantity computed
     from an EOH inventory; it does not itself depend on the operating ε.
@@ -257,9 +261,9 @@ def contestability_ceiling_bare_chi(
     flow/stock defect; §8.9 replaced it with time-to-finance-exit plus an
     accumulating capital account.
 
-    Why it is kept: it is a genuine upper-bound stress — a collective that
-    passes bare-χ needs no underwriting and no vesting period at all. Read it as
-    "exit is financeable from one year of income alone", not as the invariant.
+    Why it stays: it is a genuine upper-bound stress. A collective that passes bare-χ
+    needs no underwriting and no vesting period at all. Read it as "exit is financeable
+    from one year of income alone", not as the invariant.
 
     Do NOT use this as the corridor's contestability axis; use
     `contestability_ceiling()`. Callers wanting the comparison should use
@@ -306,10 +310,10 @@ def contestability_axes(
     """
     Report BOTH contestability axes side by side and flag disagreement.
 
-    This exists because the disagreement is itself the finding. Before this was
-    wired, the corridor ran on the retired bare-χ axis and reported a closed
-    corridor at defaults; on the adopted §8.9 axis nothing binds. Publishing one
-    number without the other hides which invariant produced the verdict.
+    This exists because the disagreement is itself the finding. Before this wiring, the
+    corridor ran on the retired bare-χ axis and reported a closed corridor at defaults;
+    on the adopted §8.9 axis nothing binds. Publishing one number without the other
+    hides which invariant produced the verdict.
 
     Args:
         population: Total population.
@@ -320,8 +324,7 @@ def contestability_axes(
 
     Returns:
         AxesComparison. `agree` is False whenever the two axes differ on whether
-        contestability binds at all — the case that must be reported, not
-        averaged.
+        contestability binds at all: the case the report must show, not average.
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
     adopted = contestability_ceiling(population, regime=regime,
@@ -346,6 +349,7 @@ def thermal_ceiling(
     a_eff_collective: float,
     phi_other: float,
     epsilon: float = 0.40,
+    eoh_by_domain: dict[str, float] | None = None,
     **bound_kwargs: float,
 ) -> Ceiling:
     """
@@ -354,9 +358,13 @@ def thermal_ceiling(
     non-binding. SUPERSEDED for real use by measured_thermal_ceiling() (Path C):
     the measured signal is at the collective level (utilization U), not the global
     floor bound. Retained for the P0 story and as a regression anchor.
+
+    `eoh_by_domain` is the collective's inventory; None reads `total_eoh` at
+    the reference frame, so a caller at another population must supply it.
     """
     rep = provable_ceiling_bound(a_eff_collective, phi_other=phi_other,
-                                 epsilon=epsilon, **bound_kwargs)  # type: ignore[arg-type]
+                                 epsilon=epsilon, eoh_by_domain=eoh_by_domain,
+                                 **bound_kwargs)
     bound = rep["epsilon_max_bound"]
     if rep["verdict"] == "UNBUDGETED":
         return Ceiling(name="thermal", epsilon_ceiling=None, binding=False,
@@ -372,16 +380,26 @@ def measured_thermal_ceiling(
     utilization: float,
     epsilon_current: float = 0.40,
     u_floor: float = THERMAL_U_FLOOR,
+    delta_t_lo: float = THERMAL_DT_LO,
+    basis: str = "net_erf",
 ) -> Ceiling:
     """
-    The MEASURED thermal ceiling (Path C, finding F11). The binding thermal signal
-    is a collective's utilization U = ψ/ψ* — its measured dissipation density
+    The MEASURED thermal ceiling (Path C, finding F11).
+
+    NO BUDGET IS A WARNING, NOT A BOUND (author, 2026-10-03). U = ∞ means ψ* = 0: at
+    this ΔT_lo the forcing already exceeds λ·ΔT_lo, so the allocation is empty. That is
+    the state P0 reports as UNBUDGETED (advisory), and this function now reads it the
+    same way — non-binding, with the DIRECTION stated: the forcing reduction (W·m⁻², on
+    `basis`) that would open a budget, computed from `delta_t_lo` and the measured
+    forcing. It is a property of the planetary forcing, not of this collective's
+    automation. Contact (finite U ≥ 1) still binds at ε_current. The binding thermal
+    signal is a collective's utilization U = ψ/ψ* — its measured dissipation density
     against the allocated budget — not the (non-binding) global ε_max.
 
-    A collective already in Contact (U ≥ 1) is over the thermal budget at its
-    CURRENT automation, so there is no thermal headroom above ε_current: the
-    ceiling binds at ε_current itself. Standing exposure (U ≥ u_floor) is flagged
-    advisory (the budget is being approached but not breached). Below the floor,
+    A collective already in Contact (U ≥ 1) is over the thermal budget at its CURRENT
+    automation, so there is no thermal headroom above ε_current: the ceiling binds at
+    ε_current itself. The function flags standing exposure (U ≥ u_floor) as advisory:
+    the collective approaches the budget but does not breach it. Below the floor,
     non-binding.
 
     Feed `utilization` from research.thermal_path_c.collective_utilization(...)
@@ -398,6 +416,14 @@ def measured_thermal_ceiling(
     Returns:
         Ceiling. Binding (at ε_current) iff U ≥ 1.
     """
+    if utilization == float("inf"):
+        from hours_eoh.research.thermal_path_c import _forcing_value
+        excess = _forcing_value(basis) - THERMAL_LAMBDA_FEEDBACK * delta_t_lo  # type: ignore[arg-type]
+        return Ceiling(
+            name="thermal_measured", epsilon_ceiling=None, binding=False,
+            status=f"UNBUDGETED (advisory): forcing {excess:.3f} W·m⁻² over "
+                   f"λ·ΔT_lo — decarbonise, not de-automate",
+        )
     if utilization >= 1.0:
         return Ceiling(
             name="thermal_measured", epsilon_ceiling=epsilon_current, binding=True,
@@ -428,7 +454,7 @@ class Floor(TypedDict):
 
 def overbuild_floor(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     **kwargs: float,
 ) -> Floor:
     """
@@ -465,8 +491,61 @@ def overbuild_floor(
         return Floor(name="overbuild", epsilon_floor=0.0, binding=False,
                      status=f"apparatus pays at any ε ({check['verdict']})")
     return Floor(name="overbuild", epsilon_floor=e, binding=True,
-                 status=f"worth being in only at ε ≥ {e:.2f} — below it the "
+                 status=f"worth being in only at ε ≥ {e:.3f} — below it the "
                         f"apparatus costs members more hours than autarky")
+
+
+def overbuild_capital_limit(
+    capital_stock_teh: float,
+    population: float = REFERENCE_FRAME_POPULATION,
+    rel_tol: float = 1e-6,
+    **kwargs: float,
+) -> float | None:
+    """
+    How much capital this population can hold before the apparatus stops
+    paying — the DISTANCE behind `overbuild_floor`'s "pays at any ε".
+
+    The floor is non-binding while the OBLIGATION test passes,
+    B(K) + I(K) < B₀ (`core.autarky.overbuild_check`). B(K) falls with
+    saturating abatement while the overhead I(K) grows linearly, so the test
+    passes on (0, K*) and fails above K*. This returns K* (TEH), searched
+    upward from `capital_stock_teh` by doubling and then bisection, so it is
+    the crossing ABOVE the stock given. Added 2026-10-03: the band printed
+    "pays" with no distance, so a stock far below the crossing read the same
+    as one just under it.
+
+    Returns None when the given stock already fails the test (the floor binds;
+    `overbuild_floor` reports where), or when no crossing is found within 2⁶⁰×
+    the stock.
+
+    units: TEH. ε-behaviour: ε-free — the obligation test does not read ε.
+
+    Args:
+        capital_stock_teh: The stock to measure from (> 0).
+        population: Total population.
+        rel_tol: Relative bisection tolerance on K.
+        **kwargs: Forwarded to `overbuild_check`.
+    """
+    from hours_eoh.core.autarky import overbuild_check
+
+    def pays(k: float) -> bool:
+        return bool(overbuild_check(k, population, epsilon=0.0, **kwargs)["obligation_test"])  # type: ignore[arg-type]
+
+    if capital_stock_teh <= 0.0:
+        raise ValueError("capital_stock_teh must be > 0")
+    if not pays(capital_stock_teh):
+        return None
+    lo, hi = capital_stock_teh, 2.0 * capital_stock_teh
+    for _ in range(60):
+        if not pays(hi):
+            break
+        lo, hi = hi, 2.0 * hi
+    else:
+        return None
+    while hi - lo > rel_tol * lo:
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if pays(mid) else (lo, mid)
+    return hi
 
 
 def survival_floor(
@@ -525,8 +604,8 @@ def corridor(
 
     Args:
         epsilon_suff: EITHER a bare float (the survival floor, backward
-            compatible) OR a list of Floor. When a list, the binding floor is
-            the largest and is named in the report.
+            compatible) OR a list of Floor. For a list, the binding floor is the
+            largest, and the report names it.
         ceilings: the upper-bound invariants (contestability, thermal, …).
 
     Returns:
@@ -566,8 +645,23 @@ def corridor(
         note = (f"corridor closed: the {floor_name or 'survival'} floor exceeds the "
                 f"tightest ceiling — no ε satisfies both")
     elif binding_name is None:
-        note = ("open corridor: no invariant binds within the arc; ε_max is "
-                "aspirational (thermal advisory — not proven open, needs measured ι)")
+        # The caveat names what is MISSING, so it must change when it is supplied:
+        # with the measured ceiling present the thermal side is a measured
+        # non-binding reading, not an absent one (2026-10-03). It speaks of
+        # CEILINGS, and names a binding floor (2026-10-04): "no invariant binds"
+        # read as nothing binding while the overbuild floor did.
+        head = ("open corridor: no ceiling binds within the arc"
+                + (f"; floor at ε ≥ {epsilon_suff:.3f} ({floor_name})" if floor_name else ""))
+        measured = [c for c in ceilings if c["name"] == "thermal_measured"]
+        if measured and measured[0]["status"].startswith("UNBUDGETED"):
+            note = (f"{head}; thermal UNBUDGETED at this ΔT_lo — a warning with a "
+                    "direction (decarbonise), not a bound")
+        elif measured:
+            note = (f"{head}; thermal measured non-binding (utilization below "
+                    "contact), the P0 bound advisory")
+        else:
+            note = (f"{head}; ε_max is aspirational (thermal advisory — not proven "
+                    "open, needs measured ι)")
     else:
         note = f"corridor [{epsilon_suff:.2f}, {eps_max:.2f}] bounded above by {binding_name}"
 
@@ -604,7 +698,7 @@ def corridor_stability(series: list[CorridorReport]) -> StabilityReport:
     Assess whether a corridor is STABLE over a horizon — the operational meaning
     of "a stable corridor is its own success."
 
-    - BREACHED: any period is infeasible (width < 0) — an invariant was violated.
+    - BREACHED: any period is infeasible (width < 0), so an invariant failed.
     - NARROWING: feasible throughout but the band is shrinking toward closure
       (last-period width below half the first-period width, and strictly falling).
     - STABLE: feasible throughout and not narrowing to closure.

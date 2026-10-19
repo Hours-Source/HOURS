@@ -862,6 +862,23 @@ def base_fee(
     return area_slu * location_value * use_coeff * demand_modifier * zone_adj
 
 
+def per_parcel_term(
+    epsilon: float,
+    parcel_rate: float = GUF_PARCEL_RATE_TEH_PER_PARCEL_YR,
+) -> float:
+    """
+    The fee's per-parcel term P(ε) = parcel_rate · α(ε), TEH per parcel per
+    year (adopted 2026-08-30; see `ground_use_fee`). THE ONE COPY: the fee
+    applies it to a serviced parcel (L > 0), and a frame that states a parcel
+    COUNT and no area basis prices its measured half with it (2026-10-15,
+    author: "ship the per-parcel half first").
+
+    ε-behaviour: α(ε) falls with automation and stays positive to 0.99, so the
+    term shrinks and never vanishes. A negative rate is clamped to 0.
+    """
+    return max(0.0, parcel_rate) * labor_content_scaling(epsilon)
+
+
 def ground_use_fee(
     area_slu: float,
     location_value: float,
@@ -983,8 +1000,7 @@ def ground_use_fee(
     # L = 0.001 pays the full term and one at L = 0 pays none. Smoothing it
     # would be inventing a P_title/P_service ratio that nothing measures.
     parcel_term        = (
-        max(0.0, parcel_rate) * labor_content_scaling(epsilon)
-        if location_value > 0.0 else 0.0
+        per_parcel_term(epsilon, parcel_rate) if location_value > 0.0 else 0.0
     )
     guf_formula        = (
         psi_b * bf + psi_e * eco_amount + psi_i * infra_amount

@@ -1,10 +1,9 @@
-"""
-Tests for scenarios/measured.py — the measured-registry bridge into simulation
-and dashboard.
+"""Tests for scenarios/measured.py: the measured-registry bridge into simulation and
+dashboard.
 
-Verifies the registry reprices coherently across the ε arc, feeds
-population_weighted_mean_multiplier and system_dashboard as a drop-in for
-DEFAULT_SEGMENTS, and seeds run_simulation with a measured mean multiplier.
+The registry must reprice coherently across the ε arc and stand in for DEFAULT_SEGMENTS
+in population_weighted_mean_multiplier and system_dashboard. It also seeds
+run_simulation with a measured mean multiplier.
 """
 
 from __future__ import annotations

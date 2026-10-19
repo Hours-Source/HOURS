@@ -1,9 +1,8 @@
-"""
-Tests for the pristine/current partition (4d) and the tenure rule (4c).
+"""Tests for the pristine/current partition (4d) and the tenure rule (4c).
 
-Both are author-signed-off (2026-08-17). The partition assigns the STOCK to the
-ecological domain and the FLOW to GUF; the tenure rule assigns unheld land to
-the federation rather than leaving it uncollected.
+The author signed off both on 2026-08-17. The partition assigns the STOCK to the
+ecological domain and the FLOW to GUF. The tenure rule assigns unheld land to the
+federation and does not leave it uncollected.
 """
 
 import math
@@ -49,11 +48,10 @@ class TestTheDomainCarriesTwoStocks:
             assert loaded - base == pytest.approx(1000.0, rel=1e-12)
 
     def test_total_is_the_sum_of_its_named_parts(self):
-        """
-        PHASE 4f (adopted 2026-08-28): `standing` left the domain, so the sum is
-        stated over the parts that remain. Written as the partition — degradation
-        response, spike, visible deferred, and the two stocks — rather than as
-        `baseline` minus something, so the composition is readable.
+        """Phase 4f (adopted 2026-08-28) moved `standing` out of the domain, so the sum
+        runs over the parts that remain: degradation response, spike, visible deferred,
+        and the two stocks. Written as the partition, not as `baseline` minus something,
+        it stays readable.
         """
         b = ecological_eoh_breakdown(
             0.70, 0.40, deferred=5000.0,
@@ -197,10 +195,9 @@ class TestTenureAllocationAcrossLandClasses:
         assert r["uncollected_hours"] == 0.0
 
     def test_undeclared_classes_are_REPORTED_not_folded_away(self):
-        """
-        An omitted tenure fraction defaults to wholly member-held, which
-        understates the federation's obligation. That is the unsafe direction
-        for provisioning it, so the omissions are returned.
+        """An omitted tenure fraction defaults to wholly member-held, which understates
+        the federation's obligation. That is the unsafe direction for provisioning it,
+        so the function returns the omissions.
         """
         r = tenure_allocation(45.92, {"Miscellaneous other land": 1.0})
         assert len(r["classes_without_declared_tenure"]) >= 5
@@ -229,10 +226,9 @@ class TestTenureAllocationAcrossLandClasses:
             tenure_allocation(-1.0, {})
 
     def test_federal_land_is_the_central_case_not_an_exception(self):
-        """
-        Parks are not unowned — the federation holds them and owes what any
-        holder owes. Declaring them raises the federation's share; it does not
-        move the obligation off the books.
+        """Parks are not unowned: the federation holds them and owes what any holder
+        owes. Declaring them raises the federation's share; it does not move the
+        obligation off the books.
         """
         without = tenure_allocation(45.92, {})
         with_parks = tenure_allocation(
@@ -256,9 +252,9 @@ class TestPartitionChangesNothing:
             # These stay ABSOLUTE pins: the point is that the scenario module
             # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.0:  1360598052.2367358,
+            0.40: 1535785338.3051229,   # 2026-10-18: the floors followed their source
+            0.99: 2348009861.9085293,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -311,14 +307,10 @@ class TestTheDecompositionIsExact:
 
 
 class TestPre4eIsReachableAndTheDefaultIsGuf:
-    """
-    ADOPTED 2026-08-29 (author sign-off): `health_response` defaults to "guf",
-    so the disturbance response is the holder's through GUF and the domain is
-    HEALTH-INVARIANT — 4e's stated point, now the shipped behaviour.
-
-    The class was `TestDefaultReproducesPre4e` and asserted the opposite. Its
-    tests are retargeted rather than deleted: the superseded policy is still
-    reachable and is what every pre-4e figure was computed at.
+    """`health_response` defaults to "guf" (adopted 2026-08-29, author sign-off), so the
+    disturbance response is the holder's through GUF and the domain is HEALTH-INVARIANT.
+    The superseded policy stays reachable, because every pre-4e figure was computed at
+    it ([record](record/ecological.md#land-tenure-test-history)).
     """
 
     def test_default_mode_is_guf(self):
@@ -329,11 +321,9 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
             0.70, 0.40, health_response="domain")["health_response"] == "domain"
 
     def test_default_total_is_the_pre_4e_formula(self):
-        """
-        4e's own default, isolated. `standing_response` is pinned to "domain"
-        because Phase 4f moved that default on 2026-08-28 and this test is about
-        the HEALTH response — mixing the two partition decisions would stop it
-        testing either.
+        """4e's own default, isolated. `standing_response` is pinned to "domain",
+        because Phase 4f moved that default and this test is about the HEALTH response.
+        Mixing the two decisions would stop it testing either.
         """
         for h in HEALTHS:
             b = ecological_eoh_breakdown(h, 0.40, standing_response="domain",
@@ -344,13 +334,10 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
             )
 
     def test_shipped_totals_untouched(self):
-        """
-        MOVED BY PHASE 4f (adopted 2026-08-28), by -0.000078% / -0.000068% /
-        -0.000037% across the arc. These are the only arc totals 4f touches, and
-        the size of the move IS the finding: relocating the whole standing
-        ecological obligation to GUF changes total EOH in the seventh
-        significant figure, because the domain was already essentially where the
-        partition says it belongs.
+        """Phase 4f moved the arc totals by −0.000078% / −0.000068% / −0.000037%. Moving
+        the whole standing ecological obligation to GUF changed total EOH in the seventh
+        significant figure, because the domain was already where the partition says it
+        belongs.
         """
             # MOVED 2026-09-09 by the capital-path decision (reading (e)):
             # an unspecified capital stock resolves along the canonical arc
@@ -360,17 +347,18 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
             # These stay ABSOLUTE pins: the point is that the scenario module
             # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.0:  1360598052.2367358,
+            0.40: 1535785338.3051229,   # 2026-10-18: the floors followed their source
+            0.99: 2348009861.9085293,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
         # the pre-4f arc is still reachable, and is what every earlier figure used
+        # (re-pinned 2026-10-15 and 2026-10-18 with KNOWLEDGE_EOH_BASE's re-derivations)
         legacy = {
-            0.0:  1360742321.1688159,
-            0.40: 1531928871.729177,
-            0.99: 2348389048.8611407,
+            0.0:  1360599591.8562205,
+            0.40: 1535786877.9246075,   # 2026-10-18: the floors followed their source
+            0.99: 2348011401.5280137,
         }
         for eps, want in legacy.items():
             got = total_eoh(epsilon=eps,
@@ -408,10 +396,8 @@ class TestRelocationConservesAndIsHealthInvariant:
         assert max(before) / min(before) > 3.0
 
     def test_the_relocated_share_rises_with_degradation(self):
-        """
-        The property that makes the health response a DISTURBANCE measure. If
-        the share did not rise as condition falls, relocating it to the reset
-        cost would not be justified.
+        """The relocated share must rise as condition falls. That makes the health
+        response a DISTURBANCE measure, which justifies relocating it to the reset cost.
         """
         shares = [health_response_relocation(h)["relocated_share"] for h in HEALTHS]
         assert shares == sorted(shares)
@@ -462,13 +448,10 @@ class TestRelocationConservesAndIsHealthInvariant:
 
 
 class TestOneLoaderOverOneCSV:
-    """
-    2026-08-17: `reference/servicing` had grown a second dict loader over the
-    same MLU CSV, and the two disagreed on whether the aggregate "Total land"
-    row belongs in a mapping. It does not — summing such a mapping doubles the
-    area. No live figure was wrong, but one consumer already carried a
-    `if name == "Total land": continue` workaround, which is a duplicate
-    announcing itself.
+    """One loader reads the MLU CSV (2026-08-17). `reference/servicing` had grown a
+    second one, and the two disagreed on the aggregate "Total land" row, which doubles
+    the area if summed. No live figure was wrong, but one consumer already carried a
+    workaround.
     """
 
     def test_the_dict_projection_matches_the_row_loader(self):
@@ -513,20 +496,11 @@ class TestOneLoaderOverOneCSV:
 
 
 class TestRestorationReachesTheIntakePath:
-    """
-    THE THIRD STOCK WAS UNREACHABLE FROM THE DOCUMENTED ENTRY (fixed 2026-08-30).
-
-    `restoration_obligation` stopped at `ecological_eoh` while its sibling
-    `thermal_obligation` — same class of term, added by the same phase —
-    reached `total_eoh` and `eoh_to_teh_pipeline`. That is the stranded-
-    parameter failure this repo has now found four times (`personal_standard`,
-    `ecological_health_response`, `knowledge_base_size`, and this).
-
-    It mattered more after the partition than before it: Phases 4e/4f leave the
-    ecological domain carrying ONLY stocks, and this was the one an institution
-    following the implementation guide could not supply. Found while pinning the
-    conservation-credit decision, whose whole argument is that restoration is
-    representable as LABOUR — a claim that was false at the entry point.
+    """`restoration_obligation` must reach the documented entry point (fixed
+    2026-08-30). It stopped at `ecological_eoh` while its sibling `thermal_obligation`
+    reached `total_eoh` and `eoh_to_teh_pipeline`: mode 5, the stranded parameter. After
+    Phases 4e/4f the domain carries ONLY stocks, and this was the one an institution
+    could not supply ([record](record/ecological.md#land-tenure-test-history)).
     """
 
     @pytest.mark.parametrize("eps", ARC)
@@ -557,10 +531,8 @@ class TestRestorationReachesTheIntakePath:
             epsilon=0.40, population=1e6)["eoh_by_domain"]["ecological"] == 0.0
 
     def test_all_three_stocks_are_now_reachable_from_the_entry_point(self):
-        """
-        The partition's own claim, checked at the documented entry rather than
-        one layer below it: the domain carries three stocks and every one can
-        be supplied.
+        """The partition's own claim, checked at the documented entry point: the domain
+        carries three stocks, and a caller can supply each one.
         """
         from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 

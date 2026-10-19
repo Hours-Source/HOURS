@@ -1,35 +1,40 @@
 """
 Jurisdiction frames — pairing a population with the land it is responsible for.
 
-REPORTING ONLY. Nothing here is consumed by a generation function and no
-shipped number moves. Introduced 2026-08-17 as Phase 0 of the GUF
-restoration-cost derivation.
+REPORTING ONLY. No generation function reads this module, and no shipped
+number moves. It began on 2026-08-17 as Phase 0 of the GUF restoration-cost
+derivation.
 
-THE DEFECT THIS MAKES VISIBLE
------------------------------
-`ECOLOGICAL_BASE_RATE` is the obligation for the WHOLE contiguous US —
-765,495,267 ha — while the default population across the package is 1,000,000.
-Nothing in the code connects the two, so the ecological domain is divided by a
-millionth of the population that lives on the land it is keyed to.
+THE DEFECT THIS MADE VISIBLE, NOW CLOSED
+----------------------------------------
+`ECOLOGICAL_BASE_RATE` is the obligation for the WHOLE contiguous US:
+765,495,267 ha. The default population across the package is 1,000,000. When
+this module was written nothing connected the two, so the code divided the
+ecological domain by a millionth of the population that lives on that land.
 
-The consequence is that the reported ecological SHARE is frame-dependent by a
-factor of 335, and the shipped default is the flattering end of it:
+So the reported ecological SHARE depended on the frame by a factor of the US
+population over 1M. `shipped_default_mismatch()` still computes that factor
+(339.6 since the mainland's own Census figure, 2026-10-15). The shipped default
+was the flattering end of it. As first measured, at 335M:
 
     shipped pairing (1M people, whole-US land) : 0.0448 %
     honest US pairing (335M people, same land) : 0.000146 %
 
-Both are computed from identical constants. Neither is a measurement error —
-the model was asked two different questions and the question was never stated.
+Identical constants gave both. Neither was a measurement error: the model
+answered two different questions, and nobody stated the question.
 
-WHY THIS IS REPORTING-ONLY AND NOT A FIX
-----------------------------------------
-Making the default frame consistent would move the ecological anchor by 335x,
-which is a calibration change requiring author sign-off (CLAUDE.md §3). The
-honest interim position is to make the mismatch VISIBLE and let every caller
-state its frame, rather than to silently pick the other end of a 335x range.
+PHASE 4b CLOSED IT (2026-08-17, `record/ecological.md`). The default now
+resolves its ecological area from the population (× LAND_HECTARES_PER_CAPITA).
+That is the planetary ratio, so the undeclared default COINCIDES with the
+`global` frame. The spread left in `frame_report` is the frames' own land per
+person, not a frame nobody chose.
 
-This is the `personal_floor` / `land_stewardship` posture: measure it, report
-it, change nothing, and let the number argue for itself.
+WHY IT STAYS REPORTING-ONLY
+---------------------------
+The module never changed the anchor. It made the mismatch VISIBLE and lets
+every caller state its frame. This is the `personal_floor` /
+`land_stewardship` posture: measure it, report it, change nothing, and let the
+number argue for itself.
 
 Layer: scenarios/ — imports core/ and data.py, imported by neither.
 """
@@ -42,9 +47,10 @@ from hours_eoh.data import (
     ECOLOGICAL_BASE_RATE,
     FRAME_CONSISTENCY_TOLERANCE,
     JURISDICTION_FRAMES,
+    LAND_HECTARES_PER_CAPITA,
     REFERENCE_FRAME_POPULATION,
     US_MAINLAND_HECTARES,
-    US_REFERENCE_POPULATION,
+    US_MAINLAND_POPULATION,
 )
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 
@@ -88,8 +94,9 @@ def frame_check(
 
     Returns the nearest declared frame and whether the pairing sits within
     FRAME_CONSISTENCY_TOLERANCE of it. A pairing that matches nothing is not an
-    error — a collective may hold any ratio — but an UNDECLARED one is worth
-    knowing about, because the shipped default is exactly that case.
+    error, because a collective may hold any ratio. But an UNDECLARED one is
+    worth knowing about, because the shipped default was exactly that case
+    before Phase 4b.
     """
     hpc = hectares_per_capita(population, land_hectares)
 
@@ -114,32 +121,34 @@ def frame_check(
 
 def shipped_default_mismatch() -> dict:
     """
-    The mismatch as shipped: 1M people carrying the whole contiguous US.
+    The mismatch as first shipped: 1M people carrying the whole contiguous US.
 
-    This is the specific pairing every package default produces, and it is not
-    a frame anyone declared. Reported as its own function because it is the
-    finding, not an example.
+    Every package default produced this pairing until Phase 4b (2026-08-17),
+    and nobody declared it as a frame. It has its own function because it is
+    the finding, not an example. Since Phase 4b the default resolves its land
+    from the population, so this is the pairing the fix removed.
     """
     shipped_pop = 1_000_000.0
     shipped = frame_check(shipped_pop, US_MAINLAND_HECTARES)
-    honest = frame_check(US_REFERENCE_POPULATION, US_MAINLAND_HECTARES)
+    honest = frame_check(US_MAINLAND_POPULATION, US_MAINLAND_HECTARES)
     return {
         "shipped_population":        shipped_pop,
         "shipped_hectares_per_capita": shipped["hectares_per_capita"],
         "honest_hectares_per_capita":  honest["hectares_per_capita"],
-        "population_mismatch_factor":  US_REFERENCE_POPULATION / shipped_pop,
+        "population_mismatch_factor":  US_MAINLAND_POPULATION / shipped_pop,
         "shipped_is_declared_frame":   shipped["consistent"],
         "honest_is_declared_frame":    honest["consistent"],
         "verdict": (
-            f"the shipped default divides the whole contiguous US "
-            f"({US_MAINLAND_HECTARES:,.0f} ha) by {shipped_pop:,.0f} people, giving "
-            f"{shipped['hectares_per_capita']:,.1f} ha/person against the actual "
-            f"{honest['hectares_per_capita']:.3f}. That is a factor of "
-            f"{US_REFERENCE_POPULATION / shipped_pop:,.0f}, and because the "
-            f"ecological obligation does not scale with population while every "
-            f"other domain does, it is the factor by which the shipped "
-            f"ecological SHARE is flattered. No number here is wrong; the frame "
-            f"was never stated."
+            f"before Phase 4b (2026-08-17) the shipped default divided the whole "
+            f"contiguous US ({US_MAINLAND_HECTARES:,.0f} ha) by {shipped_pop:,.0f} "
+            f"people, giving {shipped['hectares_per_capita']:,.1f} ha/person "
+            f"against the actual {honest['hectares_per_capita']:.3f}. That is a "
+            f"factor of {US_MAINLAND_POPULATION / shipped_pop:,.0f}. The "
+            f"ecological obligation scales with area while every other domain "
+            f"scales with population, so it was the factor that flattered the "
+            f"shipped ecological SHARE. The default now resolves "
+            f"{LAND_HECTARES_PER_CAPITA:g} ha/person from the population, so "
+            f"this pairing is what the fix removed."
         ),
     }
 
@@ -148,10 +157,10 @@ def at_frame(name: str, epsilon: float, **overrides: float) -> dict:
     """
     Run `total_eoh` at a declared frame — population and land area together.
 
-    This is the function the implementation guide should point an institution
-    at: it makes the pairing an explicit argument instead of an accident of two
-    unrelated defaults. Any keyword is forwarded to `total_eoh`, so sims vary
-    size and population freely; what they cannot do is vary one silently.
+    The implementation guide should point an institution at this function. It
+    makes the pairing an explicit argument instead of an accident of two
+    unrelated defaults. It forwards any keyword to `total_eoh`, so sims vary
+    size and population freely; they cannot vary one silently.
     """
     f = frame_for(name)
     # THE THIRD EXTENSIVE QUANTITY. Land and population are the pairing this
@@ -211,9 +220,10 @@ def frame_report(epsilon: float = 0.40) -> dict:
     """
     Every declared frame side by side, plus the undeclared shipped pairing.
 
-    The point of the table is that the ecological SHARE column moves by two
-    orders of magnitude across rows that are all computed from the same
-    constants at the same ε.
+    The table computes every row from the same constants at the same ε. Before
+    Phase 4b the ecological SHARE column moved by two orders of magnitude
+    across it. Now it moves only by the frames' land per person (about 1.37×,
+    2026-10-18), and the undeclared row matches `global`.
     """
     rows = []
     for name in JURISDICTION_FRAMES:
@@ -236,11 +246,15 @@ def frame_report(epsilon: float = 0.40) -> dict:
     shipped = total_eoh(epsilon=epsilon, population=1_000_000.0,
                         ecological_standing_response="domain",
                         ecological_health_response="domain")
+    # The land the default APPLIES, not the whole-US area it applied before
+    # Phase 4b: `total_eoh` resolves an omitted area as population ×
+    # LAND_HECTARES_PER_CAPITA (2026-10-18; the row reported the old area).
+    shipped_land = 1_000_000.0 * LAND_HECTARES_PER_CAPITA
     rows.append({
         "frame":                "SHIPPED DEFAULT (undeclared)",
         "population":           1_000_000.0,
-        "land_hectares":        US_MAINLAND_HECTARES,
-        "hectares_per_capita":  US_MAINLAND_HECTARES / 1_000_000.0,
+        "land_hectares":        shipped_land,
+        "hectares_per_capita":  shipped_land / 1_000_000.0,
         "ecological_share":     shipped["ecological"] / shipped["total"],
         "ecological_h_per_cap": shipped["ecological"] / 1_000_000.0,
         "personal_h_per_cap":   shipped["personal"] / 1_000_000.0,
@@ -249,6 +263,7 @@ def frame_report(epsilon: float = 0.40) -> dict:
 
     shares = [r["ecological_share"] for r in rows]
     spread = max(shares) / min(shares) if min(shares) > 0 else float("inf")
+    land = [r["hectares_per_capita"] for r in rows]
 
     return {
         "epsilon":       epsilon,
@@ -257,12 +272,12 @@ def frame_report(epsilon: float = 0.40) -> dict:
         "mismatch":      shipped_default_mismatch(),
         "anchor_hours":  ECOLOGICAL_BASE_RATE,
         "verdict": (
-            f"the ecological share spans {spread:,.0f}x across frames computed "
-            f"from IDENTICAL constants at ε={epsilon}. The spread is not "
-            f"uncertainty about the world — it is the model being asked an "
-            f"unstated question, because ECOLOGICAL_BASE_RATE is keyed to a "
-            f"fixed area while every other domain scales with population. "
-            f"Declaring the frame is what makes the ecological number mean "
-            f"anything; it does not make it larger."
+            f"the ecological share spans {spread:,.2f}x across frames computed "
+            f"from IDENTICAL constants at ε={epsilon:.3g}; land per person spans "
+            f"{min(land):.3g}–{max(land):.3g} ha. The ecological obligation is "
+            f"keyed to area while every other domain scales with population, so "
+            f"a frame's share follows its land per person. Declaring the frame "
+            f"is what makes the ecological number mean anything; it does not "
+            f"make it larger."
         ),
     }

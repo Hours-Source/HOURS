@@ -1,20 +1,13 @@
-"""
-The CLI dispatch gate.
+"""The CLI dispatch gate.
 
-WHY THIS EXISTS. On 2026-08-17 an audit found THREE registered scenarios —
-`demographic_shock`, `maintenance_crisis`, `recovery` — raising TypeError on
-every invocation: one passed a `population` argument the function does not take,
-and two omitted required arguments entirely. They had been broken for some time
-and the 2,976-test suite was blind to them, because the suite exercises the
-scenario FUNCTIONS directly and nothing exercised the DISPATCH that calls them.
+WHY THIS EXISTS. On 2026-08-17 an audit found THREE registered scenarios
+(`demographic_shock`, `maintenance_crisis`, `recovery`) that raised TypeError on every
+call, with every unit test green. The suite ran the scenario FUNCTIONS directly, and
+nothing ran the DISPATCH that calls them. A registered scenario is a user-facing
+promise.
 
-That is the gap: a scenario can be registered, documented in `scenario list`,
-and completely unrunnable, with every unit test green. The registry is a
-user-facing promise and nothing was checking it.
-
-This gate walks the registry itself rather than a hand-maintained list, so a
-scenario added tomorrow is covered by construction — the `OPERATIVE_LAYERS`
-lesson, where a hand-maintained list silently fell behind on two modules.
+This gate walks the registry itself, not a hand-kept list, so a new scenario is covered
+by construction (the `OPERATIVE_LAYERS` lesson).
 """
 
 from __future__ import annotations
@@ -52,10 +45,9 @@ class TestEveryRegisteredScenarioRuns:
         assert result, f"{name} returned an empty result"
 
     def test_the_registry_is_not_empty_and_is_covered(self) -> None:
-        """
-        Guards the gate itself: a parametrisation over an empty or shrinking
-        registry would pass while testing nothing. `exercised` is asserted
-        alongside `passes`, the same discipline the provenance flow trace uses.
+        """Guards the gate itself: a parametrisation over an empty or shrinking registry
+        would pass and test nothing. The test asserts `exercised` beside `passes`, as
+        the provenance flow trace does.
         """
         assert len(SCENARIOS) >= 30
 
@@ -74,10 +66,9 @@ class TestEveryRegisteredScenarioRuns:
 class TestDispatchAndRegistryAgree:
 
     def test_every_registered_name_has_a_dispatch_branch(self) -> None:
-        """
-        A registered name with no branch falls through the dispatch chain. What
-        it returns then is not a crash, so it would pass the smoke test above
-        while doing nothing — hence this is checked separately.
+        """A registered name with no branch falls through the dispatch chain without a
+        crash, so it would pass the smoke test above while doing nothing. This test
+        checks it separately.
         """
         unhandled = []
         for name in sorted(SCENARIOS):
@@ -89,3 +80,82 @@ class TestDispatchAndRegistryAgree:
     def test_an_unregistered_name_is_refused(self) -> None:
         with pytest.raises((KeyError, ValueError, SystemExit)):
             _dispatch(_default_args("not_a_scenario"))
+
+
+
+
+
+
+def test_an_empty_compound_shock_says_so_on_stderr(capsys):
+    """`scenario run compound_shock` with defaults applies no shock; it read
+    STABLE (2026-10-03). The hint goes to stderr so json/csv stay parseable."""
+    from utils.eoh_cli import build_parser as cli_parser
+    args = cli_parser().parse_args(["scenario", "run", "compound_shock", "--format", "json"])
+    args.func(args)
+    out = capsys.readouterr()
+    assert "no component enabled" in out.err
+    import json
+    assert json.loads(out.out)["combined_outcome"] == "NO_SHOCK"
+    args = cli_parser().parse_args(["scenario", "run", "compound_shock",
+                                    "--automation-fraction-lost", "0.5"])
+    args.func(args)
+    assert "no component enabled" not in capsys.readouterr().err
+
+
+
+
+
+class TestAnAcceptedEpsilonMovesTheOutput:
+    """--epsilon is refused where the output does not depend on it, and where accepted
+    it must move the output (author, Option A, 2026-10-04). The test runs every scenario
+    and re-derives the `_EPSILON_FREE` list, so the list cannot go stale.
+    """
+
+    @pytest.mark.parametrize("name", sorted(SCENARIOS))
+    def test_epsilon_is_read_or_refused(self, name: str) -> None:
+        import json
+        from utils.scenario_cmd import _EPSILON_FREE, _READS, FRAME_AWARE
+
+        def run(eps: str) -> str:
+            parser = argparse.ArgumentParser()
+            build_parser(parser.add_subparsers(dest="cmd"))
+            a = parser.parse_args(["scenario", "run", name, "--epsilon", eps])
+            return json.dumps(_dispatch(a), default=str, sort_keys=True)
+
+        refused = (name in _EPSILON_FREE or name == "feasibility"
+                   or (name in FRAME_AWARE and "epsilon" not in _READS[name]))
+        if refused:
+            with pytest.raises(SystemExit):
+                run("0.2")
+        else:
+            assert run("0.2") != run("0.7"), f"{name} accepts --epsilon and ignores it"
+
+
+class TestCoaseanJsonIsOneDocument:
+    """`coasean --format json` printed its EXPERIMENTAL banner (and the
+    federation's ε/N header) into stdout, so no subcommand's output parsed
+    (2026-10-14). The banner goes to stderr under json; the table form is
+    byte-identical."""
+
+    @pytest.mark.parametrize("sub", ["n1-check", "count", "federation", "simulate"])
+    def test_stdout_parses_and_the_banner_is_on_stderr(self, capsys, sub):
+        import json
+        from utils.eoh_cli import build_parser
+        a = build_parser().parse_args(["coasean", "--format", "json", sub])
+        a.func(a)
+        out = capsys.readouterr()
+        json.loads(out.out)
+        assert "EXPERIMENTAL" in out.err
+
+    def test_the_federation_is_frame_invariant_per_capita(self, capsys):
+        """It passed the 1M-reference stock beside --population."""
+        import json
+        from utils.eoh_cli import build_parser
+        per = []
+        for pop in ("1000000", "10000000"):
+            a = build_parser().parse_args(["coasean", "--format", "json", "federation",
+                                           "--population", pop])
+            a.func(a)
+            rows = json.loads(capsys.readouterr().out)
+            per.append(sum(r["teh"] for r in rows) / float(pop))
+        assert per[0] == pytest.approx(per[1], rel=1e-12)

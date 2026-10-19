@@ -23,6 +23,7 @@ from hours_eoh.data import (
     BASE_LIFETIME_EARNINGS_TEH,
     INFRA_MAINT_RATE,
     INFRA_AGE_FACTOR_MAX,
+    LAND_HECTARES_PER_CAPITA,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -254,6 +255,20 @@ class TestSimulatePeriod:
         new_state, _ = simulate_period(state, knowledge_complexity_growth_rate=0.0)
         assert new_state["knowledge_complexity"] == pytest.approx(3.0)
 
+    @pytest.mark.parametrize("supplied", [None, 3.0], ids=["resolved", "supplied"])
+    def test_a_resolved_corpus_follows_the_arc_and_a_supplied_one_is_carried(self, supplied):
+        """A corpus resolved from the arc must read the canonical size at each
+        period's ε; a supplied one must stay as supplied. Fails if either
+        branch takes the other's rule
+        ([record](record/fulfilment.md#engine-meets-stationarity))."""
+        from hours_eoh.core.trajectory import canonical_physical_state
+        state = make_economy_state(epsilon=0.10, knowledge_complexity=supplied)
+        for _ in range(3):
+            state, _ = simulate_period(state, epsilon_delta=0.25)
+            expected = (canonical_physical_state(state["epsilon"])["knowledge_base_size"]
+                        if supplied is None else supplied)
+            assert state["knowledge_complexity"] == pytest.approx(expected, rel=1e-12)
+
     def test_infra_deferred_years_increments_when_backlog_exists(self):
         state = make_economy_state(
             epsilon=0.40,
@@ -352,7 +367,7 @@ class TestRunSimulation:
         assert len(traj["states"]) == 20
 
     def test_epsilon_arc(self):
-        """Epsilon must advance across the full arc when delta is set."""
+        """With a delta set, ε must advance across the full arc."""
         state = _default_state(epsilon=0.20)
         traj = run_simulation(state, n_periods=20, epsilon_delta=0.03)
         epsilons = [r["epsilon"] for r in traj["period_results"]]
@@ -505,7 +520,9 @@ class TestD3Consumption:
         assert "baskets_consumed" in result
 
     def test_d2_mode_unchanged(self):
-        """D2 path: consumption_rate_effective is set; D3 fields are None."""
+        """On the D2 path the result carries `consumption_rate_effective`, and the D3
+        fields stay None.
+        """
         _, result = simulate_period(_state(), use_d3=False)
         assert result["consumption_rate_effective"] is not None
         assert result["personal_eoh_on_ledger"] is None
@@ -642,7 +659,8 @@ class TestSimulatePeriodDestructionMechanisms:
                                        capital_personal_eoh_fulfilled=aggregate)
             _, result = simulate_period(state, use_cpi_destruction=True)
             destroyed.append(result["d4_cpi"]["teh_destroyed"])
-        expected = cpi_goods_destruction(aggregate, eps)["teh_destroyed"]
+        # The floor is read at the OBSERVED ε since 2026-09-30.
+        expected = cpi_goods_destruction(aggregate, result["epsilon_observable"])["teh_destroyed"]
         assert destroyed[0] == pytest.approx(expected, rel=1e-12)
         assert destroyed[1] == pytest.approx(expected, rel=1e-12)
 
@@ -802,7 +820,9 @@ class TestMultiPeriodDestructionArc:
 class TestDerivedEpsilon:
 
     def test_derived_epsilon_equals_eps(self):
-        """Until machine capacity is modeled endogenously, derived_epsilon == ε."""
+        """Until the engine models machine capacity endogenously, `derived_epsilon`
+        equals ε.
+        """
         state = make_economy_state(epsilon=0.60)
         _, result = simulate_period(state)
         assert result["derived_epsilon"] == pytest.approx(result["epsilon"])
@@ -1005,26 +1025,9 @@ class TestGufNetInflowInjection:
 
 
 class TestTheDeferredEcologicalRate:
-    """
-    `deferred_eco_growth_rate` IS LIVE, BUT ONLY AGAINST A SUPPLIED STOCK.
-
-    WHY THIS EXISTS. The accumulator is purely multiplicative —
-    `deferred_eco * (1 + rate * stress * 2)` — and `deferred_ecological` is an
-    INTAKE field that ships at 0.0 under the Phase 4e/4f partition, which
-    assigned every recurring ecological term to the Ground Use Fee and left the
-    domain carrying three stocks an institution supplies. Zero times any rate is
-    zero, so on every shipped path the parameter cannot move an output.
-
-    That is ADOPTED POLICY and not a defect: the model does not generate
-    ecological backlog, because the recurring obligation is charged to the
-    holder through GUF and billing it to the domain as well would be the
-    double-application the Phase 4f note names in its own words.
-
-    WHAT WOULD BE A DEFECT is nobody knowing which of the two it is. The wiring
-    gate cannot reach `simulate_period` (it has a required argument) and the one
-    test that named the parameter compared two equal values with `>=`. So the
-    behaviour is pinned here, in both directions, and either half failing means
-    the intake contract changed without anyone saying so.
+    """`deferred_eco_growth_rate` is live only against a supplied stock, and the shipped
+    stock is 0.0 by adopted policy. The test pins both directions, so a change to the
+    intake contract fails here ([record](record/fulfilment.md#test-docstring-history)).
     """
 
     def test_it_is_inert_while_the_stock_is_unseeded(self):
@@ -1067,21 +1070,9 @@ class TestTheDeferredEcologicalRate:
 
 
 class TestTheEngineDoesNotRescaleItsOwnStock:
-    """
-    THE DEFECT THIS PINS, and why no existing test saw it.
-
-    `simulate_period` grows a stock (`new_cap_stock = cap_stock * (1 + rate)`),
-    writes the UNSCALED value back to state, computes the write-down on the
-    UNSCALED value — and handed it to the pipeline WITH ε, which until
-    2026-09-09 treated a supplied stock as an ε=0 baseline and multiplied it by
-    (1 + CANONICAL_CAPITAL_GROWTH_SLOPE × ε). So one variable carried two
-    meanings inside one period: maintenance was charged on 2.00× the capital the
-    state held at ε=0.50, rising to 2.98× at ε=0.99, while the write-down used
-    the stock as written.
-
-    Every existing simulation test passed throughout, because they all read the
-    engine's outputs against each other and none compared the infrastructure
-    charge against the STOCK IT IS A CHARGE ON. That is the comparison here.
+    """The engine must charge maintenance on the capital stock that its state holds, not
+    on a stock rescaled by ε. The test compares the charge with the stock it is a charge
+    on ([record](record/fulfilment.md#test-docstring-history)).
     """
 
     def test_infrastructure_is_charged_on_the_stock_the_state_holds(self) -> None:
@@ -1105,11 +1096,9 @@ class TestTheEngineDoesNotRescaleItsOwnStock:
         assert seen == 6 and state["epsilon"] > 0.5
 
     def test_the_writedown_reads_the_same_stock_as_the_charge(self) -> None:
-        """
-        The two consumers of `new_cap_stock` must agree about what it means.
-        The write-down always read it as the actual stock; the pipeline now does
-        too, so a ratio between them is stable across ε rather than drifting
-        with it.
+        """The two consumers of `new_cap_stock` must read it as the same stock. The
+        write-down always read the actual stock, and now the pipeline does too, so their
+        ratio holds steady across ε.
         """
         from hours_eoh.data import (
             CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE)
@@ -1145,40 +1134,16 @@ class TestTheEngineDoesNotRescaleItsOwnStock:
 
 
 class TestTheEngineDoesNotRescaleItsOwnCorpus:
-    """
-    KNOWLEDGE'S HALF OF THE SAME DEFECT, and it was the larger one.
-
-    `knowledge_eoh` had the identical legacy branch — a supplied
-    `knowledge_base_size` multiplied by (1 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE
-    × ε) whenever ε was also passed — and `simulate_period` grows
-    `knowledge_complexity` and hands it to the pipeline with ε. Isolating the
-    rescaling gave **4.60× at ε=0.40 and 9.91× at ε=0.99**, against capital's
-    1.80× and 2.98×.
-
-    IT SURVIVED THE CAPITAL FIX BECAUSE IT WAS INVISIBLE AT THE DEFAULT. The
-    default corpus size is 1.0 — the ε=0 reference — and `1.0 × (1 + 9ε)` is
-    exactly the canonical arc, so every caller that supplied nothing got the
-    same number either way, and `test_knowledge_eoh_compat` could not see it.
-    Block III moved capital's arc formula and not knowledge's, which is what
-    made one domain's copy of this defect visible and the other's silent.
+    """Knowledge had the same rescaling defect, and a larger one. The default corpus of
+    1.0 hid it, because 1.0 × (1 + 9ε) is exactly the canonical arc
+    ([record](record/fulfilment.md#test-docstring-history)).
     """
 
     def test_knowledge_is_charged_on_the_corpus_the_state_tracks(self) -> None:
-        """
-        Charged against the corpus the state REPORTS — the post-growth one.
-
-        THE ORDERING WAS FIXED ON 2026-09-09 (author decision) and this test
-        moved with it. It previously pinned the pre-growth corpus and named the
-        gap: knowledge was charged at `:347` and grown afterwards, while capital
-        was grown at `:316` and charged at `:336`, so one function ran two period
-        conventions and `state["knowledge_complexity"]` reported a corpus the
-        engine had not charged on. The corpus now grows beside capital, and the
-        reported value IS the applied value.
-
-        The fix is a no-op at the shipped default, where
-        `knowledge_complexity_growth_rate` is 0.0 — which is why nothing else in
-        the suite moved. It bites only when corpus growth is switched on, and
-        this test switches it on precisely so the alignment is exercised.
+        """The engine must charge knowledge on the post-growth corpus that the state
+        reports (author decision, 2026-09-09). Corpus growth is 0.0 at the shipped
+        default, so the test switches it on
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         from hours_eoh.core.eoh_generation import knowledge_eoh
         from hours_eoh.data import (
@@ -1203,23 +1168,10 @@ class TestTheEngineDoesNotRescaleItsOwnCorpus:
         assert state["epsilon"] > 0.5      # the loop reached ε where 1+9ε bites
 
     def test_the_charge_is_linear_in_the_tracked_corpus(self) -> None:
-        """
-        Two runs differing ONLY in how fast the corpus grows must have their
-        knowledge charges differ by exactly the corpus ratio.
-
-        WHAT THIS CATCHES AND WHAT IT DOES NOT, because the two tests in this
-        class have complementary blind spots and neither is sufficient alone —
-        both verified by mutation rather than assumed:
-
-        - It catches a SIZE-DEPENDENT transform of the corpus
-          (`knowledge_base_size ** 1.1` fails here).
-        - It does NOT catch a uniform ε-rescaling — the legacy defect itself.
-          Both runs sit at the same ε, so a (1 + 9ε) factor multiplies both
-          charges and CANCELS in the ratio. The test above is what catches that.
-
-        And the test above has the mirror gap: it compares the engine against a
-        `knowledge_eoh` call that goes through the SAME resolver, so a transform
-        applied to both sides cancels there. Which is why this one exists.
+        """Two runs that differ only in corpus growth must have knowledge charges in
+        exactly the corpus ratio. This catches a size-dependent transform; the test
+        above catches a uniform ε-rescaling, which cancels here
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         def run(rate: float) -> list[tuple[float, float, float]]:
             st = make_economy_state(population=1_000_000.0)
@@ -1240,11 +1192,10 @@ class TestTheEngineDoesNotRescaleItsOwnCorpus:
 
 
 class TestRunSimulationReportsTheMultiplierItApplies:
-    """
-    `run_simulation` fell back to a literal 2.10 for periods without an explicit
-    multiplier and REPORTED it in `mean_multiplier_trajectory`, while every such
-    period was minted at `simulate_period`'s own default. Fixed 2026-09-12; this
-    pins the reported value to the applied one by comparing mints, not literals.
+    """`mean_multiplier_trajectory` must report the multiplier that the mint applied.
+    Until 2026-09-12, `run_simulation` reported a literal 2.10 for periods with no
+    explicit multiplier, while `simulate_period` minted them at its own default. The
+    test compares mints, not literals.
     """
 
     def test_fixed_m_run_reports_the_default_it_mints_at(self):
@@ -1263,3 +1214,133 @@ class TestRunSimulationReportsTheMultiplierItApplies:
         m = r["summary"]["mean_multiplier_trajectory"]
         assert m[0] == pytest.approx(1.9)
         assert m[1:] == [pytest.approx(MEAN_MULTIPLIER_REFERENCE)] * 2
+
+
+class TestTheFloorReadsObservedEpsilon:
+    """Author decision 2026-09-30: every floor-price read in a period uses the
+    OBSERVED ε the pipeline measures, not the capability index."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_period_reports_it_and_prices_at_it(self, eps):
+        from hours_eoh.core.prices import basket_price
+        state = make_economy_state(epsilon=eps)
+        _, r = simulate_period(state)
+        assert r["d4_cpi"]["basket_price"] == basket_price(r["epsilon_observable"])
+        if eps > 0.0:
+            assert r["epsilon_observable"] < r["epsilon"]
+        else:
+            assert r["epsilon_observable"] == 0.0
+
+    def test_d2_consumption_discounts_by_the_observed_floor(self):
+        """The D2 path's purchasing-power ratio: a higher floor (observed ε
+        below capability) means a smaller discount, so MORE consumption than
+        the capability read would give. Direction pinned, not level."""
+        import inspect
+        from hours_eoh.core.prices import basket_price
+        base_rate = inspect.signature(simulate_period).parameters["base_consumption_rate"].default
+        state = make_economy_state(epsilon=0.90)
+        _, r = simulate_period(state, use_d3=False)
+        pp_obs = basket_price(0.0) / basket_price(r["epsilon_observable"])
+        pp_cap = basket_price(0.0) / basket_price(r["epsilon"])
+        assert pp_obs < pp_cap
+        assert r["consumption_rate_effective"] == pytest.approx(
+            base_rate / max(1.0, pp_obs), rel=1e-12)
+
+
+class TestTheAgeMixIsState:
+    """The period engine reads the population's age mix in the pipeline, the fisc and
+    the care stipend, and the default stays bit-identical
+    ([record](record/fulfilment.md#period-engine-carries-the-age-mix)).
+    """
+
+    US = {"infant": 0.065, "child": 0.145, "working_age": 0.600, "elderly": 0.190}
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_mix_reaches_the_period_and_is_held(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        s0 = make_economy_state(epsilon=eps, population=1e6)
+        s1 = make_economy_state(epsilon=eps, population=1e6, age_fractions=self.US)
+        n0, r0 = simulate_period(s0)
+        n1, r1 = simulate_period(s1)
+        assert r1["eoh_by_domain"]["personal"] != r0["eoh_by_domain"]["personal"]
+        direct = eoh_to_teh_pipeline(epsilon=eps, population=n1["population"],
+                                     age_distribution=self.US)
+        assert r1["eoh_by_domain"]["personal"] == direct["eoh_by_domain"]["personal"]
+        assert (r1["fiscal"]["guarantee"] != r0["fiscal"]["guarantee"])
+        assert n1["age_fractions"] == self.US and n0["age_fractions"] is None
+        from hours_eoh.core.fiscal import aggregate_care_stipend_from_demographics as care
+        assert r1["fiscal"]["care_stipend"] == care(n1["population"], eps, age_fractions=self.US)
+
+    def test_the_default_is_unchanged(self):
+        s = make_economy_state()
+        _, a = simulate_period(s)
+        _, b = simulate_period({k: v for k, v in s.items() if k != "age_fractions"})
+        assert a["teh_created"] == b["teh_created"]
+        assert a["trust_end"] == b["trust_end"]
+
+    def test_the_entry_point_reads_a_state_carried_mix(self):
+        from hours_eoh.scenarios.collective import collective_snapshot
+        s = make_economy_state(age_fractions=self.US)
+        a = collective_snapshot(s, land_hectares=1.65e6)
+        b = collective_snapshot(make_economy_state(), land_hectares=1.65e6,
+                                age_fractions=self.US)
+        assert a["pipeline"] == b["pipeline"]
+        with pytest.raises(ValueError):
+            collective_snapshot(s, land_hectares=1.65e6,
+                                age_fractions={**self.US, "elderly": 0.18, "infant": 0.075})
+
+
+class TestTheLandIsFixed:
+    """Land is fixed, and the people move (author, 2026-10-14: "land is fixed … the
+    parcel and population is not";
+    [record](record/fulfilment.md#land-is-fixed-population-moves)).
+
+    The period engine derived the area from each period's population again, so under 10%
+    growth the land's ecological obligation grew exactly ×1.1 a period. The engine now
+    resolves the land once and carries it.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_population_moves_and_the_land_obligation_does_not(self, eps):
+        s = make_economy_state(epsilon=eps, population=1e6)
+        assert s["land_hectares"] is None                  # stated as given
+        seen = []
+        for _ in range(3):
+            s, r = simulate_period(s, population_growth_rate=0.10,
+                                   ecological_degradation_rate=0.0)
+            seen.append(r["fiscal"]["ecological"]["relocated_to_guf"])
+        assert s["population"] == pytest.approx(1e6 * 1.1 ** 3)
+        assert s["land_hectares"] == 1e6 * LAND_HECTARES_PER_CAPITA
+        assert seen[0] == seen[1] == seen[2]
+
+    def test_a_stated_land_is_the_land(self):
+        s = make_economy_state(population=1e6, land_hectares=2.0e6)
+        n, r = simulate_period(s)
+        assert n["land_hectares"] == 2.0e6
+        a = simulate_period(make_economy_state(population=1e6, land_hectares=4.0e6))[1]
+        assert (a["fiscal"]["ecological"]["relocated_to_guf"]
+                == pytest.approx(2 * r["fiscal"]["ecological"]["relocated_to_guf"], rel=1e-9))
+
+    def test_the_entry_point_reads_a_state_carried_land_and_refuses_another(self):
+        from hours_eoh.scenarios.collective import collective_snapshot
+        s = make_economy_state(population=1e6, land_hectares=2.0e6)
+        assert collective_snapshot(s)["frame"]["land_hectares"] == 2.0e6
+        with pytest.raises(ValueError, match="land is one quantity"):
+            collective_snapshot(s, land_hectares=3.0e6)
+
+    def test_the_pipeline_is_called_on_the_carried_land(self, monkeypatch):
+        """The pipeline must receive the carried land. At the shipped partition the
+        pipeline's area moves no output, so a dropped pass-through cannot show in the
+        result; this test checks the CALL. Its stated gap: it pins the wiring, not a
+        figure.
+        """
+        import hours_eoh.core.eoh_fulfillment as ef
+        seen = []
+        real = ef.eoh_to_teh_pipeline
+        monkeypatch.setattr(ef, "eoh_to_teh_pipeline",
+                            lambda *a, **k: seen.append(k.get("ecological_area_hectares"))
+                            or real(*a, **k))
+        s = make_economy_state(population=1e6, land_hectares=2.0e6)
+        for _ in range(2):
+            s, _ = simulate_period(s, population_growth_rate=0.10)
+        assert seen == [2.0e6, 2.0e6]

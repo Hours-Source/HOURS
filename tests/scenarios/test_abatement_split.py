@@ -104,11 +104,10 @@ class TestTheConsequenceIsTheResult:
 
 
 class TestKIsWeightedByWhatServesThePersonalObligation:
-    """
-    `a(K)` reduces the PERSONAL obligation and took TOTAL capital, so a data
-    centre abated water-hauling. The typing was never missing —
-    `CAPITAL_MACHINE_PROFILES` has carried `personal_fulfillment_rate` all
-    along — it was unused.
+    """`a(K)` reduces the PERSONAL obligation, so K must be the capital that serves it.
+    It took TOTAL capital, so a data centre abated water-hauling.
+    `CAPITAL_MACHINE_PROFILES` had carried `personal_fulfillment_rate` all along,
+    unused.
     """
 
     def test_only_about_an_eighth_of_capital_serves_the_personal_obligation(self) -> None:
@@ -128,12 +127,10 @@ class TestKIsWeightedByWhatServesThePersonalObligation:
         assert max(shares) - min(shares) < 0.005, shares
 
     def test_the_conversion_moved_no_number(self) -> None:
-        """
-        THE POINT OF A UNIT CONVERSION. a(K) is invariant under scaling K and
-        K_half by the same factor, so redenominating both left every abatement
-        figure bit-identical while fixing an incoherence — K in personal-serving
-        capital against a K_half denominated in total. Nothing about the PACE is
-        asserted by it, which is why it is not a re-choice.
+        """a(K) is invariant when K and K_half scale by one factor. Redenominating both
+        therefore left every abatement figure bit-identical while it fixed an
+        incoherence. The test asserts nothing about the PACE, so the conversion is not a
+        re-choice.
         """
         # EXACT at the reference tier, because the share constant IS the
         # standard tier's. Elsewhere the tier's own personal-serving share
@@ -191,11 +188,9 @@ class TestKIsWeightedByWhatServesThePersonalObligation:
 
 
 class TestThePaceSensitivityIsReported:
-    """
-    `ABATEMENT_HALF_CAPITAL_TEH`'s tag asks for this in as many words —
-    *"Report the sensitivity alongside any abatement figure until it is
-    measured"* — and until 2026-09-08 nothing did, so every abatement number in
-    this repo was quoted without it.
+    """`ABATEMENT_HALF_CAPITAL_TEH`'s tag asks for the sensitivity beside every
+    abatement figure. Until 2026-09-08 nothing reported it, so each abatement number was
+    quoted without it.
     """
 
     def test_the_swing_is_large_enough_to_matter(self) -> None:
@@ -207,10 +202,9 @@ class TestThePaceSensitivityIsReported:
         )
 
     def test_the_sweep_spans_the_range_confidence_5_licenses(self) -> None:
-        """
-        Two orders of magnitude. The tag says the 5 is "only that the ORDER of
-        magnitude is bounded by the arc having to saturate somewhere inside
-        it" — a narrower sweep would claim more grounding than exists.
+        """The sweep spans two orders of magnitude. The tag's confidence of 5 bounds
+        only the order of magnitude, so a narrower sweep would claim more grounding than
+        exists.
         """
         lo, hi = r_range = pace_sensitivity()["k_half_range"]
         assert hi / lo >= 100.0, r_range
@@ -230,9 +224,8 @@ class TestThePaceSensitivityIsReported:
         assert lo <= r["base_shipped"] <= hi
 
     def test_it_is_denominated_in_personal_serving_capital(self) -> None:
-        """
-        The report and the constant must agree on what K means, or the swing is
-        computed at the wrong point on the curve.
+        """The report and the constant must agree on what K means. Otherwise the swing
+        is computed at the wrong point on the curve.
         """
         from hours_eoh.data import (
             CAPITAL_PERSONAL_SERVING_SHARE, CAPITAL_STOCK_DEFAULT,
@@ -250,10 +243,9 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
     """
 
     def test_it_does_not_claim_to_validate_the_abatabilities(self) -> None:
-        """
-        THE LOAD-BEARING ADMISSION. No source here separates an obligation that
-        vanished from one a machine met, so the audit reports a relationship
-        between two channels and refuses a verdict on the values themselves.
+        """THE LOAD-BEARING ADMISSION. No source here separates an obligation that
+        vanished from one a machine met. The audit reports a relationship between two
+        channels and gives no verdict on the values.
         """
         r = removal_audit()
         assert r["disjointness_established"] is False
@@ -264,10 +256,9 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
             assert row["ratio"] > 1.0, row["tier"]
 
     def test_the_two_channels_converge_as_capital_rises(self) -> None:
-        """
-        The shape that makes overlap plausible rather than merely possible: at
-        advanced capital the two are within 1.5x, so whatever separates them
-        has to be doing most of its work exactly where capital is thickest.
+        """At advanced capital the two channels are within 1.5×, which makes overlap
+        plausible. Whatever separates them must do most of its work where capital is
+        thickest.
         """
         ratios = [r["ratio"] for r in removal_audit()["rows"]]
         assert ratios == sorted(ratios, reverse=True)
@@ -290,24 +281,14 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
         assert rate["environmental_monitoring"] == 0.0
 
     def test_the_fiscal_layer_carries_the_other_channel_as_a_product(self) -> None:
+        """`sufficiency_guarantee` reimburses `raw × personal_human_fraction(ε) ×
+        M_FLOOR`, with no subtraction. a(K) lowering `raw` and a human share that
+        reflects machine fulfilment could still be two terms for one tap. The test
+        checks behaviour, not source text: the human share moves the reimbursement
+        ([record](record/fulfilment.md#obligation-accounts-test-history)).
         """
-        Where it would bite a person. Until 2026-09-15 `sufficiency_guarantee`
-        reimbursed `max(0, raw − capital_personal_eoh_fulfilled)`, a double
-        SUBTRACTION if abatement became the default. It now reimburses
-        `raw × personal_human_fraction(ε) × M_FLOOR` and ignores the subtraction —
-        so the subtraction is gone, but a(K) lowering `raw` and a human share
-        reflecting machine fulfilment would still be two terms for one tap.
-        Checked by behaviour, not source text: the supplied subtraction moves
-        nothing, and the human share does.
-        """
-        import warnings as _w
         from hours_eoh.core.fiscal import sufficiency_guarantee
         base = sufficiency_guarantee(1_000_000, 0.90)
-        with _w.catch_warnings():
-            _w.simplefilter("ignore", DeprecationWarning)
-            supplied = sufficiency_guarantee(
-                1_000_000, 0.90, capital_personal_eoh_fulfilled_per_person=500.0)
-        assert supplied["eoh_reimbursement_per_person"] == base["eoh_reimbursement_per_person"]
         assert base["eoh_reimbursement_per_person"] < base["raw_eoh_per_person"]
         audit = removal_audit()
         assert audit["fiscal_double_subtracts"] is False
@@ -321,21 +302,14 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
 
 
 class TestTheAbatabilitiesAreAnInstanceWithATestedOrdering:
-    """
-    Retagged `instance` 2026-09-08, split out of `PERSONAL_EOH_COMPONENTS`.
+    """The abatabilities are an `instance` (2026-09-08), split from
+    `PERSONAL_EOH_COMPONENTS`. Each one's pointer names a change from a LOCAL baseline:
+    a tap removes hauling only where hauling happens. So no universal value exists to
+    measure.
 
-    Every abatability's own pointer names a DELTA FROM A LOCAL BASELINE — "food
-    system time-use across development levels", "hauling-time reduction",
-    "disease burden attributable to WASH converted to care hours avoided". A tap
-    removes hauling only where hauling happens, so there is no universal number
-    to measure and the value is a property of where the collective stands. It
-    was a placeholder awaiting a measurement that does not exist to be made.
-
-    WHAT THE DEFAULT STILL CARRIES. The ORDERING is not supplied and not an
-    instance: shelter > nutrition > health > care encodes Block II's
-    anti-correlation prediction and is tested. So the shipped default carries a
-    falsifiable claim even though its levels do not — the
-    `GUF_SERVICE_RETENTION_BY_USE` shape, "an ordering, not magnitudes".
+    The ORDERING is not an instance: shelter > nutrition > health > care encodes Block
+    II's anti-correlation prediction, and this class tests it. The shipped default
+    therefore carries a falsifiable claim even though its levels do not.
     """
 
     def test_the_split_is_byte_identical(self) -> None:
@@ -352,10 +326,9 @@ class TestTheAbatabilitiesAreAnInstanceWithATestedOrdering:
         }
 
     def test_a_max_stays_derived_and_is_not_a_free_parameter(self) -> None:
-        """
-        `a_max = Σ share × abatability`. It must never become a constant of its
-        own: the table is where the judgement lives, and a separate a_max would
-        be a second account of one quantity that could drift from it.
+        """`a_max = Σ share × abatability` must never become a constant of its own. The
+        table holds the judgement, and a separate a_max would be a second account of one
+        quantity.
         """
         import hours_eoh.data as data
         from hours_eoh.core.eoh_generation import max_abatement

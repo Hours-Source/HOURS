@@ -1,11 +1,11 @@
 """
 Distributed Competency (Condition IV) and Workforce Dynamics
 
-Models the competency reserve across seven essential domains, the minimum
+Models the competency reserve across the essential domains, the minimum
 labor obligation that sustains it, and the automation failure scenario.
 
 Condition IV (Distributed Competency) requires that at least 15.5% of
-the workforce remain certified in each of seven essential domains regardless
+the workforce remain certified in each essential domain regardless
 of automation level. This is not a market outcome — it is a structural
 requirement. As automation rises, maintaining the reserve requires explicit
 policy (the minimum hours obligation and competency rotation).
@@ -25,6 +25,7 @@ rotation, stewardship service, and regular employment"; §"Automation failure
 from __future__ import annotations
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     ESSENTIAL_DOMAINS,
     COMPETENCY_THRESHOLD,
     H_MIN,
@@ -42,11 +43,12 @@ def competency_reserve(
     domain_requirements: dict[str, float] | None = None,
 ) -> dict:
     """
-    Compute the competency reserve across the seven essential domains.
+    Compute the competency reserve across the essential domains (eight since
+    care was added, 2026-10-01 — `ESSENTIAL_DOMAINS`).
 
     The reserve tracks certified workers per domain relative to the total
     workforce. A domain is "at risk" when its certified fraction falls below
-    the required threshold. Condition IV requires ALL seven domains to meet
+    the required threshold. Condition IV requires ALL the domains to meet
     the threshold simultaneously.
 
     Args:
@@ -74,7 +76,7 @@ def competency_reserve(
                     is in certified_by_domain.
 
     Reference: Mission Statement §"Condition IV — Distributed Competency:
-    ≥15.5% of the workforce must remain certified in each of seven essential
+    ≥15.5% of the workforce must remain certified in each essential
     domains at every ε level."
     """
     if workforce_size <= 0:
@@ -177,7 +179,7 @@ def competency_check(
 
     if overall_ok:
         recommendation = (
-            "Competency reserve meets Condition IV across all seven essential domains."
+            "Competency reserve meets Condition IV across all essential domains."
         )
     elif critical_gaps:
         recommendation = (
@@ -346,7 +348,7 @@ def automation_failure_scenario(
     sufficient to cover critical infrastructure EOH for at least one maintenance
     cycle without automation support."
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if critical_eoh < 0:
         raise ValueError(f"critical_eoh must be non-negative, got {critical_eoh}")

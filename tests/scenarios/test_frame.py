@@ -15,7 +15,7 @@ from hours_eoh.data import (
     JURISDICTION_FRAMES,
     LAND_HECTARES_PER_CAPITA,
     US_MAINLAND_HECTARES,
-    US_REFERENCE_POPULATION,
+    US_MAINLAND_POPULATION,
     WORLD_POPULATION,
 )
 from hours_eoh.scenarios.frame import (
@@ -41,7 +41,7 @@ class TestFramesAreBoundNotRestated:
 
     def test_us_frame_is_the_us_constants(self):
         f = frame_for("us_mainland")
-        assert f["population"] == US_REFERENCE_POPULATION
+        assert f["population"] == US_MAINLAND_POPULATION
         assert f["land_hectares"] == US_MAINLAND_HECTARES
 
     def test_global_frame_derives_from_the_per_capita_constant(self):
@@ -63,7 +63,7 @@ class TestFramesAreBoundNotRestated:
         f = frame_for("reference_1m")
         assert f["population"] == 1_000_000.0
         assert hectares_per_capita(**f) == pytest.approx(
-            US_MAINLAND_HECTARES / US_REFERENCE_POPULATION, rel=1e-12
+            US_MAINLAND_HECTARES / US_MAINLAND_POPULATION, rel=1e-12
         )
         assert f["land_hectares"] < US_MAINLAND_HECTARES / 100.0
 
@@ -79,9 +79,9 @@ class TestTheMismatchIsReported:
         m = shipped_default_mismatch()
         assert m["shipped_is_declared_frame"] is False
         assert m["honest_is_declared_frame"] is True
-        assert m["population_mismatch_factor"] == pytest.approx(335.0, rel=1e-9)
+        assert m["population_mismatch_factor"] == pytest.approx(339.614767, rel=1e-9)
         assert m["shipped_hectares_per_capita"] > 700.0
-        assert m["honest_hectares_per_capita"] == pytest.approx(2.285, abs=1e-3)
+        assert m["honest_hectares_per_capita"] == pytest.approx(2.254, abs=1e-3)
 
     def test_declared_frames_are_self_consistent(self):
         for name in JURISDICTION_FRAMES:
@@ -95,8 +95,8 @@ class TestDeclaringTheFrameMakesTheShareInVARIANT:
     """
     The result worth keeping. Once population and land travel together, the
     ecological share stops depending on the frame — because ecological and
-    personal then scale by the same factor. The 424x spread in the shipped
-    table is entirely the UNDECLARED pairing, not a real range.
+    personal then scale by the same factor. The 424x spread the shipped table
+    showed before Phase 4b was the UNDECLARED pairing, not a real range.
     """
 
     def test_share_is_frame_invariant_across_declared_frames(self):
@@ -133,6 +133,10 @@ class TestDeclaringTheFrameMakesTheShareInVARIANT:
         # comparison must too, or it compares a live share against a zero one.
         assert undeclared[0]["ecological_share"] == pytest.approx(
             glob["ecological_share"], rel=1e-12
+        )
+        # The row reports the land it applies, not the pre-4b whole-US area.
+        assert undeclared[0]["hectares_per_capita"] == pytest.approx(
+            glob["hectares_per_capita"], rel=1e-12
         )
         assert r["share_spread"] < 2.0
 
@@ -172,9 +176,9 @@ class TestFrameChangesNothing:
             # These stay ABSOLUTE pins: the point is that the scenario module
             # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.0:  1360598052.2367358,
+            0.40: 1535785338.3051229,   # 2026-10-18: the floors followed their source
+            0.99: 2348009861.9085293,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want

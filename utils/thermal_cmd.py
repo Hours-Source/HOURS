@@ -1,5 +1,4 @@
-"""
-thermal — planetary radiative capacity: overage, determinacy, ceilings.
+"""thermal — planetary radiative capacity: overage, determinacy, ceilings.
 
   eoh thermal overage     [--points "1.5,2.0,2.5,3.0"] [--lambda F] [--forcing F]
                           [--epsilon ε] [--format table|csv|json]
@@ -21,62 +20,61 @@ thermal — planetary radiative capacity: overage, determinacy, ceilings.
 
   eoh thermal lambda      [--delta-t K] [--format table|json]
 
-'overage' is the headline table: O(ΔT_max) = Φ + (F_total − λ·ΔT_max)·A_earth,
-the power by which civilization exceeds its radiative allowance, decomposed into
-its forcing and waste-heat terms, paired with the forcing reduction that would
-zero it. At defensible thresholds the heat term is a few percent — eliminating
-every net-additive watt on Earth closes only that much, so zeroing is reachable
-only through forcing.
+'overage' is the headline table: O(ΔT_max) = Φ + (F_total − λ·ΔT_max)·A_earth. It is the
+power by which civilization exceeds its radiative allowance, split into its forcing and
+waste-heat terms, beside the forcing reduction that would zero it. At defensible
+thresholds the heat term is a few percent. Eliminating every net-additive watt on Earth
+closes only that much, so only forcing can reach zero.
 
-'arc' sweeps the same overage across ε at one threshold, showing when (if ever)
-waste heat stops being a rounding error.
+'arc' sweeps the same overage across ε at one threshold, to show when (if ever) waste
+heat stops being a rounding error.
 
-'determinacy' is the HEADLINE, and it leads: it reports what the framework can
-determinately say at a threshold before it reports any number. Both the forcing
-band AND λ are carried, because determinacy requires the whole parameter box to
-agree and holding λ fixed at an unassessed value overstates the determinate zone
-roughly threefold. Where the answer is indeterminate the budget is WITHHELD, not
-estimated — a number there would be a point estimate from inside a band that
-contains both 'no budget' and 'ample budget'. --single-axis reproduces the older
-forcing-only map for comparison. Pass --txx if your threshold is stated in land
-extremes rather than GMST (C6, ÷1.48).
+'determinacy' is the HEADLINE, and it leads. It reports what the framework can
+determinately say at a threshold before it reports any number. It carries both the
+forcing band AND λ, because determinacy needs the whole parameter box to agree. Holding
+λ fixed at an unassessed value overstates the determinate zone roughly threefold. Where
+the answer is indeterminate, the budget is WITHHELD, not estimated. A number there would
+be a point estimate from inside a band that contains both 'no budget' and 'ample
+budget'.
 
-'ceiling' contrasts the automation ceiling before and after drawdown to the
-natural forcing floor. Where no pre-drawdown ceiling exists the budget is zero,
-and the ε ceiling is carbon-determined.
+--single-axis reproduces the older forcing-only map for comparison. Pass --txx if your
+threshold is in land extremes, not GMST (C6, ÷1.48).
 
-'drawdown' shows the conversion chain from the required forcing reduction to the
-labour that would deliver it, with each link's provenance tier. Note the energy
-term cancels out of the EOH — the obligation is gross tonnage × labour-hours per
-tonne — so energy per tonne affects only the programme's own dissipation.
+'ceiling' compares the automation ceiling before and after drawdown to the natural
+forcing floor. Where no pre-drawdown ceiling exists, the budget is zero and carbon sets
+the ε ceiling.
 
-'gate' runs the fiscal solvency gate under the FLOW convention: the drawdown
-obligation annualized over the programme horizon, injected through the
-framework's own deferred-ecological hook so it flows through the whole pipeline
-and partly funds itself. All five pass conditions at every ε, plus the backward
-query — what labour intensity would break the Trust, and how far the shipped
-estimate sits from it. The null-load baseline is re-run every time, so a failure
-can never be misattributed to the thermal load.
+'drawdown' shows the conversion chain from the required forcing reduction to the labour
+that would deliver it, with each link's provenance tier. The energy term cancels out of
+the EOH: the obligation is gross tonnage × labour-hours per tonne. So energy per tonne
+affects only the programme's own dissipation.
 
-'lambda' reports the derived feedback parameter with its frame and the budget
-sensitivity across the plausible range. λ is the second-largest lever after
-ΔT_max and the budget spans ZERO to ~11x across AR6's own likely ECS range, so
-the band is printed as a first-class output rather than a footnote.
+'gate' runs the fiscal solvency gate under the FLOW convention. The drawdown obligation,
+annualized over the programme horizon, enters through the framework's own
+deferred-ecological hook, so it flows through the whole pipeline and partly funds
+itself. It checks all five pass conditions at every ε. It also answers the backward
+query: what labour intensity would break the gate, and how far the shipped estimate sits
+from it. The null-load baseline re-runs every time, so nobody can blame a failure on the
+thermal load by mistake.
 
-ΔT_max (default 2.0 K) and the programme horizon (default 40 yr — one lifetime
-of responsibility) are both CHOSEN. ΔT_max dominates every result and may be
-judged too high later; every downward revision enlarges the obligation. The
-horizon is an ethical choice about who does the work, and the obligation scales
-as 1/horizon. Allocation across collectives defaults to RESPONSIBILITY
-(cumulative emissions), falling back to population — with the fallback declared —
-when emissions history is not supplied.
+'lambda' reports the derived feedback parameter with its frame and the budget's
+sensitivity across the plausible range. λ is the second-largest lever after ΔT_max. At
+3.0 K the budget runs from zero to several times the shipped value across AR6's own
+likely ECS range. At the 2.0 K default, every value in that range gives no budget. So
+the command prints the band as a first-class output, not a footnote.
 
-The thermal obligation is now WIRED into ecological EOH as a fourth term
-(core.eoh_generation.ecological_eoh, `thermal_obligation`, default 0.0). The
-bounds below remain advisory; ΔT_max is the framework's own judgment and dominates
-every result — that is why these are sweeps, not point values. λ is Tier C and
-the budget spans ~6.5× across its plausible range; it is printed with the table
-for that reason.
+ΔT_max (default 2.0 K) and the programme horizon (default 40 yr, one lifetime of
+responsibility) are both CHOSEN. ΔT_max dominates every result, and a later review may
+find it too high. Every downward revision enlarges the obligation. The horizon is an
+ethical choice about who does the work, and the obligation scales as 1/horizon.
+Allocation across collectives defaults to RESPONSIBILITY (cumulative emissions). Without
+an emissions history it falls back to population and declares the fallback.
+
+Ecological EOH carries the thermal obligation as a fourth term
+(core.eoh_generation.ecological_eoh, `thermal_obligation`, default 0.0). The bounds here
+stay advisory. ΔT_max is the framework's own judgement and dominates every result, so
+these are sweeps, not point values. λ is Tier C, so the command prints its band with the
+table.
 """
 
 from __future__ import annotations
@@ -207,9 +205,10 @@ def _determinacy(args: argparse.Namespace) -> None:
         print(formatters.table(["boundary", "GMST", "land TXx"],
               [["unbudgeted below", f"{z['unbudgeted_below_k']:.3f}", f"{z['unbudgeted_below_txx_k']:.3f}"],
                ["budgeted above", f"{z['budgeted_above_k']:.3f}", f"{z['budgeted_above_txx_k']:.3f}"]]))
+        widening = determinacy_map(dt)["vs_single_axis"]["widening_factor"]
         print(formatters.yellow(
-            "\n  Holds λ fixed at an unassessed value and overstates the determinate zone "
-            "~3x.\n  Use the default (two-axis) map."))
+            "\n  Holds λ fixed at an unassessed value: carrying λ widens the indeterminate "
+            f"band {widening:.1f}x.\n  Use the default (two-axis) map."))
         return
 
     band = (args.lambda_lo, args.lambda_hi) if args.lambda_lo and args.lambda_hi else None
@@ -392,9 +391,18 @@ def _lambda(args: argparse.Namespace) -> None:
                      "—" if r["vs_shipped"] is None else f"{r['vs_shipped']}x", note])
     print(formatters.bold(f"\nBudget sensitivity at ΔT_max = {args.delta_t} K\n"))
     print(formatters.table(["λ candidate", "λ", "frame", "budget TW", "vs shipped", ""], body))
+    likely = [r["budget_tw"] for r in rows
+              if "likely" in r["label"] and "very" not in r["label"]
+              or "best estimate" in r["label"]]
+    shipped = next(r["budget_tw"] for r in rows if r["label"] == "shipped default")
+    lo, hi = min(likely), max(likely)
+    span = (f" ({hi / shipped:.1f}x the shipped case)" if shipped > 0.0 else
+            " (the shipped case is UNBUDGETED)")
+    close = (" λ uncertainty ALONE can close the budget — separately from the forcing band."
+             if lo == 0.0 < hi else "")
     print("\n" + formatters.dim(
-        "  Across AR6's own likely ECS range the budget runs from ZERO to ~11x the shipped\n"
-        "  case. λ uncertainty ALONE can close the budget — separately from the forcing band."))
+        f"  Across AR6's own likely ECS range the budget runs from {lo:,.1f} to {hi:,.1f} TW"
+        f"{span}.{close}"))
 
 
 # ---------------------------------------------------------------------- parser
@@ -420,13 +428,13 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     ov.set_defaults(func=_overage)
 
     ar = sub2.add_parser("arc", help="Overage across the ε arc at one threshold")
-    ar.add_argument("--delta-t", type=float, default=2.0, dest="delta_t", metavar="K")
+    ar.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
     ar.add_argument("--format", choices=["table", "csv", "json"], default="table", dest="fmt")
     _common(ar)
     ar.set_defaults(func=_arc)
 
     dz = sub2.add_parser("determinacy", help="Which determinacy zone a threshold lands in")
-    dz.add_argument("--delta-t", type=float, default=3.0, dest="delta_t", metavar="K")
+    dz.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
     dz.add_argument("--txx", action="store_true",
                     help="Interpret --delta-t as land TXx rather than GMST (C6, ÷1.48)")
     dz.add_argument("--single-axis", action="store_true", dest="single_axis",
@@ -464,7 +472,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     gt.set_defaults(func=_gate)
 
     lm = sub2.add_parser("lambda", help="Derived climate feedback λ + budget sensitivity")
-    lm.add_argument("--delta-t", type=float, default=3.0, dest="delta_t", metavar="K")
+    lm.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
     lm.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     lm.set_defaults(func=_lambda)
 

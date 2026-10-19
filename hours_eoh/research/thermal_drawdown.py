@@ -18,7 +18,7 @@ reader can see which link is load-bearing. Two links carry real provenance
 (the forcing coefficient is derived from the shipped IGCC series; the ppm→mass
 conversion falls out of atmospheric mass); three are placeholders and say so.
 
-ι IS DERIVED, NOT ASSUMED. Rather than a third free placeholder,
+THE MODULE DERIVES ι; IT DOES NOT ASSUME IT. Rather than a third free placeholder,
 
     ι_drawdown = energy per tonne / labor-hours per tonne          [J/EOH]
 
@@ -30,25 +30,27 @@ drawdown is energy-intensive and labor-thin.
 THE HONEST WEAK LINKS, in order of leverage:
   1. ι_drawdown (Tier D via two Tier C/D observables) — sets the answer linearly.
   2. CDR_GROSS_REMOVAL_FACTOR (Tier D) — omitting it would understate the
-     obligation ~2× and bias the solvency gate toward PASSING. It is included
-     precisely because the error it prevents is the one that flatters us.
+     obligation ~2× and bias the solvency gate toward PASSING. It is here because the
+     error it prevents is the one that flatters us.
   3. CDR_ENERGY_GJ_PER_TONNE (Tier C) — recalled DAC range 2–6, and held
      CONSTANT as concentration falls. Real capture costs more energy per tonne
      from more dilute air, so the chain flatters deep cuts; the forcing law
      works the other way (removal is more forcing-effective at low
      concentration), and the two are not netted here.
 
-SIMPLIFICATION, stated rather than buried: the chain assumes the whole forcing
-reduction is delivered by CO₂ drawdown. Non-CO₂ greenhouse reductions would be
-cheaper per W·m⁻², while losing fossil aerosol cooling works against you. The
-net direction of that pair is not established here, so the chain is neither
-conservative nor optimistic by construction — it is CO₂-only, and labelled.
+SIMPLIFICATION, stated and not buried: the chain assumes CO₂ drawdown delivers the whole
+forcing reduction. Non-CO₂ greenhouse reductions would be cheaper per W·m⁻², while
+losing fossil aerosol cooling works against you. This module does not establish the net
+direction of that pair, so the chain is neither conservative nor optimistic by
+construction. It is CO₂-only, and labelled.
 
-ADVISORY. Producing an EOH figure is not the same as generating obligation.
-Nothing here writes to a ledger; wiring the result into ecological EOH is gated
-on the fiscal solvency check (research/thermal_solvency.py, next), because the
-ecological baseline is ~610K h/yr at population 1M and ecological allocation is
-a co-equal Trust obligation.
+ADVISORY. Producing an EOH figure is not the same as generating obligation. Nothing here
+writes to a ledger. The fiscal solvency check (research/thermal_solvency.py) gated
+wiring the result into ecological EOH, because the ecological baseline was then ~610K
+h/yr at population 1M and ecological allocation was a co-equal Trust obligation.
+Ecological EOH now carries the result as its `thermal_obligation` term (default 0.0),
+the domain is empty by default under the Phase 4e/4f partition, and the mint pays
+ecological labour (2026-09-15).
 
 Layer: research/ — experimental, unstable API, not imported by core/ or
 scenarios/.
@@ -147,21 +149,20 @@ def forcing_to_ppm_reduction(
         C_target = C_now · exp( −ΔF / k )
         Δppm     = C_now − C_target
 
-    k is DERIVED from the shipped IGCC series over 350–426 ppm rather than taken
-    from Myhre's 5.35, which runs 5.2% low across that range. The fit
-    self-validates: its intercept implies a pre-industrial 279.8 ppm against the
-    accepted 278.
+    k comes from the shipped IGCC series over 350–426 ppm, not from Myhre's 5.35, which
+    runs 5.2% low across that range. The fit self-validates: its intercept implies a
+    pre-industrial 279.8 ppm against the accepted 278.
 
     Logarithmic, so the same ΔF costs progressively FEWER ppm the lower you go:
     the first 0.5 W·m⁻² takes 36.1 ppm, the second only 33.0. Removal is more
     forcing-effective at lower concentration, so in mass terms a drawdown gets
     cheaper per W·m⁻² as it proceeds.
 
-    The practical difficulty runs the other way — capturing from more dilute air
-    costs more energy per tonne — and this chain holds energy per tonne CONSTANT,
-    so it flatters deep cuts. The two effects are not netted here; the flattering
-    one is in `CDR_ENERGY_GJ_PER_TONNE`, and a concentration-dependent capture
-    energy is the fix when that constant leaves Tier C.
+    The practical difficulty runs the other way — capturing from more dilute air costs
+    more energy per tonne — and this chain holds energy per tonne CONSTANT, so it
+    flatters deep cuts. This chain does not net the two effects. The flattering one is
+    in `CDR_ENERGY_GJ_PER_TONNE`, and a concentration-dependent capture energy is the
+    fix when that constant leaves Tier C.
 
     units: ppm. Worked example: ΔF = 1.0 W·m⁻² from 425.65 ppm → 356.5 ppm, a
     69.1 ppm reduction (Myhre's coefficient would say 72.6 — a 5% overstatement).
@@ -215,13 +216,13 @@ def drawdown_job(
         ΔF (thermal_overage.forcing_required_for_zero)
           → Δppm  → net Gt → gross Gt → joules → EOH = joules / ι_drawdown
 
-    Returns the global job and a collective's share of it. The share is a
-    POPULATION share by default, which is a governance choice wearing physics
-    clothing: allocating the drawdown obligation by head is one option, by
-    cumulative emissions (responsibility) another, and by present emissions a
-    third. They differ by more than an order of magnitude for some collectives.
-    The parameter is deliberately a bare fraction so the choice has to be made
-    explicitly upstream rather than being smuggled in as a default.
+    Returns the global job and a collective's share of it. The share is a POPULATION
+    share by default, which is a governance choice wearing physics clothing: allocating
+    the drawdown obligation by head is one option, by cumulative emissions
+    (responsibility) another, and by present emissions a third. They differ by more than
+    an order of magnitude for some collectives. The parameter is deliberately a bare
+    fraction, so the caller must make the choice explicitly upstream and cannot smuggle
+    it in as a default.
 
     units: hours (EOH). ε-behavior: enters only through the overage's Φ term,
     which is ~1% of the reduction at defensible thresholds — so the drawdown job
@@ -351,11 +352,10 @@ def responsibility_share(
     cement only, lower uncertainty but leaving ~33% of the burden unallocated).
 
     `unattributed` decides what happens to emissions belonging to no territory —
-    international shipping and aviation, 46 GtCO₂ or 2.49% of the cumulative
-    fossil total. Under "pro_rata" (default) they are redistributed in proportion
-    to existing shares, so shares sum to 1 and every part of the obligation has a
-    bearer. Under "unallocated" the raw shares are returned and the commons
-    silently absorbs the remainder.
+    international shipping and aviation, 46 GtCO₂ or 2.49% of the cumulative fossil
+    total. "pro_rata" (default) redistributes them in proportion to existing shares, so
+    shares sum to 1 and every part of the obligation has a bearer. "unallocated" returns
+    the raw shares, and the commons silently absorbs the remainder.
 
     Returns None for an unknown collective rather than guessing, so a caller
     falls back explicitly instead of silently receiving a zero share.
@@ -392,50 +392,51 @@ def allocation_share(
     unattributed: str = CDR_UNATTRIBUTED_POLICY,
 ) -> dict:
     """
-    A collective's share of the global drawdown job.
+        A collective's share of the global drawdown job.
 
-    This is a GOVERNANCE decision wearing physics clothing, and the framework
-    takes a position on it (2026-08-05, author's call):
+        This is a GOVERNANCE decision wearing physics clothing, and the framework
+        takes a position on it (2026-08-05, author's call):
 
-        responsibility — share ∝ cumulative emissions. A collective cannot
-                         burden others with the consequences of choices it made.
-                         The DEFAULT.
-        population     — share ∝ headcount. Simpler, and it silently transfers
-                         the cost of one collective's history onto everyone.
+            responsibility — share ∝ cumulative emissions. A collective cannot
+                             burden others with the consequences of choices it made.
+                             The DEFAULT.
+            population     — share ∝ headcount. Simpler, and it silently transfers
+                             the cost of one collective's history onto everyone.
 
-    The two differ by more than an order of magnitude for some collectives, so
-    the choice is not a detail; it is most of the answer for anyone who is not
-    near the world average.
+        The two differ by more than an order of magnitude for some collectives, so
+        the choice is not a detail; it is most of the answer for anyone who is not
+        near the world average.
 
-DOCTRINE (2026-08-05). The framework is built to work going forward, not to be a
-    complete record of the past. Records are biased toward whoever kept
-    documentation, so the more history an allocation demands, the more it
-    privileges the well-documented; a line has to be drawn or there is no end to
-    how far back one goes. Looking back sets a starting point, not a verdict.
-    That is why emissions belonging to no territory are redistributed rather than
-    left unowned, and why land converted inside a collective counts as that
-    collective's regardless of the demand that motivated it — the world we
-    inherited is the world as it is. Both are arguments worth having in a live
-    implementation; neither is resolved by the model.
+    DOCTRINE (2026-08-05). The framework works going forward; it is not a complete
+    record of the past. Records are biased toward whoever kept
+        documentation, so the more history an allocation demands, the more it
+        privileges the well-documented; a line has to be drawn or there is no end to
+        how far back one goes. Looking back sets a starting point, not a verdict.
+        That is why emissions belonging to no territory are redistributed rather than
+        left unowned, and why land converted inside a collective counts as that
+        collective's regardless of the demand that motivated it — the world we
+        inherited is the world as it is. Both are arguments worth having in a live
+        implementation, and the model settles neither.
 
-    RESOLVED 2026-08-05. Pass `collective` and the share is looked up in the shipped
-    1750–2024 table (reference/data/cumulative_emissions.json, OWID / Global
-    Carbon Budget). Explicit emissions figures still override it. Without either,
-    this falls back to population and SAYS SO in `basis_used` and `caveat` — it
-    does not quietly substitute one rule for the other.
+        RESOLVED 2026-08-05. With `collective`, the function looks the share up in the
+        shipped 1750–2024 table (reference/data/cumulative_emissions.json, OWID / Global
+        Carbon Budget). Explicit emissions figures still override it. Without either,
+        this falls back to population and SAYS SO in `basis_used` and `caveat` — it
+        does not quietly substitute one rule for the other.
 
-    Truncation is not a small error: measured against a 1965+ fossil-energy proxy,
-    the UK is under-charged 1.70× and Germany 1.31×, while Singapore is
-    over-charged 4.1×. A cumulative basis that does not reach 1750 mis-ranks
-    exactly the collectives the rule exists to charge.
+        Truncation is not a small error: measured against a 1965+ fossil-energy proxy,
+        the UK is under-charged 1.70× and Germany 1.31×, while Singapore is
+        over-charged 4.1×. A cumulative basis that does not reach 1750 mis-ranks
+        exactly the collectives the rule exists to charge.
 
-    units: dimensionless share ∈ [0, 1].
+        units: dimensionless share ∈ [0, 1].
 
-    Returns:
-        dict with `share`, `basis_used`, `requested_basis`, and `caveat`.
+        Returns:
+            dict with `share`, `basis_used`, `requested_basis`, and `caveat`.
 
-    Raises:
-        ValueError: on a non-positive world population, or an unknown basis.
+        Raises:
+            ValueError: on a non-positive world population, or an unknown basis.
+
     """
     if world_population <= 0.0:
         raise ValueError(f"world_population must be positive, got {world_population}")

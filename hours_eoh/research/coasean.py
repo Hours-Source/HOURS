@@ -31,8 +31,13 @@ Three-regime inflation theorem (reconciliation §7)
     Within-collective: floor-impossibility at all ε. TEH requires verified work;
         the floor price cannot inflate. within_inflation = 0 structurally.
     Inter-collective: relative inflation appears as exchange-rate movement in
-        transition. An over-issuing collective sees its unit depreciate against
-        its neighbors. exchange_rates() + three_regime_inflation() model this.
+        transition. Since 2026-09-30 the federation SETTLES hour for hour
+        (`exchange_rates(basis="registered")`, r = m_j/m_i), so the movement is
+        divergence of the multipliers collectives mint at and nothing else: a
+        collective over-issuing through its MULTIPLIER sees its unit depreciate;
+        one over-issuing through its REGISTER is neutral — each TEH still
+        certifies the same hours served. Under the superseded parity basis the
+        register case APPRECIATED (record/contestability.md#register-federation).
     System-wide: inflation-impossibility re-emerges as ε→1 asymptote. As N→1,
         no exchange rates remain to move; system_inflation → 0.
     Formal identity: system_inflation(ε) = inter_inflation × max(0, 1−ε).
@@ -55,9 +60,11 @@ Phase 3 (this file adds)
     the paper's bilateral-imbalance-ceiling sketch (reconciliation §9-item-4);
     an over-issuing collective's unsettled deficit depreciates its unit —
     transition inflation carried honestly as an exchange-rate movement (§7).
-    Discovery seam: exchange_rates(discovery_premium=...) layers discovered
-    deviations over the productivity-parity baseline, mirroring the
+    Discovery seam: exchange_rates(discovery_premium=..., basis="parity") layers
+    discovered deviations over the productivity-parity baseline, mirroring the
     floor-price + market_premium seam in core/prices.py (reconciliation §3).
+    Refused on the adopted settlement basis: CLAUDE.md §5 forbids a discovered
+    rate crossing a collective boundary as a settlement price.
 
 Phase 4 (this file adds) — reconciliation §8.7 two-tier Trust
     Boundary events: merge_collectives() and split_collective() with the
@@ -75,10 +82,12 @@ Phase 4 (this file adds) — reconciliation §8.7 two-tier Trust
 from __future__ import annotations
 
 import random as _random
-from dataclasses import dataclass, field
 from typing import Any
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
     COASEAN_N_MAX,
     COASEAN_BOUNDARY_EXPONENT,
@@ -90,6 +99,8 @@ from hours_eoh.data import (
     CONTESTABILITY_CAPITAL_YIELD_RATE,
     DEP_RATE,
     DIV_RATE,
+    MEAN_MULTIPLIER_REFERENCE,
+    LAND_HECTARES_PER_CAPITA,
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
@@ -100,52 +111,32 @@ from hours_eoh.research.contestability import (
 )
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
+from hours_eoh.research.exchange import Collective as _ExchangeCollective
+from hours_eoh.research.exchange import CollectiveFrame, build_collective, registered_rate
+
+#: Rate bases `exchange_rates` accepts. "registered" is the ADOPTED settlement
+#: (author, 2026-09-30); "parity" reproduces every pre-adoption figure exactly.
+RATE_BASES: tuple[str, ...] = ("registered", "parity")
 
 
 # ---------------------------------------------------------------------------
 # Collective dataclass
 # ---------------------------------------------------------------------------
 
-@dataclass
-class Collective:
-    """
-    A single Coasean planning island.
+# THE FEDERATION IS BUILT FROM FRAMES (2026-09-30, author: "proceed with the
+# frame builder"). This module carried its own `Collective` dataclass and built
+# it through `run_collective_period`, while `research/exchange.py` built another
+# from a declared `CollectiveFrame` — two classes, two constructors, bridged by a
+# Protocol so one settlement rate could serve both. There is now one:
+# `exchange.Collective`, built by `exchange.build_collective` from a frame, with
+# the fields this module's callers read (`population`, `trust_balance`,
+# `capital_stock`, `ecosystem_health`, `reserve`) exposed from the frame. The
+# name is re-exported so `coasean.Collective` still resolves. Verified
+# bit-identical against the old path — every field and the full pipeline and
+# fiscal dicts — at ε ∈ {0, 0.40, 0.90, 0.99}, with and without schedules,
+# through merge, split and both simulations.
+Collective = _ExchangeCollective
 
-    Stores the outputs of one period's EOH→TEH pipeline and fiscal snapshot
-    for a slice of the population with its own Trust sub-balance, capital
-    sub-stock, and ecosystem health.
-
-    Fields
-    ------
-    collective_id    : int   — index within the federation (0-based)
-    epsilon          : float — shared automation level (same for all collectives)
-    population       : float — this collective's population slice
-    trust_balance    : float — this collective's Trust sub-balance (TEH)
-    capital_stock    : float — this collective's capital stock (TEH)
-    ecosystem_health : float — this collective's ecosystem health [0, 1]
-    pipeline         : dict  — output of eoh_to_teh_pipeline() for this slice
-    fiscal           : dict  — output of fiscal_snapshot() for this slice
-    reserve          : float — inter-collective reserve held (COASEAN_RESERVE_FRACTION
-                               of teh_created, earmarked for inter-collective exchange)
-
-    Note: at N=1, pipeline and fiscal exactly reproduce the single-ledger
-    reference calls — this is the regression anchor (n1_regression_anchor()).
-    """
-
-    collective_id:    int
-    epsilon:          float
-    population:       float
-    trust_balance:    float
-    capital_stock:    float
-    ecosystem_health: float = 0.70
-    pipeline:         dict = field(default_factory=dict)
-    fiscal:           dict = field(default_factory=dict)
-    reserve:          float = 0.0
-
-
-# ---------------------------------------------------------------------------
-# Phase 1: collective count, single-period run, federation factory, anchor
-# ---------------------------------------------------------------------------
 
 def coasean_collective_count(epsilon: float) -> int:
     """
@@ -183,8 +174,9 @@ def run_collective_period(
     population: float,
     trust_balance: float,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    mean_multiplier: float | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Run one period of the EOH→TEH pipeline and fiscal snapshot for a single collective.
@@ -203,6 +195,10 @@ def run_collective_period(
         capital_stock_teh: Collective capital stock (TEH).
         capital_age_ratio: Mean asset age ratio [0, 1].
         ecosystem_health:  Ecosystem health score [0, 1].
+        mean_multiplier:   The multiplier this collective mints at. None →
+                           MEAN_MULTIPLIER_REFERENCE, the pipeline's own default,
+                           so an unsupplied value keeps the N=1 anchor
+                           byte-identical.
 
     Returns:
         (pipeline_dict, fiscal_dict) — raw outputs of the underlying core calls.
@@ -216,6 +212,8 @@ def run_collective_period(
         capital_stock=capital_stock_teh,
         capital_age_ratio=capital_age_ratio,
         ecosystem_health=ecosystem_health,
+        mean_multiplier=(MEAN_MULTIPLIER_REFERENCE if mean_multiplier is None
+                         else mean_multiplier),
     )
     labor_income = pipeline["teh_created"]
     fiscal = fiscal_snapshot(
@@ -226,6 +224,10 @@ def run_collective_period(
         population=population,
         epsilon=epsilon,
         ecosystem_health=ecosystem_health,
+        # The multiplier the pipeline minted at — the same seam closed in
+        # `exchange.build_collective` on 2026-09-30, so the reference path and
+        # the builder agree at any multiplier, not only the reference one.
+        mean_multiplier=pipeline["mean_multiplier"],
     )
     return pipeline, fiscal
 
@@ -233,13 +235,15 @@ def run_collective_period(
 def make_federation(
     epsilon: float,
     n: int | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     ecosystem_health_schedule: list[float] | None = None,
     capital_schedule: list[float] | None = None,
+    multiplier_schedule: list[float] | None = None,
+    hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
 ) -> list[Collective]:
     """
     Create a federation of N Coasean collectives at automation level ε.
@@ -271,6 +275,19 @@ def make_federation(
         ecosystem_health_schedule: Per-collective ecosystem health list, length n.
                                    If provided, overrides ecosystem_health.
                                    Values are clipped to [0.01, 0.99].
+        capital_schedule:          Per-collective capital, length n.
+        multiplier_schedule:       Per-collective mean multiplier, length n —
+                                   THE lever the adopted settlement basis reads.
+                                   Without it every collective mints at the
+                                   pipeline default and every registered rate is
+                                   exactly 1.0 (mutual recognition). Not clipped
+                                   to the Condition II band: a breach is reported
+                                   by `exchange.settlement_terms`, never hidden.
+        hectares_per_capita:       Land per person for each collective's frame,
+                                   stated through `CollectiveFrame.per_capita_land`
+                                   — the visible call for a caller who knows only a
+                                   ratio. The default is the pipeline's own, so the
+                                   frame build is bit-identical to the old path.
 
     Returns:
         List of Collective objects, one per collective.
@@ -289,6 +306,10 @@ def make_federation(
     if capital_schedule is not None and len(capital_schedule) != n:
         raise ValueError(
             f"capital_schedule length {len(capital_schedule)} != n={n}"
+        )
+    if multiplier_schedule is not None and len(multiplier_schedule) != n:
+        raise ValueError(
+            f"multiplier_schedule length {len(multiplier_schedule)} != n={n}"
         )
 
     pop_per     = population / n
@@ -315,36 +336,27 @@ def make_federation(
         # GUF-side effect and is no longer a way to make collectives differ.
         cap = capital_per if capital_schedule is None else capital_schedule[i]
 
-        pipeline, fiscal = run_collective_period(
-            epsilon=epsilon,
+        frame = CollectiveFrame.per_capita_land(
+            collective_id=i,
             population=pop_per,
-            trust_balance=trust_per,
+            hectares_per_capita=hectares_per_capita,
             capital_stock_teh=cap,
+            trust_balance=trust_per,
             capital_age_ratio=capital_age_ratio,
             ecosystem_health=eco,
         )
-        reserve = pipeline["teh_created"] * COASEAN_RESERVE_FRACTION
-        collectives.append(Collective(
-            collective_id=i,
-            epsilon=epsilon,
-            population=pop_per,
-            trust_balance=trust_per,
-            capital_stock=cap,
-            ecosystem_health=eco,
-            pipeline=pipeline,
-            fiscal=fiscal,
-            reserve=reserve,
-        ))
+        mult_kw = {} if multiplier_schedule is None else {"mean_multiplier": multiplier_schedule[i]}
+        collectives.append(build_collective(frame, epsilon, **mult_kw))
     return collectives
 
 
 def n1_regression_anchor(
     epsilon: float = 0.40,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict[str, Any]:
     """
     Verify that a single-collective federation exactly reproduces the reference pipeline.
@@ -430,9 +442,23 @@ def n1_regression_anchor(
 def exchange_rates(
     collectives: list[Collective],
     discovery_premium: dict[tuple[int, int], float] | None = None,
+    basis: str = "registered",
 ) -> dict[tuple[int, int], float]:
     """
     Pairwise exchange rates between all collectives in a federation.
+
+    ADOPTED 2026-09-30 (author): the federation SETTLES on `basis="registered"`,
+    r(i, j) = m_j / m_i via `research/exchange.registered_rate` — hour for hour,
+    capture-neutral, bounded by the Condition II band while both sides honour
+    it, and exactly 1.0 at a common multiplier. `basis="parity"` is the form
+    documented below, kept so every pre-adoption figure reproduces exactly; it
+    is superseded as the settlement because it rewards register capture.
+
+    `discovery_premium` is REFUSED under "registered": CLAUDE.md §5 forbids a
+    discovered deviation crossing a boundary as a settlement price. It remains
+    available under "parity", where it always lived.
+
+    What follows describes `basis="parity"`.
 
     Governing equation — fundamental-parity baseline plus discovered deviation:
 
@@ -477,8 +503,25 @@ def exchange_rates(
     Raises:
         ValueError: If any discovery premium is ≤ −1.
     """
+    if basis not in RATE_BASES:
+        raise ValueError(f"basis must be one of {RATE_BASES}, got {basis!r}")
+    if basis == "registered" and discovery_premium:
+        raise ValueError(
+            "a discovery premium cannot be applied to the settlement rate — "
+            "CLAUDE.md §5: settle on the base, never on a discovered rate. "
+            "Pass basis='parity' for the pre-adoption premium seam."
+        )
+
     if len(collectives) <= 1:
         return {}
+
+    if basis == "registered":
+        return {
+            (a.collective_id, b.collective_id): registered_rate(a, b)
+            for a in collectives
+            for b in collectives
+            if a.collective_id != b.collective_id
+        }
 
     if discovery_premium:
         for pair, prem in discovery_premium.items():
@@ -575,6 +618,16 @@ def settlement_check(
     exchange-rate movement (reconciliation §7, transition-inflation regime).
     The functional form is proposed, not calibrated (§8.5 analog).
 
+    UNRESOLVED UNDER THE ADOPTED SETTLEMENT (2026-09-30). The federation now
+    settles on `registered_rate`, and CLAUDE.md §5 forbids any rate other than
+    the base crossing a boundary as a settlement price. A depreciation factor
+    applied to the settlement rate would be exactly that. Nothing APPLIES this
+    factor today — it is reported (`register_federation.settlement_offset`) —
+    so no settlement violates §5; but what disciplines a deficit beyond reserve
+    under base settlement (a standing claim in the book, suspension, or this
+    factor read as a signal only) is the author's, and the answer may retire
+    COASEAN_DEPRECIATION_SLOPE with it.
+
     Worked example (reserve=1000, ceiling_fraction=0.5, slope=0.2):
         imbalance=400  → ceiling=500, within → "OK", factor=1.0
         imbalance=800  → beyond; settle 800 from reserve; unsettled=0 → factor=1.0
@@ -645,9 +698,13 @@ def three_regime_inflation(
        by physics. within_inflation = 0.0 by construction.
 
     2. Inter-collective (transition): exchange-rate movement.
-       An over-issuing collective sees its unit depreciate against its neighbors.
-       Measured as the maximum relative change in any pairwise exchange rate
-       between two consecutive periods:
+       On the adopted settlement basis (registered, 2026-09-30) the rate is
+       m_j/m_i, so this regime IS Condition II divergence across collectives:
+       over-issuance through the multiplier depreciates the unit; over-issuance
+       through the register does not move it; capital and ε differences do not
+       move it at all. On the superseded parity basis the register case
+       appreciated instead. Measured as the maximum relative change in any
+       pairwise exchange rate between two consecutive periods:
            inter_inflation = max_{(i,j)} |r_t1(i,j) − r_t0(i,j)| / r_t0(i,j)
 
     3. System-wide (ε→1 asymptote): recovers impossibility.
@@ -658,9 +715,10 @@ def three_regime_inflation(
        system-wide as the limiting case.
 
     Regime uncertainty note (per reconciliation §8.5 analog):
-    The mapping from per-capita TEH to exchange rates is a working hypothesis.
-    Real collective exchange rates depend on preference, governance, reserve
-    holdings, and external balances — none fully modeled here.
+    The settlement basis is an author decision (2026-09-30), not a derived
+    result, and the parity mapping it replaced was a working hypothesis. Real
+    collective exchange rates above the settlement depend on preference,
+    governance, reserve holdings and external balances — none modelled here.
 
     Args:
         rates_t0: Exchange rates at period start, from exchange_rates().
@@ -746,6 +804,23 @@ def three_regime_inflation(
 # Phase 4: boundary events + federation commons (reconciliation §8.7)
 # ---------------------------------------------------------------------------
 
+def _carried_mean(
+    a: float, b: float, w_a: float, w_b: float,
+    fallback: tuple[float, float],
+) -> float:
+    """
+    The weighted mean a boundary event carries forward. Equal values pass
+    through unchanged (so a merge of like collectives is bit-identical); zero
+    total weight — a merge of two collectives with no capital, or no register,
+    where the quantity governs nothing — falls back to `fallback`'s weights.
+    """
+    if a == b:
+        return a
+    if w_a + w_b <= 0.0:
+        w_a, w_b = fallback
+    return (w_a * a + w_b * b) / (w_a + w_b)
+
+
 def merge_collectives(
     absorber: Collective,
     absorbed: Collective,
@@ -771,10 +846,21 @@ def merge_collectives(
     tier to the federation commons (the caller banks it — simulate_federation
     adds it to commons_t; standalone callers must route it themselves).
 
-    The merged collective's pipeline/fiscal are recomputed via
-    run_collective_period() at the merged parameters (capital_age_ratio at
-    the module default 0.50 — Collective does not carry it), so the returned
-    Collective is valid for further federation use.
+    The merged collective is rebuilt from its frame (`build_collective`), so
+    it is valid for further federation use. Capital age and multiplier are
+    CARRIED (2026-09-30; both fell back to the defaults before), each weighted
+    so the boundary event conserves what it governs — §8.7(d) applied to the
+    obligation and the mint, not only to the Trust:
+
+        age_merged = (K_a·age_a + K_b·r·age_b) / (K_a + K_b·r)
+            infrastructure EOH is affine in age at fixed K, so the CAPITAL-
+            weighted age reproduces Σ infrastructure EOH exactly;
+        m_merged   = (H_a·m_a + H_b·m_b) / (H_a + H_b),  H = registered EOH
+            the mint is Σ H·m, so the REGISTERED-HOURS-weighted multiplier
+            reproduces Σ teh_created whenever the merged register is the sum
+            of the two (equal per-capita state).
+    Equal inputs are carried unchanged, so a merge of like collectives is
+    bit-identical to the pre-2026-09-30 result.
 
     Worked example (T_a = T_b = 2.9B, r = 1, f = 0.30):
         escheat = 0.875B ;  T_merged = 2.917B + 2.042B = 4.958B
@@ -813,23 +899,31 @@ def merge_collectives(
         + absorbed.ecosystem_health * absorbed.population
     ) / merged_pop
 
-    pipeline, fiscal = run_collective_period(
-        epsilon=absorber.epsilon,
-        population=merged_pop,
-        trust_balance=merged_trust,
-        capital_stock_teh=merged_capital,
-        ecosystem_health=merged_eco,
+    # The merged frame. Land adds (it is not a unit of account, so no rate).
+    # Age and multiplier carry with the conserving weights in the docstring.
+    merged_age = _carried_mean(
+        absorber.capital_age_ratio, absorbed.capital_age_ratio,
+        absorber.capital_stock, absorbed.capital_stock * rate,
+        fallback=(absorber.population, absorbed.population),
     )
-    merged = Collective(
-        collective_id=absorber.collective_id,
-        epsilon=absorber.epsilon,
-        population=merged_pop,
-        trust_balance=merged_trust,
-        capital_stock=merged_capital,
-        ecosystem_health=merged_eco,
-        pipeline=pipeline,
-        fiscal=fiscal,
+    merged_mult = _carried_mean(
+        absorber.pipeline["mean_multiplier"], absorbed.pipeline["mean_multiplier"],
+        absorber.pipeline["registered_eoh"], absorbed.pipeline["registered_eoh"],
+        fallback=(absorber.population, absorbed.population),
+    )
+    merged = build_collective(
+        CollectiveFrame(
+            collective_id=absorber.collective_id,
+            population=merged_pop,
+            land_hectares=absorber.frame.land_hectares + absorbed.frame.land_hectares,
+            capital_stock_teh=merged_capital,
+            trust_balance=merged_trust,
+            capital_age_ratio=merged_age,
+            ecosystem_health=merged_eco,
+        ),
+        absorber.epsilon,
         reserve=merged_reserve,
+        mean_multiplier=merged_mult,
     )
 
     teh_before = absorber.trust_balance + trust_b_converted
@@ -913,23 +1007,22 @@ def split_collective(
         pop_i = parent.population * frac
         trust_i = allocated * frac
         capital_i = parent.capital_stock * frac
-        pipeline, fiscal = run_collective_period(
-            epsilon=parent.epsilon,
-            population=pop_i,
-            trust_balance=trust_i,
-            capital_stock_teh=capital_i,
-            ecosystem_health=parent.ecosystem_health,
-        )
-        successors.append(Collective(
-            collective_id=ids[i],
-            epsilon=parent.epsilon,
-            population=pop_i,
-            trust_balance=trust_i,
-            capital_stock=capital_i,
-            ecosystem_health=parent.ecosystem_health,
-            pipeline=pipeline,
-            fiscal=fiscal,
+        successors.append(build_collective(
+            CollectiveFrame(
+                collective_id=ids[i],
+                population=pop_i,
+                land_hectares=parent.frame.land_hectares * frac,
+                capital_stock_teh=capital_i,
+                trust_balance=trust_i,
+                # Inherited (2026-09-30; reset to the defaults before): a split
+                # divides the stock and the workforce, it does not age the one
+                # or retrain the other.
+                capital_age_ratio=parent.capital_age_ratio,
+                ecosystem_health=parent.ecosystem_health,
+            ),
+            parent.epsilon,
             reserve=parent.reserve * frac,
+            mean_multiplier=parent.pipeline["mean_multiplier"],
         ))
 
     teh_after = sum(s.trust_balance for s in successors) + escheat
@@ -986,12 +1079,12 @@ def _consolidation_escheat(
 
 def simulate_federation(
     epsilon_trajectory: list[float],
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     heterogeneity: float = 0.10,
-    baseline_ecosystem_health: float = 0.70,
+    baseline_ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     seed: int = 42,
     dynamics: bool = False,
     g_priv: float = 0.0,
@@ -1001,9 +1094,17 @@ def simulate_federation(
     commons_start: float = 0.0,
     regime: str = "increasing_returns",
     commons_dividend: bool = False,
+    rate_basis: str = "registered",
 ) -> list[dict[str, Any]]:
     """
     Multi-period Coasean federation simulation across an ε trajectory.
+
+    `rate_basis` (2026-09-30) selects the exchange-rate basis the inflation
+    metrics are read from; "registered" is the adopted settlement. Heterogeneity
+    here is drawn on CAPITAL, which the registered rate does not read — so under
+    the adopted basis `inter_inflation` is exactly 0 at every period: capital
+    differences are not a settlement-price movement. `rate_basis="parity"`
+    reproduces every pre-adoption record.
 
     At each period, constructs a federation at the given ε with N(ε) collectives.
     When heterogeneity > 0, each collective receives a distinct ecosystem health
@@ -1015,6 +1116,9 @@ def simulate_federation(
     The simulation directly tests reconciliation §7 across the arc:
     - within_inflation = 0 at every period (structural)
     - inter_inflation > 0 during transition (when N > 1 and heterogeneity > 0)
+      ON THE PARITY BASIS ONLY. On the adopted registered basis it is exactly 0,
+      because the heterogeneity drawn here is capital, which settlement does
+      not read; it moves only when multipliers diverge.
     - system_inflation → 0 as ε → 0.99 (N → 1)
 
     Phase 3: Trust/capital dynamics (dynamics=True)
@@ -1254,7 +1358,7 @@ def simulate_federation(
             capital_schedule=cap_schedule,
         )
 
-        curr_rates = exchange_rates(collectives)
+        curr_rates = exchange_rates(collectives, basis=rate_basis)
         inflation  = three_regime_inflation(prev_rates, curr_rates, epsilon)
         total_teh, all_solvent = 0.0, True
         for c in collectives:

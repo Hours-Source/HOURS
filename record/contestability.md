@@ -4,8 +4,6 @@
 policies, formation feedback, membership terms, the federation and the
 exchange-accounting layer.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
@@ -34,24 +32,42 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **Zero interest is what makes the charter affordable, quantified**: s\* = 0.50
   under Condition III against ≈0.10 fiat-like; a fiat world must drive the
   dividend to zero mid-arc to hold the canonical pace.
-- **The federation total is not conserved across a transfer at any rate ≠ 1, and
-  that is booked rather than engineered away** — each collective's TEH is its own
-  unit of account, and the difference lands in a declared `fx_revaluation`
-  account. At rate = 1 conservation holds exactly, and that is the test.
+- **Holdings are conserved across a transfer at rate 1 and move by the
+  revaluation otherwise** — booked, not engineered away. False before 2026-09-30
+  and untested ([settled-through-the-book](#settled-through-the-book)).
+- **The federation SETTLES on `registered_rate`** (author, 2026-09-30) — m_b/m_a,
+  capture-neutral, band-bounded only while both sides honour Condition II; the
+  floor is reported beside it, never applied. `basis="parity"` reproduces
+  pre-adoption figures. [base-adopted](#base-adopted).
+- **A frame divides into collectives** (`coasean federation --split us_states`). [frame-split-by-state](#frame-split-by-state).
 - **The N=1 anchor is exact**: `teh_created_delta == 0.0` against a direct
   single-ledger call. If that stops being exact, every N>1 result is measuring the
   scaffold rather than the model.
 
 ## Open
 
-- **Parity REWARDS register capture; the discipline is in settlement** *(gap)* —
-  `three_regime_inflation`'s prose says an over-issuing collective's unit
-  depreciates. True via `settlement_check`, FALSE via parity, and the prose does
-  not separate them: parity is `teh_created/population`, so a captured register
-  appreciates **1.2724×**. Settlement offsets it only past a bilateral deficit
-  around **2× the reserve**, a channel domestic capture never uses. *Settles by:*
-  a real-output term in parity, or an explicit statement that visibility is not
-  discipline. See [register-federation](#register-federation).
+- **~~Which base replaces parity~~ — SETTLED 2026-09-30** *(pointer)*:
+  registered settles, floor beside it. [contestability.md § base-adopted](#base-adopted).
+- **What disciplines a deficit beyond reserve under base settlement** *(person)* —
+  `settlement_check` depreciates the debtor's rate, and §5 forbids any non-base
+  rate crossing a boundary as a settlement price. Nothing APPLIES the factor
+  today (it is reported only), so nothing violates §5. *Settles by:* the author
+  choosing a standing claim in the book, suspension, or the factor as a signal
+  only — and the answer may retire `COASEAN_DEPRECIATION_SLOPE`.
+- **On the shipped constructor the federation is at mutual recognition** *(caveat)* —
+  one multiplier, every settlement rate 1.0; regime 2 is Condition II divergence
+  only (`multiplier_schedule` is the lever). No measured cross-collective
+  multiplier differences exist in the repo.
+- **~~The Condition II correction rule~~ — SETTLED 2026-09-30** *(pointer)*:
+  off the top. Unsynchronised recalibration is still regime-2 movement. See
+  [fulfilment.md § registered-work-access](fulfilment.md#registered-work-access).
+- **States share capacity, stock age, multiplier** *(gap)* — land, parcels,
+  ages are each state's. *Settles by:* a state stock (BEA has none); state
+  time use. [entry](#state-age-mix)
+- **§8.9b bridge: compensate builders, and how?** *(person)* — dilution costs
+  members nothing; the purchase costs ~6.8B TEH of dividend over the arc (1M);
+  if chosen, finance its early window by advance (~2% of prior work), not a
+  wage levy (~50% at ε=0). [bridge-fix-options](#bridge-fix-options).
 - **Underwriting governance** *(person)* — who decides, and on what terms.
 - **Supply-curve calibration** *(gap)* for `research/formation.py`'s linear private
   supply between `FORMATION_HURDLE_RATE_MIN` and `FORMATION_FULL_SUPPLY_RATE`.
@@ -70,12 +86,10 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 | [frame-seam-closed-exchange-layer](#frame-seam-closed-exchange-layer) | [ecological](ecological.md#live-state), [verification](verification.md#live-state) | The sixth frame-seam instance sat on the documented intake path, and the gate could not see it because it was keyed to the primitive rather than the wrapper |
 | [section-8-9c-formation-feedback](#section-8-9c-formation-feedback) | [fulfilment](fulfilment.md#live-state) | Closes the K(ε) circularity — ε derived from realized capacity rather than supplied |
 
-**A degeneracy worth knowing.** `make_federation`'s only heterogeneity lever was
-`ecosystem_health`, and after Phases 4e/4f collectives differing only in health
-are IDENTICAL in the ledger. The constructor now takes a `capital_schedule`,
-which moves per-capita output directly and produces real terms of trade. This is
-the domain-balance defect seen from the exchange layer — see
-[ecological.md § History](ecological.md#history).
+**A degeneracy worth knowing.** Collectives differing only in `ecosystem_health`
+are IDENTICAL in the ledger after Phases 4e/4f; `capital_schedule` moves
+per-capita output and gives real terms of trade
+([ecological.md § History](ecological.md#history)).
 
 ---
 
@@ -83,8 +97,20 @@ the domain-balance defect seen from the exchange layer — see
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 7 entries, newest first | |
+| 19 entries, newest first | |
 |---|---|
+| [recalibration-test-history](#recalibration-test-history) | THE HISTORY THAT `tests/test_recalibration.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [exchange-test-history](#exchange-test-history) | THE HISTORY THAT `tests/test_exchange.py` DOCSTRINGS CARRIED, AND A TEST THAT CANNOT FAIL |
+| [state-age-mix](#state-age-mix) | EACH STATE RUNS ON ITS OWN AGE MIX, AND AT ε 0 THE LABOUR RATION TURNS A 9.6-POINT ADULT-SHARE… |
+| [coasean-cli-frame-and-json](#coasean-cli-frame-and-json) | THE FEDERATION CLI HELD THE 1M STOCK BESIDE `--population`, AND ITS JSON DID NOT PARSE |
+| [frame-split-by-state](#frame-split-by-state) | THE US FRAME DIVIDES INTO ITS 49 STATES, AND THE FEE'S CAP DOES NOT ADD |
+| [boundary-events-carry-state](#boundary-events-carry-state) | MERGE AND SPLIT CARRY CAPITAL AGE AND MULTIPLIER — WEIGHTED SO THE BOUNDARY EVENT CONSERVES THE… |
+| [one-federation-builder](#one-federation-builder) | ONE FEDERATION BUILDER, FROM FRAMES — AND IT SURFACED A CORE FRAME SEAM IN `fiscal_snapshot` |
+| [bridge-fix-options](#bridge-fix-options) | THE §8.9b GAP IS A TIMING PROBLEM, SO THE FIX IS TO MOVE IT IN TIME, NOT TO TAX WAGES |
+| [formation-bridge-base](#formation-bridge-base) | THE §8.9b COMPENSATED BRIDGE IS ≈1% OF OBLIGATION HOURS — AND ~50% OF WHAT THE LEDGER PAYS AT S… |
+| [base-adopted](#base-adopted) | REGISTERED SETTLES, THE FLOOR IS READ BESIDE IT — AND THE FEDERATION IS NOW AT MUTUAL RECOGNITI… |
+| [settled-through-the-book](#settled-through-the-book) | REGISTERED AND FLOOR RUN THROUGH THE BOOK — AND THE BOOK'S TRANSFER CREATED MONEY ON EVERY LEG |
+| [settlement-base-candidates](#settlement-base-candidates) | SETTLING PER TEH DISCIPLINES CAPTURE AND DOES NOT BOUND THE CROSS-RATE; THE BASES THAT ARE BOUN… |
 | [register-federation](#register-federation) | CAPTURE IN ONE COLLECTIVE IS REWARDED BY THE FEDERATION, NOT DISCIPLINED BY IT |
 | [frame-seam-closed-exchange-layer](#frame-seam-closed-exchange-layer) | THE FRAME SEAM CLOSED ON THE INTAKE PATH, AND THE EXCHANGE-ACCOUNTING LAYER STARTED |
 | [federation-contestability-closure](#federation-contestability-closure) | Federation contestability closure implemented |
@@ -94,8 +120,124 @@ the domain-balance defect seen from the exchange layer — see
 | [section-8-9c-formation-feedback](#section-8-9c-formation-feedback) | §8.9c formation feedback built |
 
 <!-- /record-index -->
+<a id="recalibration-test-history"></a>
+
+**THE HISTORY THAT `tests/test_recalibration.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 8; [ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were re-read from the functions on 2026-10-17; the others are dated.
+- **The yield identity.** `CONTESTABILITY_CAPITAL_YIELD_RATE` shipped 0.10 against an identity (1/ν − δ) giving 0.20, and nothing detected it: two of its three consumers are SUPERSEDED by §8.9 and the third is research-tier and unpinned. Same binding-by-test treatment as `GUF_ECO_KAPPA_CARBON` / `CDR_LABOR_HOURS_PER_TONNE`.
+- **The dividend sign that flipped (`test_dilution_pays_MORE_than_target_despite_the_smaller_share`).** §8.9b recorded the cost of no forced sales as a dividend "≈13% below the purchase model". At the constants of 2026-08-15 it was ≈13% ABOVE at ε=0.99 (2,155 vs 1,906; φ 0.771 vs 0.987; income 2.155e9 vs 2.758e9, reinvestment 0 vs 8.517e8). It flipped silently when PERSONAL_EOH_BASE, the knowledge re-anchor and AGE_GROUPS moved the machine-output base, while the φ ordering, which `TestPhiActual` pins, never moved. LIVE (`recalibrated_arc`, ε 0.99): dilution 1,721.5 per capita against target 1,632.5 (+5.4%), φ 0.741 against 0.987; the sign holds from ε≈0.05 to the top.
+- **The K-IV reversal (`test_doctrine_dividend_no_longer_costs_anything_at_the_cap`).** Before K-IV the charter paid ≈1,092 against the purchase model's ≈1,287 at the top of the arc, about 15% less, quoted as the honest cost of never forcing a sale. K-IV grew machine output +70% at ε 0.99 and lifted dilution's φ cap 0.66 → 0.754; the docstring then gave 2,162 vs 1,986. The test's comment records the ratio as 1.089 at the K-IV anchor and 1.050 after Finding-E. LIVE (`commons_income_statement`, ε 0.99): 1,697.7 against 1,632.5 (1.040), φ 0.731 against 0.987.
+
+<a id="exchange-test-history"></a>
+
+**THE HISTORY THAT `tests/test_exchange.py` DOCSTRINGS CARRIED, AND A TEST THAT CANNOT FAIL** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)).
+- **`test_land_area_actually_moves_the_ecological_domain` compares zero with zero.** It asserts that doubling a frame's land doubles `eoh_by_domain["ecological"]`. Since Phases 4e/4f made the domain stocks-only, that value is **0.0** at the frame's default health (read 2026-10-17 from `build_collective`), so `0.0 == 2 × 0.0` passes for any land wiring (mode 2). The docstring now states the gap; the test itself is unchanged, since a fix (a degraded health, or the relocated terms) is a code change for the author.
+- **The builder's leak, dated 2026-10-14.** Before `build_collective` sent shared keywords to both halves, an age mix moved personal EOH 1,352.8M → 1,340.1M and fiscal expenditure not at all, and `registration_epsilon=0.70` moved the mint 3.48× and the fisc not at all. See [the entry point's mirror](fulfilment.md#entry-point-one-value-both-halves).
+- **The module's class list** described `parity_rate` as "the parity floor" and omitted the four classes added since. It now names the registered rate as the settlement and lists every class.
+- The ledger identity, the scale-free mutation (57 tests passing with `/ population` dropped) and the always-firing `breached` are at [test-suite-audited-pin-coverage](verification.md#test-suite-audited-pin-coverage); the transfer that created holdings is at [settled-through-the-book](#settled-through-the-book).
+
+<a id="state-age-mix"></a>
+
+**EACH STATE RUNS ON ITS OWN AGE MIX, AND AT ε 0 THE LABOUR RATION TURNS A 9.6-POINT ADULT-SHARE SPREAD INTO −34% / +50% MINTS** (2026-10-15, autonomous: the `frame-split-by-state` gap's own *Settles by*). `utils/state_age_ingest.py` over Census SC-EST2025-ALLDATA6 (resident, single year of age, 85+ top-coded; RACE 1–6 summed, since the file has no race total) → `reference/data/state_age_2025.csv`; `reference/states.state_population_shares` / `contiguous_48_population_shares`; `us_state_split(age_bands)` writes each unit's `age_fractions`; `frame_inputs.load_split` admits and validates them; `split_frame` replaces the frame's mix and re-derives the adult share, the labour supply per head and (register on) the retired share. Tests: `test_frame_inputs.py::TestTheFrameDividesIntoItsCollectives::test_a_units_own_age_mix_reaches_demand_and_supply`, the `BADAGE` refusal, `test_states.py::TestTheStateAgesAreTheCensus`.
+- **ONE MEASUREMENT.** The ingest stops unless every state's ages sum to the population `state_land_population.csv` ships for it (all 51 do, to the person), and the 51 states pooled equal the national extract at every age (pinned). The civilian sibling file (`agesex-civ`) is a different universe and is not used.
+- **THE SPREAD.** Elderly share 13.0% (Utah) to 24.6% (Maine); children 0–17 17.0% (Vermont) to 26.1% (Utah); capacity-weighted adult share 0.631 (South Dakota) to 0.727 (DC), against the frame's 0.6585.
+- **WHAT IT MOVES** (`coasean federation --frame us --split us_states`). At the frame's ε 0.368, mint per head was identical across states and now runs **448.9 (DC) to 462.6 (South Dakota)** TEH, ×1.030, against the frame's 457.3. No solvency verdict and no unpaid fee flips, at the frame ε, at either end of its range, at both ends of BEA's conversion band, or at 3M people (11 unpaid with and without ages). At the arc points the state mint moves −1.96% (DC) to +1.23% (South Dakota) at ε 0.40, −3.17% to +1.99% at 0.90 and −3.70% to +2.33% at 0.99.
+- **AT ε 0 THE RATION DOES IT.** State mint against the frame's mix runs **−34% (South Dakota) to +50% (DC)**. The direct pipeline at 1M canonical capital moves DC by −3.8% only, and labour does not bind there. On the US frame it does: DC on the frame's mix supplies 1,528 h a head, covers 0.915 of the work, and the ration defers infrastructure first. On its own mix (adult share 0.727 against 0.6585) it supplies 1,687 h and is not rationed, so its registered infrastructure rises 19.2M → 33.7M EOH. The swing is the labour constraint the stationarity work found at ε 0 on this frame, now per state.
+- **ADDITIVITY IS NOW CONDITIONAL, AND THE DOCSTRING SAYS SO.** People, land, parcels and the fee assessed still add exactly. What is created does not: at ε 0.368 the states total 155.306B against the frame's 155.308B (−0.0014%). Two reasons: the states pool to the NATIONAL mix rather than the frame's, and the ε 0 ration is a min. The existing additivity pin now runs the shipped split with its ages taken out.
+- **THE FRAME'S OWN SCOPE, REPORTED, NOT CHANGED.** The frame reads the national mix (50 states and DC) for the mainland's people. The 48 and DC's own mix is elderly 0.18897 against 0.18906, working age 0.60030 against 0.60022. That is small, and it is the same scope tell as the parcels' +1.68%. Switching the frame's source would move every US figure, so it is left to the author.
+- **VERIFIED BY BREAKING IT.** Keeping the frame's labour supply in a unit fails ε 0. Dropping the age replacement fails all four ε. Keeping the frame's retired share fails the register-on case. Dropping the split's age validation fails the refusal.
+- The verification.md Open line "Compass demand reads the shipped age mix" was stale: it closed on 2026-10-14 ([fulfilment.md](fulfilment.md#compass-reads-the-age-mix)). It was removed, not struck, to keep that file's live surface in budget.
+
+<a id="coasean-cli-frame-and-json"></a>
+
+**THE FEDERATION CLI HELD THE 1M STOCK BESIDE `--population`, AND ITS JSON DID NOT PARSE** (2026-10-14). Both were found while byte-checking the `build_collective` fix ([fulfilment.md](fulfilment.md#fee-follows-stationarity)).
+
+- **Frame seam (mode 6).** `coasean federation` passed `CAPITAL_STOCK_DEFAULT`, the 1M-reference stock, unscaled beside `--population`. Per-capita mint read **332.23** at 1e6 and **281.49** at 1e7 for one economy. It now scales the stock by `population / REFERENCE_FRAME_POPULATION` and reads 332.23 at both, identical at the 1M default. `test_capital_scale_resolution.py::_unscaled_capital_constant_reads` scanned `utils/` but recognised a population only as a NAME, so `args.population` was invisible to it. It now sees attributes, and this was its only hit.
+- **Contract.** All four subcommands printed the EXPERIMENTAL banner (and `federation` its ε/N header) into stdout under `--format json`, so none parsed. The banner now goes to stderr under json, and the table form is byte-identical. A sweep of every `scenario run` and every other subcommand offering `--format json` found no other case.
+- Gates: `test_cli_dispatch.py::TestCoaseanJsonIsOneDocument` (both halves broken and failing), plus the widened scan.
+
+<a id="frame-split-by-state"></a>
+
+**THE US FRAME DIVIDES INTO ITS 49 STATES, AND THE FEE'S CAP DOES NOT ADD** (2026-10-15, author: a collectives file for the federation split; start with the 49 units, capital by population). `reference/states.py` (ERS MLU 2022 by state, tables 1 and 5; Census 2025 state population; ingest `utils/state_ingest.py`), `reference/parcels.private_parcels_by_state`, `utils/frame_inputs.py` (`load_split`, `split_frame`, `even_split`, shipped `reference/data/splits/us_states.json`), `utils/scenario_cmd.collective_on_frame`, `coasean federation --frame/--frame-file/--split`. Tests: `test_frame_inputs.py::TestTheFrameDividesIntoItsCollectives`, `tests/test_states.py`.
+- **A split states how a frame DIVIDES, the frame how much there is.** Each unit's population, land and parcels are weights; it runs on its share of the frame's, and on its population share of the frame's capital and Trust. So the units sum to the frame by construction, and a moved `--population` moves people, not land. The land is ERS's "48 States" line, `US_MAINLAND_HECTARES`' own source: the 49 states sum to it within 3 thousand acres of ERS rounding.
+- **Each unit runs the frame's own path.** The `collective` branch became `collective_on_frame`, called once per unit and once for the whole frame. Created, assessed and relocated hours add exactly at all four ε; a one-unit split reproduces the whole frame.
+- **At the US frame (ε 0.371) the states differ only in their fee.** Mint per head is identical (spread 4e-16), because age mix, capacity, stock age and multiplier are national. The fee per head runs **1.40 (New York) to 4.44 (North Dakota)**, ×3.17, and follows private parcels per head. Land moves only the relocated ecological obligation: the fee's area part is NOT SUPPLIED. No cap binds, so the split collects the frame's 761.4M.
+- **The cap is a min, and a min does not add.** At 3M people on US land the whole frame can pay its fee, while **10 of 49** states (Alabama, Arkansas, Iowa, Louisiana, Mississippi, Montana, New Mexico, North Dakota, South Dakota, West Virginia) cannot. The split collects **750.1M against 761.4M** (11.3M unpaid). Reported, not reconciled. At 1M every state binds and the sums agree again.
+- **Two federation paths charge differently.** Without a frame, `make_federation` charges NO land fee (`build_collective` passes none), and the banner now says so. Its JSON is unchanged; its table gains that one line, so the 2026-10-14 entry's "byte-identical" no longer holds for the table.
+- **Both ends re-run**, as `scenario run` does: the ε reading 0.219–0.523 and BEA's conversion band. No state's cap binds at any of them.
+- **Found, not fixed:** the frame's 335M is a 50-state figure on contiguous-48 land (see [thermal.md](thermal.md#us-energy-eia)). Census 2025 puts 339.6M in the 49 units and 341.8M in the 50 states and DC, so the split spreads the reference population over the 49 units by their Census shares.
+
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/contestability.md#<slug>`.
+
+<a id="boundary-events-carry-state"></a>
+
+**MERGE AND SPLIT CARRY CAPITAL AGE AND MULTIPLIER — WEIGHTED SO THE BOUNDARY EVENT CONSERVES THE MINT AND THE OBLIGATION** (2026-09-30, closing the lead in [one-federation-builder](#one-federation-builder)). `research/coasean.merge_collectives` / `split_collective` / `_carried_mean`, `research/exchange.build_collective`. Tests: `tests/test_coasean.py::TestBoundaryEventsCarryAgeAndMultiplier` (14).
+- **THE WEIGHTS ARE DERIVED, NOT CHOSEN.** §8.7(d) says a boundary event creates and destroys zero TEH; applied to the mint and the obligation it fixes both weights. Infrastructure EOH is affine in age at fixed capital, so the CAPITAL-weighted age reproduces Σ infrastructure EOH; the mint is Σ registered × m, so the REGISTERED-HOURS-weighted multiplier reproduces Σ teh_created. Both hold to 1e-12 at all four ε; a split's successors inherit both and mint exactly the parent's total. Population-weighted age — the obvious alternative — fails the pin, so the choice is pinned, not merely passing.
+- **WHAT THE RESET COST.** Two collectives at m = 1.6 / 2.6 merged at the reference multiplier (1.996) and minted **~5% less** than the pair (0.943 / 0.950 / 0.951 of the sum at ε = 0.40 / 0.90 / 0.99). The age reset LOOKED harmless in the first probe only because ages 0.2 / 0.8 at equal capital average to the 0.5 default — mode 3; the pins use unequal capital.
+- **A SECOND SEAM, FOUND READING THE BUILDER.** `build_collective` forwarded a multiplier to the pipeline and not to `fiscal_snapshot`, which sized stewardship at the reference rate — one collective, two multipliers (mode 10). Now one — and `run_collective_period`, the N=1 anchor's independent reference, carried the same seam; the anchor ran at the reference multiplier only, where the two agree regardless (mode 3). Both forward it, pinned off the reference multiplier. Reporting only: stewardship is paid at the mint, so no solvency verdict moves.
+- **BIT-IDENTICAL WHERE NOTHING DIFFERED.** Like values pass through unchanged, so `make_federation` without schedules, `simulate_federation`, the N=1 anchor and every like-for-like merge/split diff clean; only heterogeneous-multiplier collectives move. `merge_collectives` / `split_collective` have no production caller — `simulate_federation` rebuilds each period — so this corrects the boundary-event API, not a shipped trajectory.
+
+<a id="one-federation-builder"></a>
+
+**ONE FEDERATION BUILDER, FROM FRAMES — AND IT SURFACED A CORE FRAME SEAM IN `fiscal_snapshot`** (2026-09-30, author: "proceed with the frame builder on the federation of collectives"). `research/coasean.py` (`Collective` re-exported from `exchange`; `make_federation(hectares_per_capita=)`, merge and split build `CollectiveFrame`s through `build_collective`), `research/exchange.py` (`Collective` gains frame-backed `population` / `trust_balance` / `capital_stock` / `ecosystem_health` / `capital_age_ratio` and `reserve_carried`; `CollectiveFrame` accepts zero capital; the `_HasPipeline` Protocol is gone), `core/fiscal.fiscal_snapshot`. Tests: `tests/test_coasean.py::TestOneFederationBuilder`, `tests/test_exchange.py`, `tests/test_ecological_scale_resolution.py::TestTheRelocatedObligationTravelsWithTheFrame`.
+- **VERIFIED BY BIT-DIFF, NOT BY GREEN.** Every field and the full pipeline and fiscal dicts were captured before the change — `make_federation` at ε ∈ {0, 0.40, 0.90, 0.99} with and without capital, health and multiplier schedules, a merge, a split, both simulations and the N=1 anchor — and diffed after. **Identical except four values one ulp apart** in one split successor, from carrying the parent's land × 0.7 instead of recomputing population × 0.7 × 1.65.
+- **THE DIFF FOUND A CORE DEFECT FIRST.** The first diff showed 250 differences, all in the fiscal dict's ecological reporting: a 50,000-person collective's relocated (GUF) obligation read 153.69 TEH on the old path and 1,426,014 on the new. `fiscal_snapshot` resolved the ecological area from the population ONLY when no `eco_eoh_override` was passed; with one, the relocated obligation fell back to the whole-US anchor — fixed in absolute terms, per person **17.1 / 0.856 / 0.043 TEH at 5e4 / 1e6 / 2e7** against a frame-invariant 0.0018. Its own comment named the caveat and said one caller guaranteed the frame; `simulate_period` and `build_collective` did not. Fixed at the root (the area always resolves), `build_collective` now passes the frame's actual land, and the fix — which moved zero tests — is gated; restoring the old condition fails 5. `core/dashboard.system_dashboard` carried a twin of the same conditional and is fixed the same way; its relocated figure is not reported, so a static check pins the shape.
+- **ZERO CAPITAL IS A JURISDICTION.** `CollectiveFrame` refused it, but the canonical arc holds no capital at ε=0 and `make_federation(0.0)` builds exactly that; negative capital is still refused.
+- **THE RESERVE IS CARRIED, NOT RE-EARMARKED.** Merge and split move reserves arithmetically (§8.7c); `exchange.Collective.reserve` was a property recomputed from the mint. It now reads `reserve_carried` when a boundary event set one, so the value reported is the value `FederationBook` books.
+- **THE N=1 ANCHOR GOT STRONGER.** `make_federation` called `run_collective_period`, which the anchor then compared it against — a scaffold check. The factory now goes through `build_collective`, and `run_collective_period` stays as the raw two-call reference, so the anchor compares two independent paths for the first time. Still exact.
+- **LEADS:** a merge or split still drops each collective's capital age and multiplier to the defaults (unchanged behaviour, now visible because the frame could carry them); `demographic_shock` is still frameless inside `compound_shock` — [verification.md § parallel-paths](verification.md#parallel-paths) (a).
+
+<a id="bridge-fix-options"></a>
+
+**THE §8.9b GAP IS A TIMING PROBLEM, SO THE FIX IS TO MOVE IT IN TIME, NOT TO TAX WAGES** (2026-09-30, author question: "what fixes for the funding gap … and which one is the best"). `research/recalibration.bridge_advance`; `tests/test_recalibration.py::TestBridgeAdvance` (5). REPORTING ONLY.
+- **WHERE THE GAP EXISTS.** Only under the purchase model (`phi_policy="target"`), where the commons BUYS its share of capital. Under the adopted dilution doctrine the share attaches at commissioning and the gap is zero by construction; the bridge prices the softer variant that compensates builders at cost.
+- **ITS SIZE** (1M, arc speed 0.02/yr — a scenario choice): cumulative **~186M TEH over ~12 years**, closing at ε≈0.245; the commons then earns **~18.2B** of surplus over the rest of the arc, and the advance is **repaid ~6.75 years after the sunset**. ~2.1% of the default prior work. It RISES with arc speed (56M at 0.01/yr, 683M at 0.04/yr) — the purchase rate carries dε/dt.
+- **THE OPTIONS, RANKED.** (1) **Stay on dilution** — no gap at all, and the larger dividend; the cost is uncompensated builders, i.e. the investment-disincentive feedback on K(ε) that is flagged and unsimulated. (2) **A zero-interest advance to the commons, repaid from its own later surplus** — lands the cost on the party that gets the asset, needs no wage levy, respects Condition III (repaid at face value), small against both its lender and its repayment source; needs a lender at founding (prior work, or a federation commons), which a collective founded with nothing lacks. (3) **Slow the purchase** — track φ with a lag so reinvestment never outruns income; no financing needed, but the commons owns less, for longer. (4) **The current levy on labour** — on the mint 54% / 47% / 32% of wages at ε = 0 / 0.05 / 0.10: it taxes the poorest workers hardest at the moment the ledger pays least. Worst. (5) Minting the gap is not available: the mint pays served obligation only.
+- **WHAT (2) COSTS, CORRECTED BEFORE IT SHIPPED.** A first draft said (2) was "(1) plus compensation at ~1% of the later surplus". Wrong: the advance only FINANCES the early window. The purchase itself continues out of commons income until φ reaches its target, and members bear it as the dividend gap between the purchase and dilution policies — ~18 TEH/person at ε=0.10, ~170 at 0.50, ~234 at 0.70, ~69 at 0.99 — **~6.8B TEH over the arc at 1M, ~37× the advance.** The ~1% is the financing cost of the bridge, not the cost of compensating builders.
+- **RECOMMENDATION.** **(1) dilution is the cheapest for members by a wide margin and is already the doctrine.** If builders are to be compensated anyway, **finance the purchase's early window with (2), never with (4)**: (2) removes the wage levy and moves the early cost onto the commons' own later income; it does not reduce the purchase's ~6.8B cost to members, which is the real price of compensation and the number to weigh against the unsimulated investment-disincentive of not paying it. The zero-founded case needs a federation lender, which is where the §8.7 federation commons already sits.
+
+<a id="formation-bridge-base"></a>
+
+**THE §8.9b COMPENSATED BRIDGE IS ≈1% OF OBLIGATION HOURS — AND ~50% OF WHAT THE LEDGER PAYS AT SUBSISTENCE** (2026-09-30, found in the systematic `labor_income` pass). `research/recalibration.formation_levy_rate` gains REPORTED keys `mint`, `levy_rate_on_mint`; `levy_rate` unchanged. `tests/test_recalibration.py::TestFormationLevyBase` (6).
+- **THE BASE.** `levy_rate = gap / labor` with `labor = (1−ε) · total_eoh` — human obligation HOURS read as TEH/yr. Under the wage doctrine the TEH labour is paid is the mint, a few percent of those hours at the bottom of the arc. Against the mint the same gap is **54% at ε=0, 47% at 0.05, 32% at 0.10, 7.8% at 0.20**. [section-8-9b-charter-formation](#section-8-9b-charter-formation) recorded "the compensated bridge ≈ 1% of labor output, sunset by ε≈0.2" on the hours base, before the wage doctrine existed.
+- **AND THE SUNSET DRIFTED.** The docstring's worked example said gap = 0 at ε=0.20; the levy is 0.83% there and the sunset sits near **ε≈0.245**. Worked figures replaced with a pointer to the call.
+- **NOT CHANGED, because the base is the author's.** A levy is a rate on TEH income, which argues for the mint; the §8.9b comms wording quotes ~1%, which argues for flagging before moving it. Both rates are reported so the choice is visible.
+
+<a id="base-adopted"></a>
+
+**REGISTERED SETTLES, THE FLOOR IS READ BESIDE IT — AND THE FEDERATION IS NOW AT MUTUAL RECOGNITION UNTIL MULTIPLIERS DIFFER** (2026-09-30, author decision, AWol: "registered settles and floor is reported beside it as purchasing power until something requires us to back track"). `research/exchange.py` (`registered_rate`, `settlement_terms`, `settlement_matrix`, `SETTLEMENT_BAND_BOUNDS`), `research/coasean.py` (`exchange_rates(basis=)`, `RATE_BASES`, `make_federation(multiplier_schedule=)`, `run_collective_period(mean_multiplier=)`, `simulate_federation(rate_basis=)`), `research/register_federation.py` (`settlement_response`), `utils/coasean_cmd.py` (`--rate-basis`).
+- **DEFAULT FLIPPED, PARITY KEPT REACHABLE** — the `per_component`/`uniform` and `dilution`/`target` precedent. Blast radius measured before the flip: six coasean tests pinned parity as the federation's rate. Each was READ: all asserted that capital (or health) heterogeneity produces non-unity rates and non-zero inter-inflation, which is structurally false under registered — every collective inherits one multiplier. They now pin parity explicitly, and registered counterparts pin the adopted behaviour: capital drift moves no settlement rate; multiplier drift does, by exactly the ratio.
+- **THE CONSTRUCTOR DEGENERACY, ONE LEVER OVER.** `make_federation` could not make the adopted basis say anything, as it once could not make parity move with health. `multiplier_schedule` is the lever; unsupplied, `run_collective_period` passes `MEAN_MULTIPLIER_REFERENCE` — the pipeline's own default, bound by name — so the N=1 anchor is byte-identical.
+- **A DISCOVERY PREMIUM IS REFUSED ON THE SETTLEMENT BASIS** (§5), not applied-and-reported (mode 10). The premium seam survives under `basis="parity"`, where it lived.
+- **ONE FORMULA, THREE PLACES** — `exchange.registered_rate` is canonical; `coasean.exchange_rates` calls it; `settlement_base`'s `registered` candidate cannot import it without a cycle and is bound to it by test (mode 4). The floor reading in `settlement_terms` is bound to `settlement_base`'s `floor` the same way — which caught an inverted ratio in my first draft (floor(ε_a)/floor(ε_b) instead of floor(ε_b)/floor(ε_a)) before it shipped.
+- **PROSE RETIRED:** `coasean`'s module docstring and `three_regime_inflation`'s regime 2 said "an over-issuing collective sees its unit depreciate". On the adopted basis: through the multiplier it depreciates; through the register it is neutral; capital and ε do not move it. `register_federation` now opens with a status note — its finding is about parity, which still rewards capture, and is kept as the documented defect. CLAUDE.md §5's "currently prices parity … currently REWARDS capture" struck and dated.
+- **SURFACED, NOT DECIDED:** `settlement_check`'s depreciation factor, if ever applied, would be a non-base rate crossing a boundary. Nothing applies it; the question of what disciplines a deficit under base settlement is now [open](#open) and may retire `COASEAN_DEPRECIATION_SLOPE`.
+- **PLACEHOLDERS TOUCHED, NONE RETIRED, AND WHY.** Five placeholders are on this path: `COASEAN_RESERVE_FRACTION`, `COASEAN_IMBALANCE_CEILING`, `COASEAN_DEPRECIATION_SLOPE`, `GOODS_PRICE_FLOOR`, `SERVICES_PRICE_FLOOR`. None was low-hanging by the test "the `resolves_by` points at something already in the repo": the price floors name input-output non-labour shares and the repo's BEA data is fixed assets only; the reserve and ceiling name clearing-union practice (the EPU is cited), and no clearing-union data is in the repo — whether the EPU's quota is even the same quantity as a fraction of a reserve has to be read from the source before anything is bound to it (mode 8), which makes it a lead, not low-hanging; the slope's mechanism is now in question, above.
+
+<a id="settled-through-the-book"></a>
+
+**REGISTERED AND FLOOR RUN THROUGH THE BOOK — AND THE BOOK'S TRANSFER CREATED MONEY ON EVERY LEG** (2026-09-30, author: "stick with registered and floor as the main focus"). `research/settlement_base.py` (registered/floor section), `research/exchange.py` (`FederationBook.transfer` sender leg, `Ledger.EXTERNAL`, `Ledger.holdings`), `tests/test_settlement_base.py` (+31), `tests/test_exchange.py` (+2, one rewritten). 5,049 pass (1 skipped), mypy clean on 103 files. Read as FOCUS, not adoption: `parity_rate` unchanged.
+- **THE DEFECT, FOUND BY RUNNING CAPTURE THROUGH THE BOOK.** `FederationBook.transfer` posted the sender leg reserve → the sender's OWN circulation. What was sent abroad stayed spendable at home while the receiver also gained it: **every transfer created holdings, at every rate including 1.** The live-state claim "at rate = 1 conservation holds exactly, and that is the test" was false, and its test could not fail — it summed `money_supply()` (issuance net of destruction), which no transfer posting touches, so it passed at rate 1.5 as well (verified). Mode 2 and mode 12 together. Now the sender leg posts to a declared `external_settlement` contra-account, a `holdings()` method gives the quantity a transfer actually moves, and the rewritten test plus two new ones fail 3/3 if the old leg is restored.
+- **AND A MISLABEL, DOCUMENTED RATHER THAN RENAMED.** The docstring said `fx_revaluation` held amount·(rate−1); the account holds the receiver's whole inflow, −amount·rate, and `test_exchange` pinned −1500 for a 1000 @ 1.5 transfer while the docstring promised 500. The name is kept (the report and its tests read it); the docstring now says what it holds, and the revaluation proper is the returned `fx`. Mode 10.
+- **REGISTERED'S BOUND IS THE BAND'S, AND CONDITIONAL.** r = m_b/m_a lies in **[0.857, 1.167]** = [M_BAND_LOW/M_BAND_HIGH, M_BAND_HIGH/M_BAND_LOW] only when both collectives honour Condition II — and `build_collective` enforces nothing; any multiplier mints. `registered_settlement` runs `condition_ii_check` on both sides and reports a breach beside the rate, never clamps. The check reads m, not the rate: two collectives equally above band settle at par. **At the shipped multiplier every registered rate is 1.0 — that IS mutual recognition,** the regime [register-federation](#register-federation) recorded as reporting nothing whatever happens in any register. Across the five `reference/workforce.py` compositions — ILLUSTRATIVE band positions, not measurements (mode 8) — **three are out of band, and the third is the finding: `high_epsilon`, written as the NATURAL high-ε workforce (base tier automated away), sits at ≈2.22 with nobody gaming anything.** If registered settles, high-ε members are flagged by their skill mix and the bound fails where the arc is heading. 12 of the 18 breach pairs leave the bound. (In-band pairs staying inside it is algebra, not a result, and is not cited as one.)
+- **THE FLOOR READS THE SUPPLIED ε, AND THAT IS A SEAM.** Every `floor_price`/`basket_price` call in `core/` and `scenarios/` passes the capability index a collective STATES; the physical machine share is the OBSERVED ε, strictly lower away from zero because care resists automation. On the observed ε the floor's high-ε advantage over subsistence falls from **5.57× to 2.86×** at capability 0.99 (observed 0.861). `floor_observed` is carried as a seventh candidate, capture-neutral structurally. Which ε the floor price is a function of is repo-wide theory — handed over, not switched.
+- **THE TWO COMPOSE AS A RATIO, NOT A PRODUCT.** `purchasing_gain` = floor rate / registered rate — baskets on the far side per basket the same hours bought at home; the product would be (TEH_b/TEH_a)². Clean because `floor_price` reads no multiplier (mode 11 checked). Bounded by band ratio × floor spread when both are in band.
+- **THROUGH THE BOOK, CAPTURE:** under registered, floor and floor_observed the honest collective receives exactly what was sent and federation holdings are conserved to zero at every key ε; under parity holdings grow by exactly sent·(r−1), and at subsistence a transfer of half the smaller ceiling pushes the honest RECEIVER past its ceiling. A first version sent the capturer's own ceiling and breached the receiver at rate 1 — capture enlarges the capturer's reserve, and each ceiling is a fraction of its own — so that breach said nothing about the rate and was dropped.
+- **MUTATIONS:** floor_observed → supplied ε (4 fail), band check → rate bound (1), sender leg restored (8), gain → product (1).
+- **WHAT THE AUTHOR DECIDES:** registered or floor as THE settlement price, or registered as settlement with floor as the purchasing-power reading beside it; for floor, supplied or observed ε; for registered, whether mutual recognition at a common multiplier is acceptable, and whether a band breach suspends settlement or only reports — given the natural high-ε composition breaches it. (The book test that neutral bases do not breach cannot fail at rate 1 with a half-ceiling transfer; the parity half is the evidence.)
+
+<a id="settlement-base-candidates"></a>
+
+**SETTLING PER TEH DISCIPLINES CAPTURE AND DOES NOT BOUND THE CROSS-RATE; THE BASES THAT ARE BOUNDED ARE BLIND TO ISSUANCE** (2026-09-30). `research/settlement_base.py` + `tests/test_settlement_base.py`, 79 tests. 5,016 pass (1 skipped), mypy clean on 103 files. **REPORTING ONLY; `parity_rate` UNCHANGED** — `test_register_federation` is the retire-signal and must fire only once a base is chosen. Awaiting the author's choice of base.
+- **THE QUESTION §5 LEAVES OPEN.** The rule says settle on the obligation-anchored base and names the failure — *a base EOH here is your entire collective there* — but not the equation. Six backings compared, rate = backing(a)/backing(b): `parity` (mint per person, the current form; ≡ `exchange.parity_rate`, pinned), `obligation` (total EOH per TEH), `human` (human-served EOH per TEH), `registered` (= 1/m), `floor` (baskets per TEH at `floor_price(ε)`), `obligation_parity` (total EOH per PERSON — §5 read literally, not a per-TEH backing).
+- **CAPTURE (ε=0.40, +5pp personal admission, obligation asserted identical):** parity **1.2724** rewarded; obligation and human **0.7859** disciplined — exactly 1/mint-ratio, proportional rather than punitive, at every reporting point; registered, floor and obligation_parity neutral. Parity's reward peaks at subsistence (3.48× at ε=0) where the register is nearly empty.
+- **BUT THE PER-TEH BASES DO NOT BOUND THE ARC.** Max cross-rate over all ε-pairs on a 101-point grid, fixed 0.40 frame / canonical arc: parity **15.3 / 29.2**, obligation **12.2 / 21.2**, human **46.0 / 79.0**, floor 5.57 / 5.53, obligation_parity **1.53 / 1.72**, registered 1.0. The obligation base does not shrink parity's spread by an order — it REVERSES it: the subsistence collective's unit becomes the hard one (strong side at ε≈0.72, between reporting points; reading it off the six `ARC_REPORTING_POINTS` understates it only 0.6% here, parity's by 3.8%).
+- **§5's "BECAUSE", EVALUATED (mode 13).** *Floor bounded by obligation, obligation bounded by population, SO the cross-rate is bounded.* Per-capita obligation spans only **1.72×** across the whole arc — the premise holds, and the SO **holds for any base that reads the obligation or the floor directly** (`obligation_parity` 1.72×, `floor` 5.5×). It **fails for any base converted through the mint**: TEH-per-EOH spans **21.2×**, driven by a registration share spanning **79×** and partly offset by the human fraction (7.5×). Any base converted through the mint inherits the register's arc. (The obligation base's max rate IS the mint-per-EOH spread by definition — the decomposition adds the two factors behind it, not a second test.)
+- **THE TRADE-OFF, AND THE FORK.** The only bounded base that sees the collective, `obligation_parity`, is capture-neutral STRUCTURALLY (`total_eoh` takes no registration parameter) — and blind to issuance: a multiplier 10% above the shipped one settles at exactly 1.0, where every per-TEH base depreciates it to 0.909 and parity rewards it 1.10. Separately, `obligation` vs `human` is the question *does machine-fulfilled obligation back a TEH?* — at ε=0.90 a 4×-capital collective settles at 1.0588 under one and 0.9896 under the other, opposite sides of par. Both pinned; neither chosen. A base measured against the published registration schedule at the collective's own ε would separate discipline from boundedness, but settles against a policy curve rather than physics — named, not built.
+- **TWO PASSES ARE IDENTITIES AND ARE FLAGGED AS SUCH (mode 2).** `registered` is 1.0 for any two collectives at the shipped multiplier, so it is informative only in `multiplier_response`; `floor` reads ε and nothing else. `BY_CONSTRUCTION` travels in the output. A third near-miss was caught while building: the natural acquisition "discount" (cost at r=1 over cost at r) is identically r — dropped, and a test keeps it dropped.
+- **THE LAND PROBE IS INERT ON THE SHIPPED PATH.** 3× land per person moves no base because ecological EOH is 0.0 everywhere shipped ([ecological](ecological.md#live-state)); pinned as a property of the current calibration that should fail if the level is resolved. 10× population at fixed intensity moves none, to 1e-12.
+- **VERIFIED BY BREAKING IT.** Five mutations, each confirmed present in the loaded source, run with `PYTHONDONTWRITEBYTECODE=1`: obligation→registered (15 fail), obligation_parity→mint (9), search grid→reporting points (4), neutral verdict loosened (4), human→total (**0 — survived**; the fork test was added and it now fails 2).
+- **WHAT IT DOES NOT ESTABLISH:** that any base clears a real trade (no goods layer); anything about actors; a threshold for "your entire collective" — the report gives rate spread and years-of-mint, and where that becomes the §5 failure is the author's reading.
 
 <a id="register-federation"></a>
 

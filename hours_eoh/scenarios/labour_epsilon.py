@@ -26,15 +26,15 @@ paid work discharges an obligation (`reference/obligation_work`). That asymmetry
 is the value-anchor section's census-versus-valuation claim, observed on the
 framework's own retrodiction rather than argued.
 
-WHAT IT FINDS, and the result is close agreement rather than overlap: at the
-narrow attribution the labour route's ε sits just BELOW the capital route's
-floor. The two bracket a narrow gap. `reconciling_rate()` reports the conversion
-rate at which they would meet, which is the diagnostic that says which side to
-doubt.
+WHAT IT FINDS. When this module was written the result was close agreement, not overlap:
+at the narrow attribution the labour route's ε sat just BELOW the capital route's floor.
+Since the US frame took its measured stock and ages (2026-10-04) the two OVERLAP
+(`instrument_comparison`, 2026-10-18). `reconciling_rate()` reports the conversion rate
+at which they would meet, which is the diagnostic that says which side to doubt.
 
-THE FRAME IS DECLARED AT EVERY STEP. ATUS measures per person aged 15+; the
-package's extensives are per capita. `population_15_plus` carries the conversion
-and every function here says which frame its answer is in.
+EVERY STEP DECLARES ITS FRAME. ATUS measures per person aged 15+; the package's
+extensives are per capita. `population_15_plus` carries the conversion and every
+function here says which frame its answer is in.
 
 Layer: scenarios/ — imports from core/ and reference/, never the reverse.
 """
@@ -47,12 +47,13 @@ from typing import Any
 import inspect
 
 from hours_eoh.data import (
+    INSTRUMENT_ADJACENT_GAP,
     LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA,
     REFERENCE_FRAME_POPULATION,
 )
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.reference.atus_time_use import (
-    hours_per_person_15plus, latest_year, population_15_plus,
+    census_adult_share, hours_per_person_15plus, latest_year, population_15_plus,
 )
 from hours_eoh.reference.capital_inventory import BEA_POPULATION
 from hours_eoh.reference.obligation_work import obligation_share, what_this_cannot_settle
@@ -77,9 +78,9 @@ def obligation_state_keys() -> frozenset[str]:
     """
     The physical-state parameters `obligation_state` may carry.
 
-    Derived from `total_eoh`'s own signature rather than restated here, so a
-    parameter added there becomes supplyable without editing this list — the
-    copy-of-a-value failure this repo has found six times.
+    Derived from `total_eoh`'s own signature, not restated here, so a parameter added
+    there becomes supplyable without editing this list (the copy-of-a-value failure,
+    CLAUDE.md mode 4).
     """
     return frozenset(inspect.signature(total_eoh).parameters) - OBLIGATION_STATE_OWNED
 
@@ -177,7 +178,14 @@ def measured_hours(
     # The reference layer already owns this conversion AND the days-per-year it
     # needs; re-declaring either would be a second account of one quantity.
     paid_15 = _paid_own if _own else hours_per_person_15plus(y, (_WORK_PREFIX,))
-    share_15 = p15 / population
+    # THE SURVEY YEAR'S OWN ADULT SHARE (2026-10-04). It was the year's ATUS
+    # 15+ count over `population`, a fixed 2024 total — the SERIES TRAP
+    # `per_capita_scale` names: 2003 read 0.6725 against a real 0.7910, hours
+    # per head fell 15% short, and ε fell 0.525 → 0.410 over 2003–2025 that,
+    # corrected, runs 0.407 → 0.412. The shipped hours now take Census's share
+    # for their year (one universe, one year); supplied hours keep their own
+    # 15+ count over their own population.
+    share_15 = p15 / population if _own else census_adult_share(y)
     return {
         # The ATUS survey year belongs to the SHIPPED series. Supplied hours have
         # their own vintage this module does not know, so it is not asserted.
@@ -187,6 +195,8 @@ def measured_hours(
         "population":        population,
         "population_15_plus": population_15_plus(y),
         "share_15_plus":     share_15,
+        "share_source":      ("supplied 15+ count over population" if _own else
+                              f"Census resident 15+ share, {y}"),
         "unpaid_per_15plus": unpaid_15,
         "paid_per_15plus":   paid_15,
         "unpaid_per_capita": unpaid_15 * share_15,
@@ -216,10 +226,10 @@ def labour_epsilon(
 
     units: dimensionless ε ∈ [0, 1).
 
-    The obligation is NOT fixed as automation rises — infrastructure and
-    knowledge EOH both grow with the capital that does the automating — so the
-    naive one-shot division understates ε. Iterated to a fixed point instead,
-    the same reason `feasibility.feasible_epsilon` bisects rather than inverting.
+    The obligation does NOT stay fixed as automation rises: infrastructure and knowledge
+    EOH both grow with the capital that does the automating. So the naive one-shot
+    division understates ε. Iterated to a fixed point instead, the same reason
+    `feasibility.feasible_epsilon` bisects rather than inverting.
 
     Args:
         scope: "core" (upper bound on ε) or "broad" (lower bound). See
@@ -232,8 +242,8 @@ def labour_epsilon(
             **`capital_stock` is ABSOLUTE TEH at the reference frame, not per
             capita** — multiply a per-capita figure by REFERENCE_FRAME_POPULATION
             before passing it, or the frame seam closed for the Trust reopens
-            here. Keys are checked against `total_eoh`'s signature; `epsilon`,
-            `population` and `basis` are owned by this fixed point and refused.
+            here. The function checks keys against `total_eoh`'s signature; This fixed
+            point owns `epsilon`, `population` and `basis`, and refuses them.
 
     Returns, beyond ε: `epsilon_raw` and `clamped`. ε is floored at 0.0, and the
     floor is load-bearing — on the 65-sample MTUS panel it binds for 2 samples
@@ -397,12 +407,14 @@ def low_epsilon_obligation_sensitivity(
 
 
 def instrument_comparison(
-    capital_rates: tuple[float, ...] = (15.94, 19.50, 23.17),
+    capital_rates: tuple[float, ...] | None = None,
     population: float = BEA_POPULATION,
     *,
     scope: str = "government",
     doctrine: str = "current_cost",
     inventory: "Mapping[str, float] | None" = None,
+    age_ratios: "Mapping[str, float] | None" = None,
+    conditions: "Mapping[str, float] | None" = None,
     population_15_plus_supplied: float | None = None,
     unpaid_per_15plus: float | None = None,
     paid_per_15plus: float | None = None,
@@ -418,26 +430,39 @@ def instrument_comparison(
     labour interval is [broad, core]; the capital interval is the span of the
     supplied rates AT ONE CELL of the capital grid.
 
-    THE VERDICT DEPENDS ON A CHOICE, AND THAT CHOICE IS NOW STATED (2026-09-18).
-    `scope` and `doctrine` were a hard-coded "government" and an inherited
-    `current_cost` default, so this function silently read ONE CORNER of a grid
-    the capital route insists must stay a grid — its three judgements being
-    undeclared is the whole reason it returns 18 cells. Measured at the US
-    frame: the corner gives ADJACENT with a gap of 0.046, while **8 of the 18
-    declared cells fall inside the labour band** and the full grid (0.2003 –
-    0.7571) OVERLAPS it.
+    THE VERDICT DEPENDS ON A CHOICE, AND THE FUNCTION NOW STATES THAT CHOICE
+    (2026-09-18). `scope` and `doctrine` were a hard-coded "government" and an inherited
+    `current_cost` default, so this function silently read ONE CORNER of a grid the
+    capital route insists must stay a grid — its three judgements being undeclared is
+    the whole reason it returns 18 cells. Measured at the US frame when this was
+    written: the corner gave ADJACENT with a gap of 0.046, while **8 of the 18 declared
+    cells fell inside the labour band** and the full grid OVERLAPPED it. Since
+    2026-10-04 the capital arm reads its stock at BEA's measured ages (one class age had
+    put the whole stock past end of life, 1.15 lives) and at the condition those imply
+    on BLS's age-efficiency curve (it was a flat 0.85): the corner reads OVERLAP. Call
+    the function for the figures.
 
     The corner remains the headline because government/current_cost is the most
-    defensible single reading — switching the headline to the framing that
-    produces agreement would be calibrating to the answer, which is the failure
-    `reconciling_rate` warns about in its own docstring. The grid verdict is
-    reported BESIDE it under `grid`, so a reader sees that the answer is a
-    function of a declared choice rather than a property of the instruments.
+    defensible single reading — switching the headline to the framing that produces
+    agreement would be calibrating to the answer, which is the failure
+    `reconciling_rate` warns about in its own docstring. The report gives the grid
+    verdict BESIDE it under `grid`, so a reader sees that the answer depends on a
+    declared choice and is not a property of the instruments.
 
     A SUPPLIED inventory has no declared scope/doctrine grid to sweep, so
-    `grid["available"]` is False for a ported capital arm.
+    `grid["available"]` is False for a ported capital arm. Its stock's ages
+    and conditions travel with it as `age_ratios` and `conditions` (else the
+    default age, and condition derived from it).
     """
-    from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
+    from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
+
+    # None → `conversion_band()`'s low, midpoint and high. The default was
+    # (15.94, 19.50, 23.17): rounded copies of the band's ends and a hand
+    # midpoint (mode 4, 2026-10-03). The midpoint does not move the min/max
+    # span but DOES set the grid's size — three rates are its 18 cells.
+    if capital_rates is None:
+        _band = conversion_band()
+        capital_rates = (_band["low"], 0.5 * (_band["low"] + _band["high"]), _band["high"])
 
     # BOTH ARMS OR NEITHER, AND THE REPORT SAYS WHICH. Threading only the
     # capital inventory would compare a supplied capital reading against the
@@ -448,6 +473,9 @@ def instrument_comparison(
                    (population_15_plus_supplied, unpaid_per_15plus,
                     paid_per_15plus, employment))
     _cap_own = inventory is not None
+    if (age_ratios is not None or conditions is not None) and not _cap_own:
+        raise ValueError("age_ratios and conditions describe a supplied inventory's "
+                         "stock; the shipped table reads BEA's measured ages")
     if _lab_own != _cap_own:
         raise ValueError(
             "supply BOTH arms or neither: "
@@ -464,7 +492,8 @@ def instrument_comparison(
                employment=employment)["epsilon"]
            for s in ("core", "broad")}
     cap = [epsilon_from_inventory(r, scope=scope, doctrine=doctrine,
-                                  population=population, inventory=inventory)["epsilon"]
+                                  population=population, inventory=inventory,
+                                  age_ratios=age_ratios, conditions=conditions)["epsilon"]
            for r in capital_rates]
     lab_lo, lab_hi = lab["broad"], lab["core"]
     cap_lo, cap_hi = min(cap), max(cap)
@@ -473,7 +502,7 @@ def instrument_comparison(
         verdict, gap = "OVERLAP", 0.0
     else:
         gap = cap_lo - lab_hi if cap_lo > lab_hi else lab_lo - cap_hi
-        verdict = "ADJACENT" if gap < 0.05 else "DIVERGENT"
+        verdict = "ADJACENT" if gap < INSTRUMENT_ADJACENT_GAP else "DIVERGENT"
 
     # THE GRID BESIDE THE CORNER. Same rates, so the two sweeps cannot differ by
     # a rate set: `capital_rates` defaults to a 19.50 mid where the band's own
@@ -488,7 +517,7 @@ def instrument_comparison(
             _gverdict, _ggap = "OVERLAP", 0.0
         else:
             _ggap = _glo - lab_hi if _glo > lab_hi else lab_lo - _ghi
-            _gverdict = "ADJACENT" if _ggap < 0.05 else "DIVERGENT"
+            _gverdict = "ADJACENT" if _ggap < INSTRUMENT_ADJACENT_GAP else "DIVERGENT"
         grid_info: dict = {
             "available":           True,
             "low":                 _glo,
@@ -535,6 +564,8 @@ def reconciling_rate(
     population: float = BEA_POPULATION,
     *,
     inventory: "Mapping[str, float] | None" = None,
+    age_ratios: "Mapping[str, float] | None" = None,
+    conditions: "Mapping[str, float] | None" = None,
     population_15_plus_supplied: float | None = None,
     unpaid_per_15plus: float | None = None,
     paid_per_15plus: float | None = None,
@@ -546,11 +577,11 @@ def reconciling_rate(
     units: units of the inventory's currency per TEH.
 
     THE DIAGNOSTIC, not a recommendation. If the reconciling rate falls inside
-    `capital_retrodiction.conversion_band()` the two instruments are consistent
-    under some defensible convention; if it falls outside, at least one of them
-    is wrong and the band says which direction to look. It is emphatically NOT a
-    value to adopt — solving for the input that makes two estimates agree is
-    calibrating to the target, which is the failure this repo names.
+    `capital_retrodiction.conversion_band()` the two instruments are consistent under
+    some defensible convention; if it falls outside, at least one of them is wrong and
+    the band says which direction to look. It is emphatically NOT a value to adopt.
+    Solving for the input that makes two estimates agree is calibrating to the target,
+    which is the failure this repo names.
     """
     from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
 
@@ -566,7 +597,8 @@ def reconciling_rate(
     while hi - lo > tol:
         mid = (lo + hi) / 2.0
         if epsilon_from_inventory(mid, scope="government", population=population,
-                                  inventory=inventory)["epsilon"] > target:
+                                  inventory=inventory,
+                                  age_ratios=age_ratios, conditions=conditions)["epsilon"] > target:
             lo = mid            # ε falls as the rate rises
         else:
             hi = mid
@@ -606,7 +638,8 @@ def labour_epsilon_report(population: float = BEA_POPULATION) -> dict:
                 ""
                 if not comp["grid"]["available"]
                 else (
-                    f" — but {comp['grid']['verdict']} across the declared grid "
+                    f" — {'and' if comp['grid']['verdict'] == comp['verdict'] else 'but'} "
+                    f"{comp['grid']['verdict']} across the declared grid "
                     f"({comp['grid']['cells_inside_labour']} of "
                     f"{comp['grid']['cells_total']} cells inside the labour band, "
                     f"{comp['grid']['low']:.3f}–{comp['grid']['high']:.3f}), so the "

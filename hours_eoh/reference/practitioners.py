@@ -1,12 +1,12 @@
 """
 Reference practitioner/demand histories for scarcity_score().
 
-Each entry is a list of (practitioner_count, demand_eoh) tuples, most-recent
-last, spanning 5 periods. demand_eoh is expressed in practitioner-equivalents:
-the number of full-time practitioners needed to meet collective EOH demand for
-this occupation. Sized for a 1M-population reference economy (workforce ≈ 600K).
+Each entry is a list of (practitioner_count, demand_eoh) tuples over 5
+periods, most-recent last. The demand_eoh value is in practitioner-equivalents:
+the number of full-time practitioners that collective EOH demand for this
+occupation needs. Sized for a 1M-population reference economy (workforce ≈ 600K).
 
-Six shapes are provided to cover the key test and illustration cases:
+Six shapes cover the key test and illustration cases:
 
   community_care_worker   Stable moderate scarcity (~0.33)
   ecological_steward      Rising scarcity (0.40 → 0.72) — trending worse

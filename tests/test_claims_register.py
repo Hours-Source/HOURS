@@ -1,51 +1,24 @@
-"""
-The claims register: CLAUDE.md's checkable assertions, checked.
+"""The claims register: CLAUDE.md's checkable assertions, checked.
 
-WHY THIS EXISTS. This repo's most repeated failure is not a wrong number — it is
-a RIGHT number that stopped being right and was never revisited. Across two
-weeks it happened eight times that we know of:
+The repo's most repeated failure is a RIGHT number that stopped being right and that no
+one revisited. This gate applies the dataset-fingerprint pattern of
+`test_dataset_governance.py` to the file a new session reads first. It checks only
+claims of a DECLARED shape and leaves the historical record alone. A gate that fired on
+prose edits would not survive a week
+([record](record/verification.md#claims-register-test-history)).
 
-    2026-08-29  three stale `STILL OPEN` lines in this very file — the GUF
-                two-call pattern (closed by the assembly point), Phase 4e
-                (adopted the following day), and "23 of the 34" shadow
-                constants (every named item done in batches 2-3)
-    2026-08-29  five retracted claims still shipping in docstrings and runtime
-                verdicts, incl. `land_stewardship` printing "BELOW the anchor"
-                for eleven days after CLAUDE.md recorded it as 223x ABOVE
+STATED GAPS (an undocumented gap makes a checker read as stronger than it is):
 
-Every one was true when written. None was revisited when the work landed.
-
-THE REPO ALREADY SOLVED THIS ONCE, FOR DATASETS. `test_dataset_governance.py`
-sha256-fingerprints each review-worthy claim so a regenerated dataset with a
-changed method breaks the build until the constants are re-checked, with the
-recorded lesson: *"a review that cannot go stale is not a control."* This is
-that pattern applied to the file a new session reads first.
-
-WHAT IT DELIBERATELY DOES NOT DO. CLAUDE.md is part status, part changelog, and
-most of it is narrative. A gate that fired on prose edits would be suppressed
-within a week, which is worse than no gate — so only claims of a DECLARED shape
-are checked, and the historical record is left alone. That distinction is load
-bearing: `shadow 57 -> 46 -> 38` are three correct historical entries and a
-naive "every number must match live" check would fire on all of them.
-
-STATED GAPS, because an undocumented gap makes a checker read as stronger than
-it is (the repo's own rule):
-
-  * The suite's own test count and mypy's file count are NOT checked. Counting
-    passing tests from inside the suite is circular, and mypy needs a
-    subprocess. They are the two figures most likely to drift, and this gate
-    does not catch them.
-  * Only the claims in LIVE_CLAIMS are checked. A new claim is not
-    automatically covered — but `test_every_open_item_is_declared` means a new
-    OPEN item cannot be added silently, which is where the staleness has
-    actually occurred.
-  * A claim whose ANCHOR text is edited fails loudly rather than silently
-    passing. That is intended: it forces a re-check, exactly as the dataset
-    fingerprints do.
-  * The corpus is CLAUDE.md plus `record/*.md`. A claim moved to a file
-    OUTSIDE those two homes stops being checked, silently. `record/README.md`
-    is the index and `tests/test_record_index.py` keeps it honest, but nothing
-    stops a third location being invented.
+  * This gate does NOT check the suite's own test count or mypy's file count.
+    Counting tests from inside the suite is circular, and mypy needs a
+    subprocess. These two figures drift most, and this gate does not catch them.
+  * It checks only the claims in LIVE_CLAIMS, and does not cover a new claim
+    automatically. `test_every_open_item_is_declared` stops a new OPEN item
+    from arriving silently, which is where staleness has occurred.
+  * A claim whose ANCHOR text changes fails loudly, by intent, to force a
+    fresh check.
+  * The corpus is CLAUDE.md plus `record/*.md`. A claim moved to a file outside
+    those two homes silently leaves the check.
 """
 
 from __future__ import annotations
@@ -72,14 +45,10 @@ class Claim:
 
 
 def _text() -> str:
-    """
-    CLAUDE.md PLUS every `record/*.md`.
-
-    The status log was split by subject area on 2026-09-03 (CLAUDE.md was over
-    the 150k-char context limit at 304.5k). A claim does not stop being checked
-    because it moved into `record/` — reading CLAUDE.md alone after the split
-    would have silently retired six anchors and three of the five closed open
-    items, which is precisely the staleness this gate exists to forbid.
+    """CLAUDE.md PLUS every `record/*.md`. A claim that the 2026-09-03 split moved into
+    `record/` must stay checked. Reading CLAUDE.md alone would have retired six anchors
+    and three of the five closed open items
+    ([record](record/verification.md#claims-register-test-history)).
     """
     parts = [CLAUDE_MD.read_text(encoding="utf-8")]
     parts += [p.read_text(encoding="utf-8")
@@ -111,14 +80,20 @@ def _domain_is_empty_by_default() -> bool:
 
 
 def _provenance_is_complete() -> bool:
+    """Every constant carries a tag, at the census's acknowledged total. The census
+    generates the prose that quotes the figure (utils/census.py, 2026-10-03), so the
+    figure is not written here.
+    """
+    from utils import census
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 348 and total == 348
+    return tagged == total == census.snapshot()["provenance_total"]
 
 
-def _shadow_count_is_33() -> bool:
+def _shadow_count_is_acknowledged() -> bool:
+    from utils import census
     from utils import provenance as pv
-    return len([s for s in pv.shadow_constants() if not s.bound]) == 33
+    return len([s for s in pv.shadow_constants() if not s.bound]) == census.snapshot()["shadow_unbound"]
 
 
 def _guf_is_a_separate_revenue_line() -> bool:
@@ -263,19 +238,22 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 348/348",
+        anchor="<!-- census:provenance -->",
         check=_provenance_is_complete,
         why=(
-            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342. "
+            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342 -> 349 (SHOCK_DEGRADED_TRUST_FRACTION, 2026-09-30) -> 350 (ESSENTIAL_BRIDGE_PERSONAL, 2026-10-01) -> 352 (the reserved land floor, 2026-10-01) -> 353 (ECOSYSTEM_HEALTH_DEFAULT, 2026-10-02) -> 354 (CANONICAL_CAPITAL_AGE_BASE) -> 355 (SUFF_GUARANTEE_FLOOR_FRACTION) -> 357 (the retirement register's age and tenure, 2026-10-03). "
             "Anchored to the CURRENT entry, not a historical one: the old anchor "
             "matched six lines, five of them history, so the claim was checking a "
             "live number against text that must never be updated."
         ),
     ),
     Claim(
-        anchor="shadow ratchet at 33",
-        check=_shadow_count_is_33,
-        why="the ratchet's bound. Quoted beside the 100% figure it qualifies.",
+        anchor="<!-- census:state -->",
+        check=_shadow_count_is_acknowledged,
+        why="the ratchet's count, quoted beside the 100% figure it qualifies. "
+            "Re-anchored 2026-10-02 from 'shadow ratchet at 33' (dated history) "
+            "and 2026-10-03 to the generated census block, so the number is "
+            "written once.",
     ),
     Claim(
         anchor="GUF IS ITS OWN REVENUE LINE AND IS DELIBERATELY NOT FOLDED INTO THE LEVY",
@@ -380,10 +358,8 @@ class TestEveryLiveClaimStillHolds:
 
     @pytest.mark.parametrize("claim", LIVE_CLAIMS, ids=lambda c: c.anchor[:44])
     def test_the_claim_is_still_in_the_file(self, claim: Claim) -> None:
-        """
-        A claim that has been edited away is not thereby retired — it is
-        unreviewed. Failing here forces the register and the file back into
-        agreement, which is the dataset-fingerprint discipline.
+        """Editing a claim out of the file leaves it unreviewed, not retired. The
+        failure forces the register and the file back into agreement.
         """
         assert _text().count(claim.anchor) >= 1, (
             f"CLAUDE.md no longer contains this claim:\n  {claim.anchor!r}\n"
@@ -403,10 +379,8 @@ class TestEveryLiveClaimStillHolds:
 
 
 class TestOpenItemsCannotGoStaleSilently:
-    """
-    The specific failure this gate was built for. Three `STILL OPEN` lines were
-    stale at the 2026-08-29 merge review — each true when written, none
-    revisited when the work landed.
+    """The failure this gate exists for: three `STILL OPEN` lines were stale at the
+    2026-08-29 merge review. Each was true when written, and no one revisited it.
     """
 
     #: An open item is either CLOSED (struck through, kept visible so the shape
@@ -469,10 +443,8 @@ class TestOpenItemsCannotGoStaleSilently:
         )
 
     def test_every_declaration_names_an_item_that_exists(self) -> None:
-        """
-        A declaration for an item nobody has is a permission nobody reviews —
-        the `unused_innocuous_names` lesson, which this repo learned when two
-        allowlist entries went stale within an hour of shipping.
+        """A declaration for an item that does not exist is a permission nobody reviews
+        (the `unused_innocuous_names` lesson).
         """
         lines = self._open_lines()
         stale = [k for k in self.DECLARED_OPEN
@@ -490,10 +462,8 @@ class TestOpenItemsCannotGoStaleSilently:
             )
 
     def test_closed_items_stay_visible(self) -> None:
-        """
-        Struck through rather than deleted. The shape — a status line outliving
-        its decision — is the finding, and deleting the evidence would remove
-        the only reason anyone believes this gate is needed.
+        """Strike a closed item through; do not delete it. The struck line is the
+        evidence that the failure shape is real.
         """
         assert _text().count("~~STILL OPEN") >= 3
 
@@ -509,11 +479,9 @@ class TestTheGateIsHonestAboutItself:
             assert len(c.why) > 40, f"{c.anchor[:40]!r} does not say what drifts"
 
     def test_the_stated_gaps_are_still_stated(self) -> None:
-        """
-        The module docstring names what this gate does NOT check — the suite's
-        own test count and mypy's file count, the two figures most likely to
-        drift. If that admission is edited out, the gate starts reading as
-        stronger than it is, which is the failure it exists to prevent.
+        """The module docstring must keep naming what this gate does NOT check: the test
+        count and mypy's file count. Without that admission the gate reads as stronger
+        than it is.
         """
         doc = __doc__ or ""
         assert "STATED GAPS" in doc
@@ -525,22 +493,8 @@ class TestTheGateIsHonestAboutItself:
 # ---------------------------------------------------------------------------
 
 class TestEveryOpenItemIsTyped:
-    """
-    An `## Open` section is not a work queue, and treating it as one is how a
-    gate manufactures work the repo has already decided against.
-
-    WHAT THE MEASUREMENT FOUND. The 54 bullets under `## Open` are five
-    different things. CLAUDE.md's twelve say of themselves "An index, not the
-    items themselves"; of the 42 in `record/`, five more are pure
-    cross-references, so one item was reachable three ways (`teh_supply`, in
-    CLAUDE.md, theory.md and verification.md). And four are items the repo has
-    explicitly decided NOT to close: "Anchor comparison Phases 1-3 are HELD
-    DELIBERATELY... Do not build without a reason to", "declared limits, not
-    gaps to close opportunistically", "Reported, not bound - binding would
-    ASSERT... a theory claim". A session told there are "54 open items" reads
-    four do-not-build decisions as a backlog.
-
-    So the kind is the part a reader acts on, and it is now stated:
+    """Every `## Open` bullet in `record/` states its KIND, because an Open section is
+    not a work queue ([record](record/verification.md#claims-register-test-history)):
 
         gap      work; a named acquisition or build closes it
         held     decided NOT to do; BUILDING it is the error
@@ -548,36 +502,20 @@ class TestEveryOpenItemIsTyped:
         person   waiting on a human decision; no code state changes
         pointer  the item is filed elsewhere; follow the link
 
-    THE MARKER IS THE `*(gated)*` IDIOM the area files already use in 21
-    places, so this reads native rather than as a second notation.
+    The marker follows the `*(gated)*` idiom the area files already use.
+    `TestTheOpenItemsAreDeclared` reads `- **STILL OPEN` lines under `## History`; this
+    class reads `## Open`, so the two do not overlap.
 
-    WHY THIS SECTION AND NOT THE OTHER ONE. `TestTheOpenItemsAreDeclared`
-    above matches `- **STILL OPEN`, and all six of those lines are sub-bullets
-    under `## History` - where the marker correctly means "open as of this
-    entry", and where history is verbatim and must not be retyped. That gate
-    has never seen an `## Open` section. This one covers the convention
-    `record/README.md` rule 2 actually establishes; the two do not overlap.
+    STATED GAPS:
 
-    STATED GAPS, because a checker that reads as broader than it is licenses
-    not looking:
-
-      * THE KIND IS AUTHORED, NOT DERIVED. Nothing here stops a `gap` being
-        retyped `held` to silence it. What makes that hold is that retyping is
-        a visible act in a diff - the same argument `record/verification.md`
-        makes for leaving the shadow ratchet's bound un-meta-ratcheted. That
-        is the real ceiling on this mechanism and it is not closeable from
-        inside.
-      * NO PREDICATE IS CHECKED YET. This gate says an item is TYPED. It does
-        not say a `gap` is still open, that nobody built a `held`, or that a
-        `caveat`'s figure is current - the settle path still declared in
-        `record/verification.md § Open`. Typing is what makes those predicates
-        writable, because the kind decides which DIRECTION each one points; it
-        is not a substitute for them.
-      * CLAUDE.md's `## Open` IS NOT SCANNED FOR KINDS. It is an index, and
-        it already types its rows by group heading ("Held deliberately - do not
-        build without a reason to"), so nothing here checks the kind of those
-        rows. `TestClosingAnItemLeavesEvidence` below DOES read them: a closure
-        written in the index is still a closure and must show its evidence.
+      * THE KIND IS AUTHORED, NOT DERIVED. Nothing stops someone retyping a `gap` as
+        `held` to silence it. What holds it is that a retype is visible in a diff; that
+        ceiling cannot close from inside.
+      * NO PREDICATE IS CHECKED YET in this class: it says an item is TYPED, not that
+        a `gap` is still open or that nobody built a `held`. Typing makes those
+        predicates writable (see `TestTheOpenItemPredicates`).
+      * The class does not scan CLAUDE.md's `## Open` for kinds. It is an index,
+        typed by group heading. `TestClosingAnItemLeavesEvidence` does read it.
     """
 
     KINDS = frozenset({"gap", "held", "caveat", "person", "pointer"})
@@ -625,10 +563,8 @@ class TestEveryOpenItemIsTyped:
         assert not doubled, f"items carrying more than one kind: {doubled}"
 
     def test_the_vocabulary_is_closed(self) -> None:
-        """
-        An open vocabulary is not a vocabulary. `*(gated)*` is the pre-existing
-        marker and is deliberately allowed through - it says a LIVE-STATE line
-        is checked, which is a different axis from an open item's kind.
+        """The kind vocabulary is closed. `*(gated)*` passes on purpose: it marks a
+        LIVE-STATE line as checked, which is a different axis from an item's kind.
         """
         allowed = self.KINDS | {"gated"}
         stray = {m for _, t in self._items()
@@ -685,41 +621,21 @@ class TestEveryOpenItemIsTyped:
 
 
 class TestClosingAnItemLeavesEvidence:
-    """
-    The transition rules from `record/README.md` convention 2, enforced.
-
-    An open item has three ways to stop being open, and only one of them is
-    honest. It can be STRUCK (closed, kept visible), it can be RETYPED (a `gap`
-    becoming `held` is work disappearing without anything landing), or it can be
-    quietly deleted — which removes the only reason anyone believes the item was
-    real. These check the first two. Nothing here can check deletion; git can.
-
-    WHY `held` IS THE ONE THAT NEEDS A REASON. Every other transition leaves a
-    trace someone would notice: a struck line is visible, a closed gap has a
-    history entry. Retyping a `gap` to `held` looks like housekeeping and means
-    "we decided not to do this" — so the cost of making that move is writing
-    down why. All four `held` items already do; this makes that a floor rather
-    than a habit.
+    """The transition rules of `record/README.md` convention 2. An open item can be
+    STRUCK (closed and kept visible), RETYPED, or deleted. These tests check the first
+    two, and git can check deletion. A retype to `held` must give its reason, because it
+    looks like housekeeping and means "we decided not to do this"
+    ([record](record/verification.md#claims-register-test-history)).
 
     STATED GAPS:
 
-      * THE STRUCK-ITEM CHECKS GUARD ONE ITEM TODAY. `## Open` sections in
-        `record/` contain no closed items yet; the single instance is in
-        CLAUDE.md. A near-vacuous gate is worth saying out loud — it is
-        verified against that one real instance, and
-        `test_the_closure_form_has_an_instance` fails if it reaches zero, so it
-        cannot quietly become a check over nothing.
-      * NOTHING HERE NOTICES WORK LANDING AND THE LINE NOT BEING STRUCK. That
-        is the residual the per-item predicate exists for, still declared in
-        `record/verification.md § Open`. These gates check the FORM of a
-        transition that was made, never that a transition was DUE.
-      * ONLY `## Open` IS SCANNED, SO A CLOSURE WRITTEN IN `## Live state` IS
-        NOT CHECKED. Found by biting this gate on a struck live-state line and
-        watching it stay green: the mutation was present and the scope was
-        wrong, which is the F-016 shape with the TARGET rather than the file as
-        the victim. Deliberate rather than fixed — `## Live state` is state and
-        `## Open` is the register, and widening this to every struck line
-        anywhere would fire on history, which is verbatim by convention.
+      * THE STRUCK-ITEM CHECKS GUARD ONE ITEM TODAY, in CLAUDE.md;
+        `test_the_closure_form_has_an_instance` fails if that reaches zero.
+      * NOTHING HERE NOTICES WORK LANDING AND THE LINE NOT BEING STRUCK. These tests
+        check the FORM of a transition that happened, never that one was due.
+      * The tests scan only `## Open`, so they do not check a closure written in
+        `## Live state`. This is deliberate: widening to every struck line would fire on
+        history, which stays verbatim.
     """
 
     #: A CLOSED item is one whose BOLD LEAD is struck — `- **~~…`. Not one that
@@ -772,13 +688,9 @@ class TestClosingAnItemLeavesEvidence:
         )
 
     def test_a_closed_item_says_what_closed_it(self) -> None:
-        """
-        THE FIRST VERSION OF THIS PASSED A DELIBERATE BREAKAGE. Removing
-        "(author decision, charter)" left the check green, because
-        `](record/ecological.md#live-state)` is also a parenthesis four
-        characters long — the markdown link satisfied the assertion that a
-        DECIDER was named. Link targets are stripped before looking, which is
-        failure mode 2: an assertion the surrounding syntax enforces.
+        """A closed item must name what closed it. The test strips link targets first,
+        because a markdown link's parenthesis once satisfied the "decider named" check
+        by itself (mode 2).
         """
         bad = [(f, t[:90]) for f, t in self._closed()
                if not self._WHAT.search(self._LINK.sub("]", t))]
@@ -800,10 +712,9 @@ class TestClosingAnItemLeavesEvidence:
         )
 
     def test_the_closure_form_has_an_instance(self) -> None:
-        """
-        A form check over zero closures passes and guards nothing. Today there
-        is exactly one; if closures ever reach zero the convention has been
-        abandoned or the scan has broken, and either is worth a failure.
+        """A form check over zero closures guards nothing. Today there is one; if
+        closures reach zero, the convention was abandoned or the scan broke, and either
+        should fail.
         """
         assert self._closed(), (
             "no closed item found in any `## Open` section. Closed items are "
@@ -852,11 +763,12 @@ def _ten_ratios_unmeasured() -> bool:
     return not any(t in {"measured", "derived"} for t in tags.values())
 
 
-def _form_edges_not_derived() -> bool:
-    """Closure = `band_from:` stops being the only source of edges. It is
-    declared ONCE today against 12 expression-derivable assignments."""
-    src = (REPO_ROOT / "hours_eoh" / "data.py").read_text(encoding="utf-8")
-    return src.count("# band_from:") <= 1
+def _composites_still_rest_on_placeholders() -> bool:
+    """Closure = the pass over the composites lands: no `derived` constant
+    bottoms out on a placeholder through its expression — their parts measured
+    or split (2026-10-16). Each now SAYS it inherits, which `problems()` gates."""
+    from utils import provenance as pv
+    return bool(pv.derived_on_placeholder(pv.load()))
 
 
 def _two_floors_and_both_unsettled() -> bool:
@@ -883,34 +795,45 @@ def _anchor_comparison_unbuilt() -> bool:
     return not list((REPO_ROOT / "hours_eoh").rglob("*anchor_comparison*"))
 
 
-def _shadow_bound_still_8() -> bool:
+def _wiring_bound_still_12() -> bool:
+    """The bound in the ratchet's ASSERTION, not in prose. Until 2026-10-17 the search
+    matched the module docstring's stale `<= 8` first, while the assertion read 12
+    ([record](record/verification.md#ste-docstrings)).
+    """
     src = (REPO_ROOT / "tests" / "test_parameter_wiring.py").read_text(encoding="utf-8")
-    m = re.search(r"_DECLARED\)\s*<=\s*(\d+)", src)
-    return m is not None and int(m.group(1)) == 8
+    m = re.search(r"^\s*assert len\(_DECLARED\)\s*<=\s*(\d+)", src, re.M)
+    return m is not None and int(m.group(1)) == 12
 
 
-def _confidence_ratchet_is_131_of_147() -> bool:
-    """Imports nothing of its own: the gate's OWN filter, not a copy of it —
-    re-implementing it dropped `if not s.bound` once already (corpus F-038).
-
-    MOVED 133/150 -> 131/148 ON 2026-09-16, and this predicate is why the move
-    was noticed. `DEFAULT_SEGMENTS` and `SKILL_DECAY_RATE` were retagged
-    `placeholder` -> `baseline`, leaving SOFT_TAGS entirely. Two other copies of
-    this figure had already drifted unnoticed — CLAUDE.md said "125 of 141" and
-    `test_confidence.py`'s docstring said 138 — while this one, the only gated
-    copy, was exactly right. That is the argument for the gate in one line.
+def _confidence_debt_is_acknowledged() -> bool:
+    """The confidence debt equals the gate's OWN filter, imported, not a copy: a copy
+    once dropped `if not s.bound` (corpus F-038). This predicate caught a real move on
+    2026-09-16, while two ungated copies had drifted
+    ([record](record/verification.md#claims-register-test-history)).
     """
     from tests.test_confidence import BASELINE_WITHOUT, SOFT_TAGS
     from utils import provenance as pv
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (131, 147, 131)
+    from utils import census
+    s = census.snapshot()
+    return (len(without), len(soft)) == (s["confidence_without"], s["confidence_soft"]) \
+        and BASELINE_WITHOUT == len(without) > 0
 
 
 def _scan_is_data_py_only() -> bool:
+    """The predicate checks the caveat's own figure, not only its premise. Until
+    2026-10-02 it read the file name alone, so the "33 shadow constants" went stale with
+    every gate green (mode 7).
+    """
     from utils import provenance as pv
-    return pv.DATA_PY.name == "data.py"
+    text = (REPO_ROOT / "record" / "provenance.md").read_text(encoding="utf-8")
+    n = len([s for s in pv.shadow_constants() if not s.bound])
+    # The figure is a generated census block since 2026-10-03 (it was hand-kept
+    # and missed by the first sweep); the block must still render the live count.
+    return (pv.DATA_PY.name == "data.py"
+            and f"The <!-- census:shadow -->{n}<!-- /census:shadow --> shadow constants are" in text)
 
 
 def _kappa_ratio_is_12_to_69() -> bool:
@@ -920,6 +843,91 @@ def _kappa_ratio_is_12_to_69() -> bool:
     r = implied_kappa()
     return (round(r["shipped_over_implied_high"]) == 12
             and round(r["shipped_over_implied_low"]) == 69)
+
+
+def _compensation_audits_only_the_inflows() -> bool:
+    """The audit covers the TEH inflows alone (2026-10-02), and the caveat (2026-10-16)
+    says nothing else on the shared path is switchable. A second mechanism family makes
+    this drift.
+    """
+    import hours_eoh.scenarios.compensation as C
+    families = [n for n in vars(C) if n.endswith("_mechanisms") and callable(getattr(C, n))]
+    return families == ["inflow_mechanisms"]
+
+
+def _pillars_cannot_fire() -> bool:
+    """Both dashboard pillars read GREEN at every ε, at a collapsed ecosystem
+    and an empty Trust (2026-10-01). The gap closes when either can fire."""
+    from hours_eoh.core.dashboard import fiscal_health_check
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.eoh_generation import resolve_capital_stock
+    for eps in (0.0, 0.40, 0.90, 0.99):
+        cap = resolve_capital_stock(None, eps)
+        p = eoh_to_teh_pipeline(eps, capital_stock=cap, ecosystem_health=0.10)
+        for trust in (0.0, 3.5e10):
+            r = fiscal_health_check(trust, p["teh_created"], cap, 0.5, 1.0e6, 1000.0, eps,
+                                    ecosystem_health=0.10,
+                                    eco_eoh_override=p["eoh_by_domain"]["ecological"])
+            if r["pp_status"] != "GREEN" or r["ecological_status"] != "GREEN":
+                return False
+    return True
+
+
+def _parcel_index_unread_by_the_fee() -> bool:
+    import inspect
+    from hours_eoh.land import collective, guf
+    src = inspect.getsource(guf) + inspect.getsource(collective)
+    return ("parcel_condition" not in src
+            and "condition" not in inspect.signature(guf.ground_use_fee).parameters)
+
+
+def _formation_cobweb_persists() -> bool:
+    from hours_eoh.research.dynamic_stability import formation_stability
+    return formation_stability(priority="dividend")[
+        "fields"]["eps_actual"]["verdict"] == "OSCILLATING"
+
+
+def _care_short_at_the_threshold() -> bool:
+    """The question stands while the threshold is unchanged and care, certified at it,
+    is still short at ε=0.78 in the survival reading.
+    """
+    from hours_eoh.core.conditions import condition_iv_coverage
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.workforce import competency_reserve
+    from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD, ESSENTIAL_DOMAINS
+    wf = 1.0e6 * AGE_GROUPS["working_age"]["fraction"]
+    res = competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+    r = condition_iv_coverage(res, eoh_to_teh_pipeline(0.78), demand="personal")
+    return COMPETENCY_THRESHOLD == 0.155 and "care" in r["domains_short"]
+
+
+def _bridge_bound_matches_its_figure() -> bool:
+    """The caveat's figure (≥1.69×), recomputed: all three untagged columns on
+    one domain, threshold certification, fine grid."""
+    from hours_eoh.core.conditions import condition_iv_coverage
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.eoh_generation import essential_weights
+    from hours_eoh.core.workforce import competency_reserve
+    from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD, ESSENTIAL_DOMAINS
+    cols = ("infrastructure", "ecological", "knowledge")
+    wf = 1.0e6 * AGE_GROUPS["working_age"]["fraction"]
+    res = competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+    worst = float("inf")
+    for i in range(100):
+        p = eoh_to_teh_pipeline(min(i / 100, 0.99))
+        for d in ESSENTIAL_DOMAINS:
+            if d == "care":
+                continue
+            w = essential_weights()
+            for row in w.values():
+                for c in cols:
+                    row[c] = 0.0
+            for c in cols:
+                w[d][c] = 1.0
+            worst = min(worst, condition_iv_coverage(res, p, weights=w)[
+                "per_domain"][d]["coverage_ratio"])
+    text = (REPO_ROOT / "record" / "provenance.md").read_text(encoding="utf-8")
+    return f"≥{worst:.2f}×" in text
 
 
 def _desire_is_still_a_stub() -> bool:
@@ -943,6 +951,83 @@ def _predicate_coverage_is_incomplete() -> bool:
     return covered < typed
 
 
+def _prov(name: str):
+    from utils import provenance as pv
+    return pv.load().by_name[name]
+
+
+def _states_share_capacity_and_stock() -> bool:
+    """Closure = the state split states a stock or a capacity per unit; the
+    loader admits only the weights and an age mix (2026-10-16)."""
+    from utils.frame_inputs import SPLIT_WEIGHTS, load_split
+    keys = {k for u in load_split("us_states")["collectives"] for k in u}
+    return keys <= {"id", "label", "age_fractions", *SPLIT_WEIGHTS}
+
+
+def _pristine_gap_has_no_default_inventory() -> bool:
+    import inspect
+    from hours_eoh.scenarios.restoration_cost import pristine_gap_obligation
+    p = inspect.signature(pristine_gap_obligation).parameters["condition_inventory"]
+    return p.default is inspect.Parameter.empty
+
+
+def _no_measured_service_profile_ships() -> bool:
+    """Closure = a per-hectare service profile ships as data or as a default."""
+    import inspect
+    from hours_eoh.land.guf import ecosystem_services_for_area
+    p = inspect.signature(ecosystem_services_for_area).parameters["per_hectare_volumes"]
+    data = REPO_ROOT / "hours_eoh" / "reference" / "data"
+    shipped = any(k in f.name.lower() for f in data.iterdir() for k in ("itree", "fia_", "service_volume"))
+    return p.default is inspect.Parameter.empty and not shipped
+
+
+def _retention_is_an_ordering() -> bool:
+    return _prov("GUF_SERVICE_RETENTION_BY_USE").tag not in {"measured", "bounded"}
+
+
+def _no_tenure_split_ships() -> bool:
+    data = REPO_ROOT / "hours_eoh" / "reference" / "data"
+    return not any(k in f.name.lower() for f in data.iterdir() for k in ("tenure", "blm"))
+
+
+def _parcel_count_unrestricted_to_serviced_classes() -> bool:
+    """Closure = the parcel extract reads SERVICED_LAND_CLASSES (the usedesc
+    normalisation); today it only explains why it cannot."""
+    src = (REPO_ROOT / "hours_eoh" / "reference" / "parcels.py").read_text(encoding="utf-8")
+    return "SERVICED_LAND_CLASSES" not in src
+
+
+def _abatement_pace_is_still_a_placeholder() -> bool:
+    return _prov("ABATEMENT_HALF_CAPITAL_TEH").tag == "placeholder"
+
+
+def _component_shares_are_still_desk_terms() -> bool:
+    return _prov("PERSONAL_EOH_COMPONENTS").tag == "placeholder"
+
+
+def _cdr_labour_is_still_tier_d_at_0_6() -> bool:
+    r = _prov("CDR_LABOR_HOURS_PER_TONNE")
+    return r.tier == "D" and r.value == "0.6"
+
+
+def _capital_thermal_profiles_are_placeholders() -> bool:
+    return _prov("CAPITAL_THERMAL_PROFILES").tag == "placeholder"
+
+
+def _shipped_federation_is_at_mutual_recognition() -> bool:
+    """The caveat's figure: one multiplier, every settlement rate 1.0, at all
+    four arc points."""
+    from hours_eoh.research.coasean import make_federation
+    from hours_eoh.research.exchange import registered_rate
+    for e in (0.0, 0.40, 0.90, 0.99):
+        fs = make_federation(e)
+        if len({c.pipeline["mean_multiplier"] for c in fs}) != 1:
+            return False
+        if any(registered_rate(a, b) != 1.0 for a in fs for b in fs):
+            return False
+    return True
+
+
 @dataclass(frozen=True)
 class OpenItemPredicate:
     """One open item, its kind, and the observable that would contradict it."""
@@ -961,25 +1046,24 @@ class OpenItemPredicate:
 #:   pointer no predicate — the dangling check already covers it
 OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
     OpenItemPredicate("The ten `GUF_USE_*` ratios", "gap", _ten_ratios_unmeasured),
-    OpenItemPredicate("derive `form:` edges from the expressions", "gap",
-                      _form_edges_not_derived),
+    OpenItemPredicate("30 dict/tuple constants carry ONE tag over several fields", "gap",
+                      _composites_still_rest_on_placeholders),
     OpenItemPredicate("Two of four automation floors carry a value", "gap",
                       _two_floors_and_both_unsettled),
-    OpenItemPredicate("The compensating-mechanism audit", "gap", None,
-                      why_none="an audit is a document plus findings; nothing in the "
-                               "tree changes shape when it is performed"),
+    OpenItemPredicate("Compensation audited for the inflows", "caveat",
+                      _compensation_audits_only_the_inflows),
     OpenItemPredicate("`teh_supply` is pinned, not decided", "held",
                       _teh_supply_has_no_caller),
     OpenItemPredicate("Anchor comparison Phases 1–3 are HELD DELIBERATELY", "held",
                       _anchor_comparison_unbuilt),
-    OpenItemPredicate("The shadow ratchet cannot catch its own bound being loosened",
-                      "held", _shadow_bound_still_8),
+    OpenItemPredicate("The wiring ratchet's bound is pinned one level up",
+                      "caveat", _wiring_bound_still_12),
     OpenItemPredicate("λ_equilibrium is not assessable from this data", "held", None,
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("131 of 147 placeholder/bounded constants carry no confidence",
-                      "caveat", _confidence_ratchet_is_131_of_147),
+    OpenItemPredicate("placeholder/bounded constants carry no confidence figure.**",
+                      "caveat", _confidence_debt_is_acknowledged),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",
                       "caveat", _kappa_ratio_is_12_to_69),
@@ -987,54 +1071,63 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       "person", _desire_is_still_a_stub),
     OpenItemPredicate('`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates',
                       "person", _maint_rate_still_unbound),
+    OpenItemPredicate("States share capacity, stock age, multiplier", "gap",
+                      _states_share_capacity_and_stock),
+    OpenItemPredicate("The pristine-gap condition inventory", "gap",
+                      _pristine_gap_has_no_default_inventory),
+    OpenItemPredicate("The service volumes V_s", "gap", _no_measured_service_profile_ships),
+    OpenItemPredicate("ρ by use category", "gap", _retention_is_an_ordering),
+    OpenItemPredicate("The tenure split", "gap", _no_tenure_split_ships),
+    OpenItemPredicate("`u_parcel`'s `resolves_by` is half satisfied", "gap",
+                      _parcel_count_unrestricted_to_serviced_classes),
+    OpenItemPredicate("`ABATEMENT_HALF_CAPITAL_TEH`", "gap",
+                      _abatement_pace_is_still_a_placeholder),
+    OpenItemPredicate("`PERSONAL_EOH_COMPONENTS` shares", "gap",
+                      _component_shares_are_still_desk_terms),
+    OpenItemPredicate("`CDR_LABOR_HOURS_PER_TONNE` (0.6, Tier D)", "gap",
+                      _cdr_labour_is_still_tier_d_at_0_6),
+    OpenItemPredicate("Capital thermal intensities are Path-D placeholders", "gap",
+                      _capital_thermal_profiles_are_placeholders),
+    OpenItemPredicate("On the shipped constructor the federation is at mutual recognition",
+                      "caveat", _shipped_federation_is_at_mutual_recognition),
     OpenItemPredicate("The claims register checks only some of the open items", "gap",
                       _predicate_coverage_is_incomplete),
+    OpenItemPredicate("Dashboard PP and ecological pillars cannot fire", "gap",
+                      _pillars_cannot_fire),
+    OpenItemPredicate("The parcel index does not reach the fee", "gap",
+                      _parcel_index_unread_by_the_fee),
+    OpenItemPredicate("Dynamic stability — one cycle found", "gap",
+                      _formation_cobweb_persists),
+    OpenItemPredicate("Is the 15.5% threshold enough for care?", "person",
+                      _care_short_at_the_threshold),
+    OpenItemPredicate("Three bridge columns are untagged", "caveat",
+                      _bridge_bound_matches_its_figure),
 )
 
 
 class TestTheOpenItemPredicates:
-    """
-    THE SETTLE PATH DECLARED IN `record/verification.md § Open`, built.
-
-    The register could say an item was DECLARED, and after 2026-09-04 that it
-    was TYPED. Neither says whether it is still OPEN. That gap let a
-    `STILL OPEN` line stand for a day while the file asserted the adoption two
-    entries above it.
-
-    WHY TYPING HAD TO COME FIRST. A `LIVE_CLAIM` asserts a presence and its
-    predicate confirms it. An open item asserts an ABSENCE, so the predicate
-    must detect the CLOSURE and negate it — and what counts as closure is
-    different for each kind. A `gap` closes when the work lands; a `held` is
-    breached when the work lands. Same observable, opposite verdict. Without
-    the kind there is no way to say which, so the predicate could not be
-    written at all.
+    """Per-item predicates: whether a typed item is still OPEN. A `gap` closes when its
+    work lands; a `held` is breached when its work lands. That is one observable with
+    opposite verdicts, so the kind had to come first
+    ([record](record/verification.md#claims-register-test-history)).
 
     STATED GAPS:
 
-      * COVERAGE IS 13 OF 41 ITEMS, and the ratchet below only forbids it
-        FALLING. An item with no predicate is checked by nothing here — the
-        same standing this file's `LIVE_CLAIMS` has always had. The gap is
-        itself an item with a predicate: `_predicate_coverage_is_incomplete`
-        fails once every typed item is covered, so this admission cannot
-        outlive the condition it describes.
-      * TWO ITEMS CARRY `why_none` RATHER THAN A PREDICATE, and both reasons
-        are real: an audit changes no shape in the tree, and a hold on a VALUE
-        being unassessable is not contradicted by the module that says so.
-        `why_none` is required precisely so `None` cannot be the silent
-        default.
-      * A PREDICATE PROVES THE OBSERVABLE, NOT THE ITEM. `_anchor_comparison_
-        unbuilt` checks for a file name; someone could build the thing under
-        another name. The predicate narrows the ways an item can go stale
-        unnoticed; it does not close them.
-      * `person` ITEMS GET A PREDICATE ONLY WHERE THE DECISION LEAVES A TRACE.
-        A sign-off in a gitignored note changes nothing observable, so the two
-        typed here are the two whose adoption would show up in code.
+      * COVERAGE IS PARTIAL. `_predicate_coverage_is_incomplete` holds the live
+        count, and the ratchet below forbids only a fall. That predicate fails once
+        every typed item is covered, so this admission cannot outlive its condition.
+      * Some items carry `why_none` instead of a predicate, each with its reason, so
+        `None` cannot be the silent default.
+      * A predicate PROVES THE OBSERVABLE, NOT THE ITEM.
+        `_anchor_comparison_unbuilt` checks a file name, and someone could build the
+        thing under another name.
+      * A `person` item gets a predicate only where the decision leaves a trace in code.
     """
 
     #: May not FALL. Rises when an item gains an observable; falls only when an
     #: item CLOSES, and a closing item is struck rather than deleted — so a fall
     #: means a predicate was dropped, which is the move this ratchet forbids.
-    PREDICATE_FLOOR = 12
+    PREDICATE_FLOOR = 29
 
     def _by_marker(self) -> dict[str, str]:
         """`{bullet text: kind}` for every typed `## Open` item."""
@@ -1047,10 +1140,9 @@ class TestTheOpenItemPredicates:
 
     @pytest.mark.parametrize("p", OPEN_ITEM_PREDICATES, ids=lambda p: p.marker[:40])
     def test_the_item_exists_with_the_kind_the_predicate_assumes(self, p) -> None:
-        """
-        A predicate keyed to an item nobody has is a check over nothing, and one
-        keyed to the WRONG kind reads its own result backwards — `gap` and
-        `held` invert on the same observable.
+        """A predicate keyed to a missing item checks nothing. One keyed to the WRONG
+        kind reads its result backwards, because `gap` and `held` invert on the same
+        observable.
         """
         hits = {t: k for t, k in self._by_marker().items() if p.marker in t}
         assert hits, (
@@ -1129,5 +1221,5 @@ class TestTheOpenItemPredicates:
     def test_the_stated_gaps_are_still_stated(self) -> None:
         doc = self.__doc__ or ""
         assert "STATED GAPS" in doc
-        assert "COVERAGE IS 13 OF 41" in doc
+        assert "COVERAGE IS PARTIAL" in doc
         assert "PROVES THE OBSERVABLE, NOT THE ITEM" in doc

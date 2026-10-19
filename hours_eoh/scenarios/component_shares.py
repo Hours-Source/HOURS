@@ -4,21 +4,21 @@ and why it is a BOUND rather than a closure.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-REPORTING ONLY. `PERSONAL_EOH_COMPONENTS` is untouched and
-`TestComponentSharesChangeNothing` fails the moment that stops being true.
+REPORTING ONLY. This module leaves `PERSONAL_EOH_COMPONENTS` untouched, and
+`TestComponentSharesChangeNothing` fails as soon as that stops being true.
 
-WHAT THIS IS FOR. Phase 2's headline — the human fraction at ε=0.99 is 10.2×
-the uniform figure — is weighted by care's **62.1% share of the personal
-obligation**, and that share is a `placeholder`: the desk estimate's own four
-terms, 208/156/208/936 over 1508. So the pending Phase 2 sign-off rests on a
-number nothing measures. This module asks what the one instrument the repo owns
-says about it.
+WHAT THIS IS FOR. Phase 2's headline, the human fraction at ε=0.99 against the uniform
+figure (18.2× on 2026-10-18; 10.2× when written), is weighted by care's **62.1% share of
+the personal obligation**. That share is a `placeholder`: the desk estimate's own four
+terms, 208/156/208/936 over 1508. So Phase 2, adopted 2026-09-01, rests on a number
+nothing measures. This module asks what the one instrument the repo owns says about it.
 
-WHAT IT FINDS. At the shipped defaults (ATUS 2025, the latest comparable year)
-and under the mapping declared below, care is **25.7%** of mapped personal time
-— 0.41× the desk share — and shelter 35.6% against a desk 10.3%. At the observed
-care share Phase 2's factor is **4.82×** rather than 10.22×. Every figure quoted
-in this module is pinned live by `TestTheQuotedFiguresAreStillTrue`.
+WHAT IT FINDS. At the shipped defaults (ATUS 2025, the latest comparable year) and under
+the mapping declared below, care is **25.7%** of mapped personal time — 0.41× the desk
+share — and shelter 35.6% against a desk 10.3%. At the observed care share Phase 2's
+factor is **8.12×** instead of 18.20× (2026-10-18; 4.82× and 10.22× when written, before
+the floors rose). `TestTheQuotedFiguresAreStillTrue` pins every figure this module
+quotes.
 
 WHY THAT IS A BOUND AND NOT A REPLACEMENT — THREE REASONS, AND THE THIRD IS
 DECISIVE:
@@ -32,15 +32,40 @@ DECISIVE:
      direction.** Daycare and residential elder care shift care out of unpaid
      time use into paid employment, and ATUS codes 03/04 count unpaid care only.
      So observed unpaid care UNDERSTATES the care obligation in a rich country —
-     which is precisely the finding. The confound cannot be separated with this
-     data, so the observed share is a LOWER bound on care's true share and the
-     4.82× is a LOWER bound on Phase 2's factor.
+     which is precisely the finding. This data cannot separate the confound, so the
+     observed share is a LOWER bound on care's true share, and the
+     observed factor is a LOWER bound on Phase 2's factor.
 
-THE ABATABILITIES CANNOT BE REACHED AT ALL, and their own pointers say why:
-every one names cross-development variation (WHO/UNICEF JMP, GBD, "across
-development levels"). `ABATEMENT_HALF_CAPITAL_TEH` is worse — its `resolves_by`
-wants two or more CAPITAL levels, and 22 years of US deepening is 22 points at
-one saturated level.
+     AND THE BOUND IS TWO-SIDED, which an earlier version of this module did
+     not say (2026-09-22, author-directed). The obvious repair, adding the paid care
+     back at face value, OVERSHOOTS. A paid hour and a household hour do not discharge
+     the same obligation per hour. Four mechanisms, all
+     DELIVERY rather than OBLIGATION in the sense `obligation_accounts` uses:
+     coordination overhead (handover, documentation, travel between clients,
+     compliance) that a co-resident's hour does not carry; LOST JOINT
+     PRODUCTION, since household care is often a by-product of co-presence
+     that a diary records as secondary or not at all, while a paid hour must
+     be dedicated; a STANDARD RATCHET, because regulated care is delivered to
+     a documented standard exceeding household practice, which is normative
+     and not physical; and a MEASUREMENT ASYMMETRY, paid care counted as
+     employment hours including non-contact time, unpaid care by diary recall.
+     One mechanism runs the other way and is NOT an artifact. Morbidity extension
+     genuinely lengthens the frail period, and the repo's socket for it (the `frailty`
+     care key) has no intake.
+
+     So two bounds BRACKET care's true share; it does not have a lower bound only. The
+     lower
+     side is quantified here; the upper side is not, and `obligation_work`
+     cannot supply it — that module measures an EMPLOYMENT share and uses it
+     as an hours share, saying so itself, with part-time concentrated in
+     exactly the personal-care groups that would carry the bracket. Naming the
+     upper side without a number is the honest state; manufacturing one from a
+     known-biased conversion would be worse than the silence it replaced.
+
+THIS INSTRUMENT CANNOT REACH THE ABATABILITIES AT ALL, and their own pointers say why:
+every one names cross-development variation (WHO/UNICEF JMP, GBD, "across development
+levels"). `ABATEMENT_HALF_CAPITAL_TEH` is worse — its `resolves_by` wants two or more
+CAPITAL levels, and 22 years of US deepening is 22 points at one saturated level.
 
 ONE ACQUISITION CLOSES ALL OF IT, and the repo has already named it three times
 (`reference/atus_time_use`, `docs/theory/prior_art`, `AGE_WEIGHT_INFANT`): a
@@ -352,7 +377,7 @@ def shelter_frame_check(
     since: int = 2000,
 ) -> dict:
     """
-    Can the shelter decomposition be transferred to the frame the base declares?
+    Does the shelter decomposition transfer to the frame the base declares?
 
     REPORTING ONLY. `shelter_decomposition` is measured on ATUS — United States,
     high-capital — and the floor is an unassisted construction, so the split is
@@ -366,18 +391,17 @@ def shelter_frame_check(
     against `validate_code_mapping()` live.
 
     Then one mapping per code, each PICKED FROM THE PUBLISHED LABEL in
-    `MTUS_CODE_LABELS` and written down before being run. Code 21 — laundry,
-    ironing and clothing repair — IDENTIFIES on its own; 20 and 22 do not, and
-    they miss in opposite directions. Every figure is in `trials`.
+    `MTUS_CODE_LABELS` and written down before any run. Code 21 — laundry, ironing and
+    clothing repair — IDENTIFIES on its own; 20 and 22 do not, and they miss in opposite
+    directions. Every figure is in `trials`.
 
-    Once the aggregate holds and 21 holds, **the other two are pinned as a BLOCK
-    by subtraction** and their joint ratio is arithmetic, not a second
-    measurement — see `_REMAINDER_BLOCK`, and `pair_is_forced_by_the_aggregate`,
-    which says so in the return value. The opposite-direction misses are the
-    same fact read per code. So MTUS speaks about {21} and about the remainder,
-    and about neither 20 nor 22 alone. **That is the resolution the source
-    offers; a seam between the two classifications is the plausible reading of
-    WHY, and it is not established here.**
+    Once the aggregate holds and 21 holds, **the other two are pinned as a BLOCK by
+    subtraction** and their joint ratio is arithmetic, not a second measurement — see
+    `_REMAINDER_BLOCK`, and `pair_is_forced_by_the_aggregate`, which says so in the
+    return value. The opposite-direction misses are the same fact read per code. So MTUS
+    speaks about {21} and about the remainder, and about neither 20 nor 22 alone. **That
+    is the resolution the source offers. A seam between the two classifications is the
+    plausible reading of WHY, and this module does not establish it.**
 
     AND THAT REVERSES THE LABEL-FREE READING
     -----------------------------------------
@@ -395,15 +419,14 @@ def shelter_frame_check(
     so a difference of means on 3 samples against 23 never cleared the
     within-group spread either.
 
-    WHAT IS STILL NOT SETTLED, AND IT IS RESOLUTION RATHER THAN DISAGREEMENT
+    WHAT REMAINS OPEN, AND IT IS RESOLUTION, NOT DISAGREEMENT
     ------------------------------------------------------------------------
-    `SHELTER_DESTINATIONS` splits the component into upkeep / structure /
-    thermal / not_shelter. **Upkeep and structure both sit inside the
-    remainder** — interior cleaning next to interior repair — so the identified
-    blocks cannot price the destination split. MTUS does not contradict the ATUS
-    composition; it cannot see it. The option-D re-scoping therefore stays
-    PROVISIONAL for a narrower reason than "MTUS disagrees", which is what the
-    first run of this function concluded.
+    `SHELTER_DESTINATIONS` splits the component into upkeep / structure / thermal /
+    not_shelter. **Upkeep and structure both sit inside the remainder** — interior
+    cleaning next to interior repair — so the identified blocks cannot price the
+    destination split. MTUS does not contradict the ATUS composition; it cannot see it.
+    The option-D re-scoping therefore stays PROVISIONAL for a narrower reason than "MTUS
+    disagrees", which is what the first run of this function concluded.
 
     Args:
         tolerance: how far a mean ratio may sit from 1.0 to count as identified.
@@ -627,8 +650,8 @@ def observed_shares(year: int | None = None) -> dict:
     units: labour-hours per person aged 15+ per year, and dimensionless shares.
 
     ε-behaviour: NONE. This is a census of a present-day economy and carries no
-    automation scaling; the ε-dependence lives in `phase_2_sensitivity`, which
-    applies the shares to the automation floor.
+    automation scaling. The ε-dependence lives in `phase_2_sensitivity`, which applies
+    the shares to the automation floor.
 
     Worked example (2025, the shipped default): care 191.5, nutrition 259.8,
     shelter 265.2, health 28.7, mapped total 745.2 h/person15+·yr — care 25.7%.
@@ -664,11 +687,10 @@ def share_comparison(year: int | None = None) -> dict:
 
     units: dimensionless shares and their ratio.
 
-    THE RATIO IS THE FINDING and the level is not: at the 2025 default care
-    reads 0.41× the desk share and shelter 3.44×, and both are far outside
-    anything a mapping choice explains. The direction is what the marketisation
-    confound also predicts, so the disagreement is real and its SIZE is not
-    settled.
+    THE RATIO IS THE FINDING, and the level is not. At the 2025 default care reads 0.41×
+    the desk share and shelter 3.44×, both far outside anything a mapping choice
+    explains. The marketisation confound predicts the same direction, so the
+    disagreement is real, and its SIZE remains open.
     """
     obs = observed_shares(year)
     rows = []
@@ -696,6 +718,27 @@ def share_comparison(year: int | None = None) -> dict:
             "and care has been MARKETISED out of unpaid time use, which moves "
             "the result in exactly this direction. The observed care share is "
             "therefore a LOWER bound on care's true share."
+        ),
+        #: The bound is two-sided and the module used to report only one side.
+        #: The lower side stands — some care is bought, so unpaid understates.
+        #: The upper side is the repair that overshoots, and it has no number.
+        "bound_is_two_sided": True,
+        "upper_bound_reason": (
+            "adding the paid care back at face value OVERSHOOTS: a paid hour "
+            "carries coordination overhead, cannot be the by-product of "
+            "co-presence that household care often is, is delivered to a "
+            "regulated standard exceeding household practice, and is counted "
+            "as employment hours including non-contact time. These are "
+            "DELIVERY, not OBLIGATION. Morbidity extension runs the other way "
+            "and is not an artifact."
+        ),
+        "upper_bound_quantified": False,
+        "why_upper_not_quantified": (
+            "obligation_work measures an EMPLOYMENT share and uses it as an "
+            "hours share — it says so — and part-time is concentrated in the "
+            "personal-care groups that would carry the bracket. A number from "
+            "that conversion would be a known-biased upper side presented as "
+            "a measurement."
         ),
     }
 
@@ -725,19 +768,19 @@ def abatability_direction(
 
     units: dimensionless.
 
-    WHAT IT FINDS (2003 → 2025, the shipped defaults). ρ_change is **+0.400**
-    where a(K) predicts negative: nutrition — abatability 0.85, the second most
-    abatable — ROSE **+33.7%**, while care, the LEAST abatable, fell **−20.7%**,
-    the largest fall of the four. Block II's anti-correlation prediction is
-    **−1.000** in the desk table (by construction — the table was built that way)
-    and reads **+0.800** against observed shares.
+    WHAT IT FINDS (2003 → 2025, the shipped defaults). ρ_change is **+0.400** where a(K)
+    predicts negative: nutrition — abatability 0.85, the second most abatable — ROSE
+    **+33.7%**, while care, the LEAST abatable, fell **−20.7%**, the largest fall of the
+    four. Block II's anti-correlation prediction is **−1.000** in the desk table (by
+    construction, because the table follows it) and reads **+0.800** against observed
+    shares.
 
-    THIS DOES NOT REFUTE a(K), AND THE MODULE WILL NOT SAY THAT IT DOES. The
-    mapped TOTAL moved −2.9% over the period, which is consistent with a(K)
-    being SATURATED in a rich economy — where the predicted change is small
-    anyway. What is not explained by saturation is the composition, and the
-    marketisation confound reaches that directly. It is reported as an anomaly
-    with a named alternative explanation, which is the honest state.
+    THIS DOES NOT REFUTE a(K), AND THE MODULE WILL NOT SAY THAT IT DOES. The mapped
+    TOTAL moved −2.9% over the period, which is consistent with a(K) being SATURATED in
+    a rich economy — where the predicted change is small anyway. Saturation does not
+    explain the composition, and the marketisation confound reaches that directly. The
+    function reports it as an anomaly with a named alternative explanation, which is the
+    honest state.
     """
     e = atus.latest_year() if end is None else end
     # Parallel typed lists alongside the report rows: the rows dict is
@@ -778,7 +821,7 @@ def abatability_direction(
         ),
         "refutes_abatement": False,
         "note": (
-            "The mapped total moved only -2.9%, which is consistent with a(K) "
+            f"The mapped total moved only {t1 / t0 - 1.0:+.1%}, which is consistent with a(K) "
             "being SATURATED in a rich economy. The composition is not explained "
             "by saturation, and care marketisation reaches it directly. Reported "
             "as an anomaly with a named alternative, not as a refutation."
@@ -799,10 +842,10 @@ def phase_2_sensitivity(epsilon: float = 0.99, year: int | None = None) -> dict:
 
     units: dimensionless.
 
-    Worked example (ε=0.99, 2025 default): at the desk share 62.1% the factor is
-    10.22×; at the observed 25.7% it is 4.82×. **The finding survives the swap — it is
-    order-of-magnitude-class either way — and its LEVEL does not.** Both are
-    lower bounds, because the observed care share is itself one.
+    Worked example (ε=0.99, 2025 default, 2026-10-18): at the desk share 62.1% the
+    factor is 18.20×; at the observed 25.7% it is 8.12×. **The finding survives the
+    swap, order-of-magnitude-class either way, and its LEVEL does not.** Both are lower
+    bounds, because the observed care share is itself one.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 1.0].
@@ -829,8 +872,14 @@ def phase_2_sensitivity(epsilon: float = 0.99, year: int | None = None) -> dict:
         "note": (
             "Both are LOWER bounds: the observed care share is itself a lower "
             "bound, because marketised care leaves unpaid time use. The "
-            "order-of-magnitude finding survives the swap; the level does not."
+            "order-of-magnitude finding survives the swap; the level does not. "
+            "The bound is TWO-SIDED and the upper side is not quantified: "
+            "adding paid care back at face value overshoots, because a paid "
+            "hour carries delivery overhead a household hour does not. See "
+            "share_comparison()['upper_bound_reason']."
         ),
+        "bound_is_two_sided": True,
+        "upper_bound_quantified": False,
     }
 
 

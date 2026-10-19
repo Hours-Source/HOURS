@@ -77,6 +77,24 @@ class TestMaintenanceRecoverySchedule:
         assert len(result["trajectory"]) >= 1
 
 
+class TestAnExactTieIsRecovered:
+    """A backlog equal to one year's demand counts as recovered, whatever float rounding
+    does to the subtraction. On 2026-10-15 the US frame flipped year 2 → 1 → 2 across
+    two recalibrations that moved neither ratio.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_tie_is_year_one_at_every_scale_and_a_real_miss_is_not(self, eps):
+        # The US frame's two (backlog, demand) pairs: 1.5x demand to one ulp,
+        # one ulp ABOVE and one BELOW — the bare `<=` read years 2 and 1.
+        for deferred, annual in ((163843062700.78687, 109228708467.19122),
+                                 (166100070339.38538, 110733380226.25694)):
+            tie = maintenance_recovery_schedule(eps, deferred, annual, 1.5)
+            assert tie["recovery_year"] == 1, deferred
+        miss = maintenance_recovery_schedule(eps, 1.5 * 1e11 * (1 + 1e-6), 1e11, 1.5)
+        assert miss["recovery_year"] == 2
+
+
 class TestMinimumFulfillmentForRecovery:
     def test_small_backlog_has_low_minimum(self):
         result = minimum_fulfillment_for_recovery(

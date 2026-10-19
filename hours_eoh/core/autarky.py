@@ -65,7 +65,7 @@ from hours_eoh.core.eoh_generation import (
     personal_base_for,
     personal_eoh,
 )
-from hours_eoh.data import CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION
 
 
 class AutarkyReference(TypedDict):
@@ -77,10 +77,11 @@ class AutarkyReference(TypedDict):
 
 
 def autarky_reference(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     standard: str = "sufficiency",
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     age_distribution: dict[str, float] | None = None,
+    land_hectares: float | None = None,
 ) -> AutarkyReference:
     """
     B₀ — the obligation with no apparatus, discharged alone.
@@ -112,8 +113,13 @@ def autarky_reference(
     Raises:
         ValueError: on non-positive population or standard="collapsed".
 
-    Worked example (1M people, sufficiency, health 0.70):
-        personal 2,213M + ecological 0.71M → B₀ ≈ 2,213 h/person·yr.
+    Worked example (1M people, sufficiency, health 0.70): call it — the
+    figure this line quoted (personal 2,213M + ecological 0.71M) was stale by
+    2026-10-14, when the call returned personal 2,029.2M + ecological 0.0.
+    THE ECOLOGICAL TERM IS ZERO at the shipped partition: `ecological_eoh`
+    sends the recurring ecological work to the fee (Phases 4e/4f), so land and
+    health move B₀ nowhere. Whether autarky — no collective, so no fee — should
+    carry that work on its people is an open question, not answered here.
     """
     if population <= 0.0:
         raise ValueError(f"population must be positive, got {population}")
@@ -133,9 +139,15 @@ def autarky_reference(
     # domain is tiny; the FORM was wrong regardless, and a reference the
     # overbuild test is measured against should not depend on a frame nobody
     # declared.
+    #
+    # AND THE LAND IS THE FRAME'S WHEN STATED (2026-10-14, author: land is
+    # fixed): `population × LAND_HECTARES_PER_CAPITA` stays only as the
+    # default for a caller that states none, so a moved population on a
+    # stated frame no longer moves B₀'s land.
     e = ecological_eoh(
         ecosystem_health,
-        area_hectares=population * LAND_HECTARES_PER_CAPITA,
+        area_hectares=(population * LAND_HECTARES_PER_CAPITA if land_hectares is None
+                       else land_hectares),
     )
     return AutarkyReference(
         personal=p, ecological=e, total=p + e,
@@ -164,14 +176,18 @@ class OverbuildCheck(TypedDict):
 
 def overbuild_check(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     epsilon: float = 0.40,
     standard: str = "sufficiency",
-    ecosystem_health: float = 0.70,
-    capital_age_ratio: float = 0.50,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     knowledge_base_size: float = 1.0,
     knowledge_complexity_per_unit: float = 1.0,
     half_capital: float = ABATEMENT_HALF_CAPITAL_TEH,
+    added_upkeep_eoh: float = 0.0,
+    abating_capital_teh: float | None = None,
+    age_distribution: dict[str, float] | None = None,
+    land_hectares: float | None = None,
 ) -> OverbuildCheck:
     """
     Is this collective carrying its own weight, or is it overhead?
@@ -202,6 +218,26 @@ def overbuild_check(
         knowledge_complexity_per_unit: Measured complexity; drives the apparatus
             share of knowledge EOH.
         half_capital: K_half for the abatement curve.
+        added_upkeep_eoh: Upkeep the apparatus demands BEYOND its standing
+            maintenance, h/yr — e.g. the compounding a deferred backlog adds
+            (`scenarios/maintenance`), which the pipeline books the same way
+            (`infrastructure_compounding_eoh`). It joins I(K) and abates
+            nothing: the route by which an apparatus that pays becomes
+            overbuilt without a single asset added (2026-10-03). 0 →
+            bit-identical.
+        abating_capital_teh: The stock that still ABATES, when it differs from
+            the stock that is owed upkeep — a neglected stock in poor condition
+            (machine work is TEH × condition, `civilization.machine_eoh_from_capital`).
+            Upkeep I(K) stays on `capital_stock_teh`: a failing bridge is still
+            owed its maintenance. None → `capital_stock_teh`, bit-identical.
+        age_distribution: The population's age mix, `{group: fraction}`.
+            Reaches B₀ AND B(K), which are one population's obligation. None
+            → the shipped AGE_GROUPS mix, bit-identical.
+        land_hectares: The frame's land (2026-10-14), to B₀'s ecological term,
+            which B(K) carries unabated. None → population ×
+            LAND_HECTARES_PER_CAPITA, bit-identical. `ecosystem_health` is
+            INERT here at every configuration — that term is on the fee
+            partition — and is kept for the signature, not as a lever.
 
     Returns:
         OverbuildCheck.
@@ -210,10 +246,10 @@ def overbuild_check(
         ValueError: on negative capital, non-positive population, or ε outside
             [0, 1).
 
-    Worked example (1M people, K = 1.9B TEH, ε = 0.40): a = 0.294, so the
-    obligation falls from 2,213 to 1,563 h/person·yr while overhead adds 47.5 —
-    total 1,610 against B₀ 2,213, so the apparatus removes far more than it
-    costs and the verdict is `pays`.
+    Worked example (1M people, K = 1.9B TEH, ε = 0.40): a = 0.294 and the
+    verdict is `pays` — the apparatus removes far more obligation than its
+    overhead adds. Call it for the levels: the hours this line quoted (2,213 /
+    1,563 / 47.5) were stale by 2026-10-14, after the personal repricing.
     """
     if capital_stock_teh < 0.0:
         raise ValueError(f"capital_stock_teh must be ≥ 0, got {capital_stock_teh}")
@@ -221,8 +257,17 @@ def overbuild_check(
         raise ValueError(f"population must be positive, got {population}")
     if not 0.0 <= epsilon < 1.0:
         raise ValueError(f"epsilon must be in [0, 1), got {epsilon}")
+    if added_upkeep_eoh < 0.0:
+        raise ValueError(f"added_upkeep_eoh must be ≥ 0, got {added_upkeep_eoh}")
+    abating = capital_stock_teh if abating_capital_teh is None else abating_capital_teh
+    if not 0.0 <= abating <= capital_stock_teh:
+        raise ValueError(f"abating_capital_teh must be in [0, capital_stock_teh], got {abating}")
 
-    ref = autarky_reference(population, standard, ecosystem_health)
+    # THE AGE MIX REACHES BOTH SIDES (2026-10-14): B₀ and B(K) are one
+    # population's obligation with and without the apparatus, so they read one
+    # age mix. None is the shipped AGE_GROUPS mix on both, as before.
+    ref = autarky_reference(population, standard, ecosystem_health,
+                            age_distribution=age_distribution, land_hectares=land_hectares)
     b0 = ref["total"]
 
     # K FOR ABATEMENT IS PERSONAL-SERVING CAPITAL, NOT TOTAL. a(K) reduces the
@@ -230,19 +275,20 @@ def overbuild_check(
     # water-hauling. `ABATEMENT_HALF_CAPITAL_TEH` was redenominated to match on
     # 2026-09-08, and because a(K) is invariant under scaling K and K_half
     # together, every figure here is bit-identical to before the conversion.
-    k_pc = capital_stock_teh / population * CAPITAL_PERSONAL_SERVING_SHARE
+    k_pc = abating / population * CAPITAL_PERSONAL_SERVING_SHARE
     a = abatement_fraction(k_pc, half_capital)
 
     # B(K): the abated personal obligation, plus the unabatable ecological one.
     abated_base = abated_personal_base(k_pc, standard, half_capital)
-    b_k = personal_eoh(population, base_rate=abated_base) + ref["ecological"]
+    b_k = (personal_eoh(population, age_distribution, base_rate=abated_base)
+           + ref["ecological"])
 
     # I(K): infrastructure, plus the APPARATUS share of knowledge (the
     # civilisational share is a standing obligation and belongs in B, not I).
     infra = infrastructure_eoh(capital_stock_teh, capital_age_ratio)
     know = knowledge_eoh_breakdown(
         knowledge_base_size, complexity_per_unit=knowledge_complexity_per_unit)
-    i_k = infra + know["apparatus"]
+    i_k = infra + know["apparatus"] + added_upkeep_eoh
 
     total = b_k + i_k
     threshold = epsilon / (1.0 - epsilon)
@@ -289,7 +335,7 @@ def overbuild_check(
 
 def break_even_epsilon(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     tol: float = 1e-6,
     **kwargs: float,
 ) -> float:
@@ -347,7 +393,7 @@ class Payback(TypedDict):
 
 def payback(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     epsilon: float = 0.40,
     design_life_years: float = 40.0,
     **kwargs: float,

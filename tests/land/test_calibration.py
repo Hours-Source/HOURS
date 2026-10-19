@@ -50,9 +50,10 @@ def test_rate_calibration_converges_at_unity(small_urban_50):
 
 
 def test_the_target_is_hit_exactly_at_several_ratios_and_frames(small_urban_50):
-    """The solver is exact where a k exists, not merely close: a residual it
-    cannot see would show up as a constant offset across targets, which is how
-    the P(ε) omission was found."""
+    """The solver is exact where a k exists, not merely close. A residual it cannot see
+    would show as a constant offset across targets, and that offset revealed the P(ε)
+    omission.
+    """
     for target in (0.25, 0.5, 1.0, 2.0):
         r = guf_rate_calibration(small_urban_50, target, population=104.0, tolerance=0.10)
         assert r["converged"] is True
@@ -64,9 +65,10 @@ def test_the_target_is_hit_exactly_at_several_ratios_and_frames(small_urban_50):
 
 
 def test_an_unreachable_target_reports_failure_rather_than_a_clamped_k(small_urban_50):
-    """`converged` must be able to say no. Below the fixed leg — the part of
-    the fee no use-coefficient can scale — no k reaches the target, and k
-    clamps at its 0.01 floor instead of going negative."""
+    """`converged` must be able to say no. Below the fixed leg (the part of the fee no
+    use-coefficient can scale), no k reaches the target. Then k clamps at its 0.01 floor
+    instead of going negative.
+    """
     r = guf_rate_calibration(small_urban_50, 1.0, population=50.0, tolerance=0.10,
                              levy_rates={"sufficiency": 0.0125})
     assert r["converged"] is False
@@ -75,7 +77,9 @@ def test_an_unreachable_target_reports_failure_rather_than_a_clamped_k(small_urb
 
 
 def test_the_capital_stock_reaches_the_levy_base(small_urban_50):
-    """The frame's third extensive is wired, not merely accepted."""
+    """The frame's third extensive quantity reaches the levy base; the wiring carries
+    it, not only the signature.
+    """
     lean = guf_rate_calibration(small_urban_50, 1.0, population=50.0,
                                 capital_stock_teh=1.0e5)
     rich = guf_rate_calibration(small_urban_50, 1.0, population=50.0,
@@ -210,13 +214,10 @@ def test_lvi_sensitivity_variant_keys(lvi_parcels):
 
 
 class TestPsiNormalization:
-    """The GUF fee curve's peak — previously unpinned, and wrong.
-
-    `GUF_PSI_NORM` was pinned at 4.0 while its own `form:` claimed it "puts Ψ's
-    peak at ≈1.0". The actual peak was 1.061. Deriving it moved the whole fee
-    curve −5.7% across the productive arc and NOT ONE TEST FAILED, which is why
-    these exist: a normalization of two live parameters must not be a literal,
-    and the property it normalizes must be asserted somewhere.
+    """The GUF fee curve's peak, derived. `GUF_PSI_NORM` was a literal 4.0 while its
+    `form:` claimed a peak at ≈1.0; the peak was 1.061. Deriving it moved the fee curve
+    −5.7% across the productive arc and failed NO test. So a normalization of two live
+    parameters must not be a literal, and this class asserts the property it normalizes.
     """
 
     def test_psi_peaks_at_exactly_one(self):

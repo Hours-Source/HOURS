@@ -5,6 +5,8 @@ Covers: automation_failure_shock, demographic_shock, ecological_eoh_spike,
         labor_income_shock, compound_shock.
 """
 
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT
+
 import pytest
 from hours_eoh.scenarios.shocks import (
     _LABOR_INCOME_AUTO_SLOPE, _LABOR_INCOME_BASE, _LABOR_INCOME_MIN)
@@ -22,7 +24,8 @@ VALID_OUTCOMES = {"STABLE", "DEGRADED", "CRISIS"}
 class TestAutomationFailureShock:
     def test_returns_expected_keys(self):
         result = automation_failure_shock(epsilon=0.40)
-        for key in ("scenario", "epsilon", "total_eoh", "automation_eoh",
+        for key in ("scenario", "epsilon", "total_eoh", "machine_eoh_lost",
+                    "taken_up_eoh", "deferred_eoh", "deferred_personal_eoh",
                     "covered", "outcome", "recommendation"):
             assert key in result
 
@@ -38,11 +41,16 @@ class TestAutomationFailureShock:
         result = automation_failure_shock(epsilon=0.10)
         assert result["outcome"] == "STABLE"
 
-    def test_automation_eoh_equals_epsilon_times_total(self):
-        result = automation_failure_shock(epsilon=0.40)
-        assert result["automation_eoh"] == pytest.approx(
-            result["total_eoh"] * 0.40, rel=1e-4
-        )
+    def test_the_lost_load_is_the_observed_machine_share(self):
+        # Retired 2026-09-30: this pinned `automation_eoh == total × ε`, the
+        # capability index, which counts the labour care's automation floor
+        # keeps human as if machines carried it.
+        from hours_eoh.core.eoh_fulfillment import observable_epsilon
+        for eps in (0.40, 0.90, 0.99):
+            r = automation_failure_shock(epsilon=eps)
+            assert r["machine_eoh_lost"] == pytest.approx(
+                r["total_eoh"] - r["human_eoh_before"], rel=1e-12)
+            assert r["machine_eoh_lost"] < r["total_eoh"] * eps
 
     def test_recommendation_is_string(self):
         result = automation_failure_shock(0.50)
@@ -189,13 +197,22 @@ class TestCompoundShock:
     def test_scenario_name(self):
         assert compound_shock(0.40)["scenario"] == "compound_shock"
 
-    def test_no_shocks_is_stable(self):
-        """All shocks disabled → combined_outcome is STABLE."""
+    def test_no_shocks_tests_nothing(self):
+        """With all shocks disabled the verdict is NO_SHOCK, and the run does not ask
+        the Trust question. Until 2026-10-03 it read STABLE / True, a verdict from a run
+        with no shock (mode 9).
+        """
         result = compound_shock(0.40, ecology_collapse=False,
                                 demographic_shock_spec=None,
                                 automation_fraction_lost=0.0)
-        assert result["combined_outcome"] == "STABLE"
+        assert result["combined_outcome"] == "NO_SHOCK"
+        assert result["trust_absorbs_combined"] is None
+        assert result["individual_outcomes"] == {}
         assert result["combined_eoh_delta"] == 0.0
+
+    def test_a_shock_never_reads_no_shock(self):
+        for kw in ({"automation_fraction_lost": 0.5}, {"ecology_collapse": True}):
+            assert compound_shock(0.40, **kw)["combined_outcome"] in VALID_OUTCOMES
 
     def test_combined_outcome_at_least_as_severe_as_worst_individual(self):
         """Combined outcome must be >= worst individual outcome in severity."""
@@ -240,8 +257,9 @@ class TestCompoundShock:
         assert result["combined_eoh_delta"] >= 0.0
 
     def test_combined_outcome_is_valid(self):
-        result = compound_shock(0.40)
+        result = compound_shock(0.40, automation_fraction_lost=0.5)
         assert result["combined_outcome"] in VALID_OUTCOMES
+        assert compound_shock(0.40)["combined_outcome"] == "NO_SHOCK"
 
     def test_recommendation_is_string(self):
         result = compound_shock(0.40, ecology_collapse=True,
@@ -266,31 +284,27 @@ class TestCompoundShock:
 
 
 class TestLaborIncomeAutomationSlope:
-    """
-    `_LABOR_INCOME_AUTO_SLOPE`, pinned (2026-08-28) — after making it
-    observable at all.
-
-    It is a shadow constant that a +7% move left undetected, and the reason was
-    structural: `demographic_shock` computed `labor_income` from it and then
-    DISCARDED it. ε drives the guarantee, the EOH total and the income
-    together, so the income's own response cannot be recovered from any
-    downstream figure — I tried, and the implied ratio came back 2.17 against an
-    expected 0.60 because the other ε effects swamp it.
-
-    The fix is the same one applied to `scenarios/maintenance.py` the same day:
-    report the quantity the code already computes. A term that reaches the
-    caller only through other terms is a term no test can hold.
+    """`_LABOR_INCOME_AUTO_SLOPE` is pinned (2026-08-28) and now observable. It is a
+    shadow constant that a +7% move left undetected: `demographic_shock` computed
+    `labor_income` from it and then discarded it. ε moves the guarantee, the EOH total
+    and the income together, so no downstream figure isolates the income's response. The
+    fix reports the quantity the code already computes
+    ([record](record/fulfilment.md#obligation-accounts-test-history)).
     """
 
-    def _income(self, eps, base=None):
-        kw = {} if base is None else {"labor_income_base": base}
+    # SINCE 2026-09-30 THIS IS THE LEGACY PATH. The default income is the mint
+    # (wage doctrine); the proxy runs only when a base is passed, so these pin
+    # it there. "Automation must reduce labour income" is true of the PROXY and
+    # false of the mint, which rises until ε≈0.77 — see
+    # TestShocksPayFromTheMint below.
+    def _income(self, eps, base=_LABOR_INCOME_BASE):
         return demographic_shock(epsilon=eps, shock_type="growth",
-                                 magnitude=0.1, **kw)["labor_income"]
+                                 magnitude=0.1, labor_income_base=base)["labor_income"]
 
     def test_labor_income_falls_with_automation(self):
         vals = [self._income(e) for e in (0.0, 0.25, 0.5, 0.75, 0.99)]
         assert vals == sorted(vals, reverse=True), vals
-        assert vals[-1] < vals[0], "automation must reduce labour income"
+        assert vals[-1] < vals[0], "the proxy's slope must reduce labour income"
 
     def test_the_decline_is_the_declared_fraction_of_base(self):
         """Binds the constant to the behaviour rather than restating 0.80."""
@@ -315,3 +329,807 @@ class TestLaborIncomeAutomationSlope:
         """A slope ≥ 1 would zero labour income at ε=1 before the floor could
         act; a negative slope would mean automation RAISES labour income."""
         assert 0.0 < _LABOR_INCOME_AUTO_SLOPE < 1.0
+
+
+
+class TestShocksPayFromTheMint:
+    """Shocks levy from the mint (2026-09-30). Three shocks had levied the Trust from
+    the 2.2e9 proxy, unscaled by population, and `compound_shock` applied the proxy's
+    automation slope twice (mode 11)
+    ([record](record/fulfilment.md#proxy-income-retired)).
+    """
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_demographic_income_is_the_mint(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = demographic_shock(epsilon=eps, shock_type="aging", magnitude=0.2)
+        mint = eoh_to_teh_pipeline(
+            eps, population=1_000_000.0,
+            capital_stock=resolve_capital_stock(None, eps), capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
+        )["teh_created"]
+        assert r["labor_income"] == pytest.approx(mint, rel=1e-12)
+
+    def test_the_mint_rises_before_it_falls(self):
+        """The proxy fell monotonically; the mint does not."""
+        inc = [demographic_shock(epsilon=e, shock_type="growth", magnitude=0.1)["labor_income"]
+               for e in (0.0, 0.40, 0.70, 0.99)]
+        assert inc[0] < inc[1] < inc[2] and inc[3] < inc[2]
+
+    def test_ecological_spike_income_travels_with_the_frame(self):
+        """The proxy was 2.2e9 at every population. The mint scales."""
+        from hours_eoh.scenarios.shocks import _mint_income
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        for pop in (1.0e5, 1.0e7):
+            got = _mint_income(0.40, pop, resolve_capital_stock(None, 0.40, population=pop), CAPITAL_AGE_RATIO_DEFAULT)
+            ref = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), CAPITAL_AGE_RATIO_DEFAULT)
+            assert got / pop == pytest.approx(ref / 1.0e6, rel=1e-9)
+
+    def test_the_spike_reports_the_mint_and_honours_an_explicit_income(self):
+        from hours_eoh.scenarios.shocks import _mint_income
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = ecological_eoh_spike(0.40, 0.7, 0.3)
+        # The after-state's mint (2026-10-01): restoration work registers, so it
+        # sits ABOVE the pre-collapse mint, by less than the restoration hours
+        # would mint at the multiplier cap `M_MAX`.
+        before = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), CAPITAL_AGE_RATIO_DEFAULT)
+        from hours_eoh.data import M_MAX
+        assert before < r["labor_income"] < before + r["restoration_eoh_high"] * M_MAX
+        assert ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e10)["labor_income"] == 1.0e10
+        low = ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e6)["trust_surplus_deficit"]
+        high = ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e10)["trust_surplus_deficit"]
+        assert high > low, "the income must reach the Trust"
+
+    def test_compound_no_longer_applies_the_slope_twice(self, monkeypatch):
+        """The demographic leg must resolve its OWN income: compound_shock used
+        to hand it an already-sloped income as an ε=0 base (mode 11)."""
+        import hours_eoh.scenarios.shocks as sh
+        seen = {}
+        real = sh.demographic_shock
+
+        def spy(*args, **kw):
+            seen.update(kw)
+            return real(*args, **kw)
+
+        monkeypatch.setattr(sh, "demographic_shock", spy)
+        sh.compound_shock(0.90, demographic_shock_spec={"shock_type": "aging", "magnitude": 0.2})
+        assert "labor_income_base" not in seen
+
+
+class TestOneDegradedThreshold:
+    """2026-09-30: DEGRADED was 5% of the Trust in `demographic_shock` and 10%
+    in two others, unnamed. One constant, one reader."""
+
+    def test_the_boundary_is_the_constant(self):
+        from hours_eoh.data import SHOCK_DEGRADED_TRUST_FRACTION as F
+        from hours_eoh.scenarios.shocks import _classify
+        assert _classify(True, -1e9, 0.0) == "STABLE"
+        assert _classify(False, -F * 1000.0, 1000.0) == "DEGRADED"
+        assert _classify(False, -F * 1000.0 * 1.001, 1000.0) == "CRISIS"
+        assert _classify(False, -1.0, 0.0) == "CRISIS", "no Trust, no runway"
+
+    def test_no_shock_carries_its_own_copy(self):
+        import inspect
+        import hours_eoh.scenarios.shocks as sh
+        src = inspect.getsource(sh)
+        assert "trust_balance * 0.05" not in src and "trust_balance * 0.10" not in src
+
+    def test_demographic_shock_reads_the_shared_boundary(self):
+        """A deficit between 5% and 10% of the Trust: CRISIS under the old 5%,
+        DEGRADED now. Searched, and FAILS rather than skips if the probe finds
+        nothing — a skipped check is not a check."""
+        import numpy as np
+        from hours_eoh.data import SHOCK_DEGRADED_TRUST_FRACTION as F
+        for tb in np.geomspace(1.0e5, 1.0e10, 60):
+            r = demographic_shock(0.99, "growth", 0.2, trust_balance=float(tb))
+            deficit = -r["surplus_deficit_after"]
+            if not r["trust_solvent_after"] and 0.05 * tb < deficit <= F * tb:
+                assert r["outcome"] == "DEGRADED"
+                return
+        raise AssertionError("no probe landed between 5% and 10% of the Trust")
+
+
+class TestAgeDistributionIsFractions:
+    """2026-09-30: `demographic_shock` and `epsilon_sweep` passed head COUNTS as
+    `age_distribution`, which takes fractions — personal EOH population² ×
+    weight, ~1e6× at 1M. Through `eoh_delta`, `compound_shock` added ~9.6e13
+    phantom hours to the guarantee and reported CRISIS for any demographic
+    shock at every ε. Nothing pinned it; these do."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_shock_obligation_is_total_eoh(self, eps):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
+        r = demographic_shock(eps, "growth", 0.2)
+        ref = total_eoh(eps, population=1.0e6,
+                        capital_stock=resolve_capital_stock(None, eps),
+                        capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT)["total"]
+        assert r["eoh_before"] == pytest.approx(ref, rel=1e-12)
+
+    def test_growth_scales_the_personal_obligation_by_the_growth(self):
+        r = demographic_shock(0.0, "growth", 0.2)
+        assert r["eoh_after"] / r["eoh_before"] == pytest.approx(1.2, rel=1e-9)
+
+    def test_compound_matches_its_only_component(self):
+        from hours_eoh.scenarios.shocks import compound_shock
+        for eps in (0.0, 0.40, 0.90):
+            spec = {"shock_type": "aging", "magnitude": 0.2}
+            alone = demographic_shock(eps, **spec)["outcome"]
+            assert compound_shock(eps, demographic_shock_spec=spec)["combined_outcome"] == alone
+
+    def test_personal_eoh_refuses_head_counts(self):
+        from hours_eoh.core.eoh_generation import personal_eoh
+        with pytest.raises(ValueError, match="FRACTIONS"):
+            personal_eoh(1.0e6, {"working_age": 6.0e5, "elderly": 4.0e5})
+
+
+class TestShocksRunOnTheSharedPath:
+    """2026-09-30, record/verification.md#parallel-paths (a): the shocks
+    assembled their own EOH and fiscal layer. Each pin here fails if the
+    defect the hand path carried returns."""
+
+    POPS = (1.0e5, 1.0e6, 1.0e7)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_automation_verdict_is_frame_invariant(self, eps):
+        # A fixed 600,000-person workforce beside a settable population: the
+        # same economy read coverage 4.118 / 0.412 / 0.041 at ε=0.40.
+        rows = [automation_failure_shock(eps, population=p) for p in self.POPS]
+        ratios = [r["coverage_ratio"] for r in rows]
+        assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9), ratios
+        assert len({r["outcome"] for r in rows}) == 1
+        assert len({r["failure_boundary"] for r in rows}) == 1
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_automation_obligation_is_the_pipelines(self, eps):
+        # A fixed knowledge base of 10.0 put knowledge EOH 10× the pipeline's
+        # at ε=0; every other path resolves the corpus along the arc.
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import (
+            resolve_capital_stock, resolve_knowledge_base_size)
+        r = automation_failure_shock(eps)
+        ref = eoh_to_teh_pipeline(
+            eps, capital_stock=resolve_capital_stock(None, eps, population=1.0e6),
+            capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, ecosystem_health=0.70,
+            knowledge_complexity=resolve_knowledge_base_size(None, eps))
+        assert r["total_eoh"] == pytest.approx(ref["total_eoh"], rel=1e-12)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_labor_income_baseline_is_the_unfloored_mint(self, eps):
+        from hours_eoh.scenarios.shocks import _mint_income
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        for pop in self.POPS:
+            cap = resolve_capital_stock(None, eps, population=pop)
+            r = labor_income_shock(eps, 0.5, population=pop)
+            assert r["baseline_income"] == pytest.approx(
+                _mint_income(eps, pop, cap, CAPITAL_AGE_RATIO_DEFAULT), rel=1e-12)
+
+    def test_total_income_collapse_reaches_zero(self):
+        # The docstring's "0.0 = total income collapse" was floored at 3e8.
+        assert labor_income_shock(0.40, 0.0)["shocked_income"] == 0.0
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_guarantee_reads_the_held_register(self, eps):
+        # Replaced 2026-10-01: the exactness of a Trust charge that no longer
+        # exists. What matters now is that the guarantee's on-ledger share is
+        # the REGISTER's, held apart from the capability (author, 2026-10-01).
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        kw = dict(labor_income=3.0e8, capital_stock_teh=1.0e9,
+                  capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, population=1.0e6)
+        held = fiscal_snapshot(epsilon=0.0, registration_epsilon=eps, **kw)
+        ref = fiscal_snapshot(epsilon=eps, **kw)
+        lost = fiscal_snapshot(epsilon=0.0, **kw)
+        assert held["guarantee"]["floor_fraction"] == ref["guarantee"]["floor_fraction"]
+        assert held["guarantee"]["floor_fraction"] != lost["guarantee"]["floor_fraction"]
+        assert fiscal_snapshot(epsilon=eps, registration_epsilon=None, **kw)[
+            "trust"]["surplus_deficit"] == ref["trust"]["surplus_deficit"]
+
+    @pytest.mark.parametrize("shock", ["growth", "decline", "aging"])
+    def test_demographic_shock_travels_with_the_frame(self, shock):
+        rows = [demographic_shock(0.40, shock, 0.2, population=p) for p in self.POPS]
+        per_capita = [r["eoh_delta"] / r["population_before"] for r in rows]
+        assert per_capita == pytest.approx([per_capita[1]] * 3, rel=1e-9)
+        assert len({r["outcome"] for r in rows}) == 1
+
+    def test_compound_runs_its_demographic_leg_at_its_own_population(self):
+        # The leg was frameless at 1M while handed a Trust resolved at the
+        # compound's population: at 100k an aging compound read DEGRADED while
+        # its only component read STABLE.
+        spec = {"shock_type": "aging", "magnitude": 0.1}
+        for eps in (0.0, 0.40, 0.90, 0.99):
+            alone = demographic_shock(eps, **spec, population=1.0e5)["outcome"]
+            both = compound_shock(eps, demographic_shock_spec=spec, population=1.0e5)
+            assert both["combined_outcome"] == alone
+
+    def test_aging_moves_people_and_creates_none(self):
+        # magnitude beyond the working-age share used to ADD elderly without
+        # removing workers, growing the population. Refused, not clamped: a
+        # clamp would satisfy the population check by construction (mode 2).
+        r = demographic_shock(0.40, "aging", 0.5)
+        assert r["population_after"] == r["population_before"]
+        assert r["eoh_after"] != r["eoh_before"]
+        with pytest.raises(ValueError, match="OUT of working age"):
+            demographic_shock(0.40, "aging", 0.9)
+
+
+class TestAutomationFailureCascade:
+    """An automation failure runs the shared pipeline's own cascade (2026-09-30). The
+    OBSERVED machine load falls to people and is taken up within the measured labour
+    supply L; the rest is DEFERRED, survival first. The cascade charges nothing to the
+    Trust, because a balance cannot supply an hour of labour.
+    """
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_every_lost_hour_is_taken_up_or_deferred(self, eps):
+        r = automation_failure_shock(eps)
+        assert r["taken_up_eoh"] + r["deferred_eoh"] == pytest.approx(
+            r["machine_eoh_lost"], rel=1e-9, abs=1e-3)
+        assert r["taken_up_eoh"] >= -1e-3 and r["deferred_eoh"] >= -1e-3
+
+    def test_nothing_is_lost_where_machines_carried_nothing(self):
+        r = automation_failure_shock(0.0)
+        assert r["machine_eoh_lost"] == 0.0
+        assert r["mint_after"] == r["mint_before"]
+        assert r["outcome"] == "STABLE"
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_register_stands_so_the_surge_mints(self, eps):
+        # With the register read off the failed capability, the surge was
+        # pushed off-ledger: at ε=0.40 the mint FELL 3.311e8 → 5.21e7 while
+        # people worked 4.9e8 more hours.
+        r = automation_failure_shock(eps)
+        assert r["taken_up_eoh"] > 0.0
+        assert r["mint_after"] > r["mint_before"]
+
+    def test_the_register_parameter_moves_the_pipeline(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        held = eoh_to_teh_pipeline(machine_capability=0.0, registration_epsilon=0.90)
+        same = eoh_to_teh_pipeline(machine_capability=0.0)
+        ref = eoh_to_teh_pipeline(0.90)
+        for d in ("personal", "infrastructure", "ecological", "knowledge"):
+            # `non_personal` is an hours-weighted aggregate, not a share.
+            assert held["registration_by_domain"][d] == ref["registration_by_domain"][d]
+        assert held["teh_created"] > same["teh_created"]
+        assert eoh_to_teh_pipeline(0.40, registration_epsilon=None)["teh_created"] == \
+            eoh_to_teh_pipeline(0.40)["teh_created"]
+
+    def test_all_three_verdicts_are_reachable(self):
+        # Mode 9: CRISIS (the survival floor deferred) never fires at the
+        # measured supply, so it is constructed: below the personal demand
+        # per head the floor itself goes unserved.
+        # Since 2026-10-04 the default stock is the measured US one (age 0.594):
+        # losing ALL machines at ε=0.40 now defers 2.7% (DEGRADED); half stays
+        # STABLE.
+        assert automation_failure_shock(0.40, fraction_lost=0.5)["outcome"] == "STABLE"
+        assert automation_failure_shock(0.40)["outcome"] == "DEGRADED"
+        # DEGRADED: labour defers non-personal hours and no certified domain is
+        # created short or deepened. Until 2026-10-03 this was ε=0.78, where
+        # the care shortfall already there was not blamed on the shock; the
+        # shock deepens it (0.99 → ~0.38 coverage), and since option 1 a
+        # deepened shortfall is charged — in the personal tier, CRISIS.
+        degraded = automation_failure_shock(0.45, fraction_lost=1.0)
+        assert degraded["outcome"] == "DEGRADED"
+        assert degraded["competency_outcome"] == "STABLE"
+        deepened = automation_failure_shock(0.78)
+        assert deepened["outcome"] == "CRISIS"
+        assert "care" in deepened["competency_personal_short_deepened"]
+        crisis = automation_failure_shock(0.90, labor_supply_per_capita=800.0)
+        assert crisis["deferred_personal_eoh"] > 0.0
+        assert crisis["outcome"] == "CRISIS"
+
+    def test_no_labour_no_collective(self):
+        r = automation_failure_shock(0.40, labor_supply_per_capita=0.0)
+        assert r["outcome"] == "CRISIS"
+        assert r["mint_after"] == 0.0
+
+    def test_a_larger_failure_never_covers_more(self):
+        cov = [automation_failure_shock(0.90, fraction_lost=f)["coverage_ratio"]
+               for f in (0.25, 0.50, 0.75, 1.0)]
+        assert all(a >= b - 1e-12 for a, b in zip(cov, cov[1:]))
+        assert cov[0] == 1.0 and cov[-1] < 1.0
+
+    def test_the_retired_literals_warn_and_change_nothing(self):
+        base = automation_failure_shock(0.90)
+        with pytest.warns(DeprecationWarning, match="deprecated"):
+            old = automation_failure_shock(0.90, workforce_size=600_000.0,
+                                           mean_entropy_reduction_capacity=1200.0,
+                                           reserve_fraction=0.155)
+        assert old["coverage_ratio"] == base["coverage_ratio"]
+
+    def test_compound_of_one_is_that_shock(self):
+        # One component in the one-state compound reproduces the shock alone.
+        r = compound_shock(0.90, automation_fraction_lost=1.0)
+        alone = automation_failure_shock(0.90)
+        assert r["combined_eoh_delta"] == pytest.approx(alone["machine_eoh_lost"], rel=1e-9)
+        assert r["combined_deferred_eoh"] == pytest.approx(alone["deferred_eoh"], rel=1e-9)
+        assert r["automation_deferred_eoh"] == pytest.approx(alone["deferred_eoh"], rel=1e-12)
+        assert r["combined_outcome"] == alone["outcome"]
+
+
+class TestOneStateOneCascade:
+    """Every shock changes one state and runs it through one cascade (author,
+    2026-10-01). Nothing is charged to the Trust, supply moves with the age mix, and a
+    collapse leaves restoration.
+    """
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_a_collapse_leaves_its_restoration_in_the_domain(self, eps):
+        # The domain was empty under the partition: the spike read 0 at every
+        # population and the verdict came from the threshold flag alone.
+        r = ecological_eoh_spike(eps, 0.70, 0.30)
+        assert 0.0 < r["restoration_eoh_low"] < r["restoration_eoh_high"]
+        assert r["eoh_spike"] == pytest.approx(r["restoration_eoh_high"], rel=1e-9)
+        assert r["guf_flow_added_eoh"] > 0.0
+
+    def test_the_restoration_travels_with_the_frame(self):
+        rows = [ecological_eoh_spike(0.40, 0.70, 0.30, population=p) for p in (1e5, 1e6, 1e7)]
+        per = [r["restoration_eoh_high"] / p for r, p in zip(rows, (1e5, 1e6, 1e7))]
+        assert per == pytest.approx([per[1]] * 3, rel=1e-9)
+
+    def test_no_collapse_no_restoration(self):
+        r = ecological_eoh_spike(0.40, 0.50, 0.60)
+        assert r["restoration_eoh_high"] == 0.0 and r["eoh_spike"] == 0.0
+
+    def test_the_threshold_no_longer_decides_alone(self):
+        r = ecological_eoh_spike(0.40, 0.70, 0.30)
+        assert r["threshold_crossed"] and r["outcome"] == "STABLE"
+
+    def test_supply_follows_the_age_mix(self):
+        from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
+        from hours_eoh.data import AGE_GROUPS
+        base = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        aged = dict(base, working_age=base["working_age"] - 0.2,
+                    elderly=base["elderly"] + 0.2)
+        r = demographic_shock(0.40, "aging", 0.2)
+        assert r["labor_supply_after"] / r["labor_supply_before"] == pytest.approx(
+            capacity_weighted_adult_share(aged) / capacity_weighted_adult_share(), rel=1e-12)
+        g = demographic_shock(0.40, "growth", 0.2)
+        assert g["labor_supply_after"] / g["population_after"] == pytest.approx(
+            g["labor_supply_before"] / g["population_before"], rel=1e-12)
+
+    def test_the_adult_share_reads_a_supplied_mix(self):
+        from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
+        from hours_eoh.data import AGE_GROUPS
+        base = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        assert capacity_weighted_adult_share(base) == capacity_weighted_adult_share()
+        with pytest.raises(ValueError, match="unknown"):
+            capacity_weighted_adult_share({"teen": 1.0})
+
+    def test_aging_at_subsistence_breaks_the_survival_floor(self):
+        # The finding, both ways: a 10-point shift from working age to elderly
+        # defers personal obligation at ε=0 and is absorbed at ε=0.40.
+        low = demographic_shock(0.0, "aging", 0.1)
+        assert low["deferred_personal_eoh"] > 0.0 and low["outcome"] == "CRISIS"
+        assert demographic_shock(0.40, "aging", 0.1)["outcome"] == "STABLE"
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90])
+    def test_shocks_share_one_labour_pool(self, eps):
+        spec = {"shock_type": "aging", "magnitude": 0.1}
+        both = compound_shock(eps, demographic_shock_spec=spec, automation_fraction_lost=1.0)
+        auto = automation_failure_shock(eps)
+        dem = demographic_shock(eps, **spec)
+        assert both["combined_deferred_eoh"] >= max(auto["deferred_eoh"], dem["deferred_eoh"]) - 1e-3
+        sev = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
+        assert sev[both["combined_outcome"]] >= max(sev[auto["outcome"]], sev[dem["outcome"]])
+
+    def test_base_rate_is_retired(self):
+        with pytest.warns(DeprecationWarning, match="base_rate"):
+            ecological_eoh_spike(0.40, 0.70, 0.30, base_rate=1.0)
+
+
+class TestCompetencyInTheShocks:
+    """Every shock reads Condition IV in hours (`condition_iv_coverage`), for a
+    collective certified at the minimum for its OWN working-age headcount (2026-10-01).
+    The verdict charges a shock only with the shortfalls it CREATES.
+    """
+
+    def test_every_shock_tests_competency(self):
+        for r in (automation_failure_shock(0.40), demographic_shock(0.40, "aging", 0.1),
+                  ecological_eoh_spike(0.40, 0.7, 0.3),
+                  compound_shock(0.40, automation_fraction_lost=0.5)):
+            assert r["competency_tested"] is True
+            from hours_eoh.data import ESSENTIAL_DOMAINS
+            assert set(r["competency_coverage_after"]) == set(ESSENTIAL_DOMAINS)
+
+    def test_a_shortfall_already_there_is_not_blamed_on_the_shock(self):
+        # Inside the band where healthcare is short at the Condition IV minimum
+        # before any shock, in both tiers. (Until the bridge's personal column
+        # was derived, 2026-10-01, this case also "created" a logistics
+        # shortfall — the old 0.20 logistics weight, gone with it.)
+        r = automation_failure_shock(0.78)
+        assert r["competency_short_before"] == ["care"]
+        assert r["competency_personal_short_before"] == ["care"]
+        assert r["competency_short_created"] == []
+        assert r["competency_personal_short_created"] == []
+
+    def test_aging_late_in_the_arc_shrinks_the_certified_pool(self):
+        # Labour absorbs it; competency does not. TWO mechanisms, both
+        # measured: aging raises healthcare demand and shrinks the certified
+        # pool (a share of the smaller working-age headcount). Under the
+        # DERIVED bridge (2026-10-01) demand alone leaves healthcare covered —
+        # the shortfall is the pool's; under the old 0.80 weight demand alone
+        # had already broken it. Capacity is linear in headcount, so the
+        # coverage is the held-headcount coverage × the working-age ratio.
+        from hours_eoh.scenarios import shocks as sh
+        from hours_eoh.core.conditions import condition_iv_coverage
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = demographic_shock(0.99, "aging", 0.2)
+        assert r["labour_outcome"] == "STABLE"
+        assert r["competency_short_created"] == ["care"]
+        # The shortfall is in the PERSONAL tier — the agents' own needs without
+        # competent hands — so CRISIS, not DEGRADED (author, 2026-10-01).
+        assert r["competency_personal_short_created"] == ["care"]
+        assert r["outcome"] == "CRISIS"
+        s0 = sh._base_state(0.99, 1.0e6, 0.70, None)
+        s1 = sh._demographic_change(s0, "aging", 0.2)
+        after = sh._run(s1, 0.99, resolve_capital_stock(None, 0.99, population=1.0e6), 0.30, None)
+        held = condition_iv_coverage(sh._threshold_reserve(s0), after)["per_domain"]["care"]
+        assert held["coverage_ratio"] >= 1.0
+        ratio = s1["age_fractions"]["working_age"] / s0["age_fractions"]["working_age"]
+        assert r["competency_coverage_after"]["care"] == pytest.approx(
+            held["coverage_ratio"] * ratio, rel=1e-12)
+
+    def test_mid_arc_failure_creates_no_shortfall(self):
+        assert automation_failure_shock(0.40)["competency_short_created"] == []
+
+    def test_competency_travels_with_the_frame(self):
+        rows = [automation_failure_shock(0.90, population=p) for p in (1e5, 1e6, 1e7)]
+        ratios = [r["competency_coverage_after"]["care"] for r in rows]
+        assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9)
+        assert len({tuple(r["competency_short_created"]) for r in rows}) == 1
+
+
+class TestTheSurvivalTier:
+    """A shortfall the shock creates in the PERSONAL tier is CRISIS; elsewhere it is
+    DEGRADED. Author, 2026-10-01: "the people (agent needs) should be what needs to be
+    covered, the rest can build back over time as the arc climbs again".
+    """
+
+    def test_a_personal_tier_shortfall_is_crisis(self):
+        r = automation_failure_shock(0.99)
+        assert r["labour_outcome"] == "DEGRADED"
+        assert r["competency_personal_short_created"] == ["care"]
+        assert r["outcome"] == "CRISIS"
+
+    def test_care_at_the_minimum_has_no_slack_for_lost_automation(self):
+        # Machines carry part of care late in the arc. A care pool certified at
+        # exactly the Condition IV minimum cannot take even a quarter of it
+        # back: labour absorbs the loss (STABLE), competency does not (CRISIS).
+        r = automation_failure_shock(0.90, fraction_lost=0.25)
+        assert r["labour_outcome"] == "STABLE"
+        assert r["competency_personal_short_created"] == ["care"]
+        assert r["outcome"] == "CRISIS"
+
+    def test_unattributed_hours_are_reported_not_counted_short(self):
+        r = automation_failure_shock(0.40)
+        assert r["competency_unattributed_eoh"] > 0.0
+        assert "unattributed" not in r["competency_coverage_after"]
+
+
+
+class TestADeepenedShortfallIsCharged:
+    """A shock is charged with the shortfalls it DEEPENS, not only those it creates
+    (author, 2026-10-03, option 1). Before, a 50% automation loss read CRISIS at ε 0.70
+    and 0.85 and STABLE between them, where care was already marginally short.
+    """
+
+    def test_the_verdict_no_longer_dips_over_the_care_window(self):
+        eps = [0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
+        out = [compound_shock(e, automation_fraction_lost=0.5)["combined_outcome"] for e in eps]
+        assert out == ["CRISIS"] * len(eps)
+
+    @pytest.mark.parametrize("eps", [0.75, 0.80])
+    def test_it_reports_both_coverages(self, eps):
+        r = compound_shock(eps, automation_fraction_lost=0.5)
+        b, a = r["competency_personal_short_deepened"]["care"]
+        assert b < 1.0 and a < b
+        assert f"already short ({b:.3f})" in r["competency_note"]
+        assert f"deepens it to {a:.3f}" in r["competency_note"]
+        assert r["competency_note"] in r["recommendation"]
+
+    def test_an_untouched_shortfall_is_not_charged(self):
+        """Short before, unchanged after: reported, not blamed (no deepening)."""
+        r = compound_shock(0.78, automation_fraction_lost=1e-12)
+        assert r["competency_short_before"] and not r["competency_short_deepened"]
+        assert r["competency_outcome"] == "STABLE"
+
+    def test_every_shock_carries_the_note(self):
+        for r in (automation_failure_shock(0.78),
+                  demographic_shock(0.78, shock_type="aging", magnitude=0.2),
+                  compound_shock(0.78, automation_fraction_lost=0.5)):
+            assert "competency_note" in r
+            assert r["competency_note"] in r["recommendation"]
+
+
+class TestShocksTakeTheFramesAgeMix:
+    """2026-10-03: every shock seeded its state from the shipped AGE_GROUPS, so
+    a US (or any institution's) run used the 1M default demography."""
+
+    @staticmethod
+    def _us() -> dict[str, float]:
+        from hours_eoh.data import AGE_GROUP_RANGES
+        from hours_eoh.reference.care_demand import population_shares
+        return population_shares(AGE_GROUP_RANGES)
+
+    def test_the_mix_moves_supply_and_obligation(self):
+        base = demographic_shock(0.40, "aging", 0.2)
+        us = demographic_shock(0.40, "aging", 0.2, age_fractions=self._us())
+        assert us["labor_supply_before"] != pytest.approx(base["labor_supply_before"], rel=1e-4)
+        assert us["eoh_before"] != pytest.approx(base["eoh_before"], rel=1e-4)
+
+    def test_the_applied_pyramid_is_reported(self):
+        from hours_eoh.data import AGE_GROUPS
+        us = self._us()
+        r = demographic_shock(0.40, "aging", 0.2, age_fractions=us)
+        assert r["age_fractions_before"] == pytest.approx(us)
+        assert r["age_fractions_after"]["elderly"] > us["elderly"]
+        assert demographic_shock(0.40, "aging", 0.2)["age_fractions_before"] == pytest.approx(
+            {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS})
+
+    def test_the_default_is_bit_identical_to_the_shipped_mix(self):
+        from hours_eoh.data import AGE_GROUPS
+        shipped = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        for f in (lambda **k: automation_failure_shock(0.78, **k),
+                  lambda **k: demographic_shock(0.78, "aging", 0.2, **k),
+                  lambda **k: compound_shock(0.78, automation_fraction_lost=0.5, **k)):
+            assert f() == f(age_fractions=shipped)
+
+    def test_compound_components_read_the_same_mix(self):
+        us = self._us()
+        alone = demographic_shock(0.60, "aging", 0.3, age_fractions=us)["outcome"]
+        both = compound_shock(0.60, demographic_shock_spec={"shock_type": "aging", "magnitude": 0.3},
+                              age_fractions=us)
+        assert both["individual_outcomes"]["demographic_shock"] == alone
+
+    @pytest.mark.parametrize("bad", [
+        {"infant": 0.5, "child": 0.5},                                   # missing groups
+        {"infant": 0.1, "child": 0.1, "working_age": 0.1, "elderly": 0.1},  # sum ≠ 1
+        {"infant": -0.1, "child": 0.3, "working_age": 0.6, "elderly": 0.2},
+    ])
+    def test_a_bad_mix_is_refused(self, bad):
+        with pytest.raises(ValueError):
+            automation_failure_shock(0.40, age_fractions=bad)
+
+
+
+class TestRetirementInTheShocks:
+
+    def test_an_ageing_population_now_asks_more_of_the_trust(self):
+        """Off: the age mix alone moves the guarantee (it did not until 2026-10-03)."""
+        r = demographic_shock(0.40, "aging", 0.04)
+        assert r["guarantee_after"] > r["guarantee_before"]
+
+    def test_with_the_register_on_ageing_adds_retirees(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        e0, e1 = r["age_fractions_before"]["elderly"], r["age_fractions_after"]["elderly"]
+        assert r["retired_share_after"] == pytest.approx(0.12 * e1 / e0)
+        off = demographic_shock(0.40, "aging", 0.04)
+        assert r["guarantee_before"] > off["guarantee_before"]
+        assert r["guarantee_after"] - r["guarantee_before"] > (
+            off["guarantee_after"] - off["guarantee_before"])
+
+    def test_zero_vesting_is_the_register_off(self):
+        on0 = demographic_shock(0.40, "aging", 0.04, retired_share=0.12, retiree_vested_fraction=0.0)
+        off = demographic_shock(0.40, "aging", 0.04)
+        assert on0["guarantee_before"] == off["guarantee_before"]
+        assert on0["guarantee_after"] == off["guarantee_after"]
+
+
+class TestTheFiscalChangeIsReported:
+    """The fiscal verdict reads the Trust AFTER the shock, so an already-insolvent Trust
+    read DEGRADED whatever the shock did to the deficit. The report now gives before and
+    after; the verdict is unchanged.
+    """
+
+    def test_a_shock_that_breaks_solvency_says_so(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        assert r["surplus_deficit_before"] > 0 > r["surplus_deficit_after"]
+        assert "from solvent" in r["fiscal_note"]
+
+    def test_an_already_insolvent_trust_is_named_with_both_deficits(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.15)
+        assert r["surplus_deficit_before"] < 0 and r["surplus_deficit_after"] < r["surplus_deficit_before"]
+        assert r["fiscal_outcome_before"] != "STABLE"
+        assert "already insolvent before the shock" in r["fiscal_note"]
+        assert f"{r['surplus_deficit_after']:,.0f}" in r["recommendation"]
+
+    def test_the_register_is_named_only_when_on(self):
+        on = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        off = demographic_shock(0.40, "aging", 0.04)
+        assert "Retirement register on" in on["recommendation"]
+        assert "Retirement register" not in off["recommendation"]
+        assert f"{on['guarantee_after']:,.0f}" in on["fiscal_note"]
+
+    def test_a_solvent_trust_gets_no_note(self):
+        r = demographic_shock(0.40, "aging", 0.04)
+        assert r["fiscal_outcome_before"] == r["fiscal_outcome_after"] == "STABLE"
+        assert r["fiscal_note"] == ""
+
+    def test_every_shock_reports_it(self):
+        for r in (automation_failure_shock(0.40, retired_share=0.12),
+                  ecological_eoh_spike(0.40, 0.70, 0.30, retired_share=0.12),
+                  compound_shock(0.40, automation_fraction_lost=0.5, retired_share=0.12)):
+            assert {"fiscal_outcome_before", "fiscal_outcome_after",
+                    "surplus_deficit_before", "fiscal_note"} <= set(r)
+            assert r["fiscal_note"] in r["recommendation"]
+
+    def test_reporting_does_not_move_the_verdict(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        assert r["fiscal_outcome_after"] == r["outcome"] or r["outcome"] in ("CRISIS",)
+
+
+class TestCapitalLoss:
+    """A disaster destroys capital (2026-10-03). The stock and its upkeep fall, machine
+    work falls to people, the D1 write-down records and reports the loss, and a rebuild
+    is opt-in demand.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_across_the_arc(self, eps):
+        from hours_eoh.core.capital import execute_writedown
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        k = resolve_capital_stock(None, eps, population=1e6)
+        r = capital_loss_shock(eps, fraction_lost=0.3)
+        assert r["capital_after"] == pytest.approx(0.7 * k)
+        wd = execute_writedown({"asset_id": "x", "asset_type": "generic_infra",
+                                "teh_value": k - 0.7 * k, "annual_eoh": 0.0})
+        assert r["teh_destroyed"] == wd["teh_destroyed"]
+        assert r["machine_eoh_lost"] >= 0.0 and r["outcome"] in ("STABLE", "DEGRADED", "CRISIS")
+        rebuilt = capital_loss_shock(eps, fraction_lost=0.3, rebuild_years=5)
+        assert rebuilt["total_eoh_after"] >= r["total_eoh_after"]
+        assert rebuilt["rebuild_eoh_per_year"] == pytest.approx(wd["rebuild_eoh_needed"] / 5)
+
+    def test_capability_defaults_to_the_capital_lost_and_can_be_set_apart(self):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        assumed = capital_loss_shock(0.6, fraction_lost=0.4)
+        spared = capital_loss_shock(0.6, fraction_lost=0.4, capability_fraction_lost=0.0)
+        assert assumed["capability_assumed"] and not spared["capability_assumed"]
+        assert spared["machine_eoh_lost"] < assumed["machine_eoh_lost"]
+
+    def test_the_verdict_is_frame_invariant(self):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        runs = [(p, capital_loss_shock(0.4, population=p, fraction_lost=0.5, rebuild_years=3))
+                for p in (1e5, 1e6, 1e7)]
+        assert len({r["outcome"] for _, r in runs}) == 1
+        per = [r["deferred_eoh"] / p for p, r in runs]
+        assert max(per) == pytest.approx(min(per), rel=1e-9)
+
+    @pytest.mark.parametrize("kw", [{"fraction_lost": 0.0}, {"fraction_lost": 1.2},
+                                    {"capability_fraction_lost": -0.1},
+                                    {"rebuild_years": 0.0}])
+    def test_out_of_range_is_refused(self, kw):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        with pytest.raises(ValueError):
+            capital_loss_shock(0.4, **kw)
+
+
+class TestCapacityAndEfficiency:
+    """Author, 2026-10-03: five lines with two broken and five lines with two
+    unstaffed look alike, but only one recovers with labour. CAPACITY is the
+    machine stock that can run; EFFICIENCY the share of people's work done."""
+
+    def test_labour_moves_efficiency_and_not_capacity(self):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        staffed = capital_loss_shock(0.6, fraction_lost=0.4)
+        short = capital_loss_shock(0.6, fraction_lost=0.4, labor_supply_per_capita=600)
+        assert staffed["capacity_after"] == short["capacity_after"] == pytest.approx(0.6)
+        assert staffed["efficiency_after"] == 1.0
+        assert short["efficiency_after"] < short["efficiency_before"] < 1.0
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_efficiency_is_a_share_across_the_arc(self, eps):
+        from hours_eoh.scenarios.shocks import automation_failure_shock
+        r = automation_failure_shock(eps, fraction_lost=0.5, labor_supply_per_capita=800)
+        assert 0.0 <= r["efficiency_after"] <= 1.0 and r["capacity_after"] == 0.5
+
+
+class TestCompoundTakesACapitalLoss:
+    """A wildfire is capital AND ecosystem (author, 2026-10-03)."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_off_is_unchanged_and_on_composes(self, eps):
+        from hours_eoh.scenarios.shocks import _SEVERITY, compound_shock
+        base = compound_shock(eps, ecology_collapse=True)
+        off = compound_shock(eps, ecology_collapse=True, capital_fraction_lost=0.0)
+        assert {k: off[k] for k in base} == base
+        fire = compound_shock(eps, ecology_collapse=True, automation_fraction_lost=0.5,
+                              capital_fraction_lost=0.2, rebuild_years=5)
+        assert "capital_loss_shock" in fire["individual_outcomes"]
+        assert fire["capacity_after"] == pytest.approx(0.5 * 0.8)
+        assert _SEVERITY[fire["combined_outcome"]] >= max(
+            _SEVERITY[o] for o in fire["individual_outcomes"].values())
+        assert fire["capital_teh_destroyed"] >= 0.0 and fire["rebuild"] == "on"
+
+
+class TestTheBoundaryAndTheShortfallBefore:
+    """`failure_boundary` finds one crossing from any starting ε (2026-10-08). It
+    returned ε itself whenever the failure already deferred work there, so the US frame
+    read 0.371 for a boundary at 0.05. A shortfall that exists before the shock is now
+    reported as `deferred_before_eoh`, because `deferred_eoh` counts only what the shock
+    adds.
+    """
+
+    @pytest.mark.parametrize("supply", [1400.0, 1000.0, None])
+    def test_the_boundary_is_one_crossing_from_any_start(self, supply):
+        # From below, at and above the crossing: one boundary, within the
+        # tolerance — the 0.05 grid read 0.42 from 0.37 and 0.38 from 0.38.
+        from hours_eoh.data import FAILURE_BOUNDARY_TOLERANCE as tol
+        kw = {} if supply is None else {"labor_supply_per_capita": supply}
+        found = [automation_failure_shock(e, **kw)["failure_boundary"]
+                 for e in (0.10, 0.37, 0.38, 0.70)]
+        found = [b for b in found if b is not None]
+        assert len(found) >= 2
+        assert max(found) - min(found) <= tol
+        b = min(found)
+        assert automation_failure_shock(b, **kw)["deferred_eoh"] > 0.0
+        assert automation_failure_shock(max(0.0, b - tol), **kw)["deferred_eoh"] <= 0.0
+
+    def test_a_shortfall_before_the_shock_is_reported(self):
+        short = automation_failure_shock(0.30, labor_supply_per_capita=1000.0)
+        demand_before = short["total_eoh"] - short["machine_eoh_before"]
+        assert short["deferred_before_eoh"] == pytest.approx(
+            demand_before - short["labor_supply_eoh"], rel=1e-9)
+        assert short["deferred_before_eoh"] > 0.0
+        assert short["labour_outcome_before"] != "STABLE"
+        ample = automation_failure_shock(0.30, labor_supply_per_capita=1400.0)
+        assert ample["deferred_before_eoh"] == 0.0
+        assert ample["labour_outcome_before"] == "STABLE"
+
+    def test_every_cascade_shock_reports_it(self):
+        for r in (demographic_shock(0.40, "growth", 0.20),
+                  ecological_eoh_spike(0.40, 0.7, 0.5),
+                  compound_shock(0.40, automation_fraction_lost=1.0)):
+            assert "deferred_before_eoh" in r and "labour_outcome_before" in r
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        assert "deferred_before_eoh" in capital_loss_shock(0.40)
+
+
+class TestAShockMovesThePeopleNotTheLand:
+    """2026-10-14: `_run` re-derived the area from the SHOCKED population, so a
+    decline shrank the land. Live where the frame's people carry the
+    ecological work; the land is now the pre-shock frame's, carried."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_decline_keeps_the_land(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.scenarios.shocks import _base_state, _demographic_change, _run
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        s0 = _base_state(eps, 1e6, 0.7, None, ecological_response="domain")
+        s1 = _demographic_change(s0, "decline", 0.2)
+        assert s1["land_hectares"] == s0["land_hectares"]
+        k = resolve_capital_stock(None, eps, population=1e6)
+        after = _run(s1, eps, k, 0.591, None)
+        on_moved_land = _run({**s1, "land_hectares": s1["population"] * 1.65}, eps, k, 0.591, None)
+        assert after["eoh_by_domain"]["ecological"] != on_moved_land["eoh_by_domain"]["ecological"]
+
+    def test_the_frames_land_reaches_every_shock(self):
+        from hours_eoh.scenarios.shocks import (
+            automation_failure_shock, capital_loss_shock, demographic_shock)
+        for f, kw in ((automation_failure_shock, {}),
+                      (demographic_shock, {"shock_type": "decline", "magnitude": 0.2}),
+                      (capital_loss_shock, {"fraction_lost": 0.3})):
+            a = f(epsilon=0.4, population=1e6, ecological_response="domain", **kw)
+            b = f(epsilon=0.4, population=1e6, ecological_response="domain",
+                  land_hectares=3.0e6, **kw)
+            assert a != b, f.__name__
+
+    def test_the_fisc_is_called_on_the_frames_land(self, monkeypatch):
+        """The fisc's area moves only reported obligations here, so this checks
+        the CALL (states its gap: wiring, not a figure)."""
+        import hours_eoh.scenarios.shocks as sh
+        seen = []
+        real = sh.fiscal_snapshot
+        monkeypatch.setattr(sh, "fiscal_snapshot",
+                            lambda *a, **k: seen.append(k.get("ecological_area_hectares"))
+                            or real(*a, **k))
+        sh.demographic_shock(epsilon=0.4, shock_type="decline", magnitude=0.2,
+                             population=1e6, land_hectares=3.0e6)
+        sh.labor_income_shock(epsilon=0.4, income_fraction=0.7, population=1e6,
+                              land_hectares=3.0e6)
+        assert seen and all(x == 3.0e6 for x in seen)

@@ -1,24 +1,29 @@
-"""
-Tests for hours_eoh.research.exchange
+"""Tests for hours_eoh.research.exchange, the exchange-accounting layer.
 
-The exchange-accounting layer: declared frames, the parity floor, double-entry
-books per collective, and the N=1 anchor that keeps the whole thing tied to the
-single-ledger model.
+It holds declared frames, the settlement rate, double-entry books per collective, and
+the N=1 anchor that ties the layer to the single-ledger model:
 
-Structure mirrors what the module claims:
-  TestCollectiveFrame          — the frame refuses to be half-stated
-  TestBuildCollective          — the frame reaches BOTH core calls
-  TestParityRate               — the floor rate, and the heterogeneity it needs
-  TestLedger                   — double-entry invariants
-  TestFederationBook           — cross-collective postings and the FX seam
-  TestN1AccountingAnchor       — reproduces the single ledger exactly
-  TestArcCoherence             — ε ∈ {0, 0.4, 0.99}, per CONTRIBUTING.md
+  TestCollectiveFrame       the frame refuses to be half-stated
+  TestBuildCollective       the frame reaches BOTH core calls
+  TestParityRate            the superseded floor rate, and the heterogeneity it needs
+  TestLedger                double-entry invariants
+  TestFederationBook        cross-collective postings and the FX seam
+  TestN1AccountingAnchor    reproduces the single ledger exactly
+  TestArcCoherence          ε ∈ {0, 0.4, 0.99}, per CONTRIBUTING.md
+  TestLayerIsolation        nothing in core, land or scenarios imports this
+  TestParityIsScaleFree     collectives that differ in size trade at parity
+  TestAdoptedSettlement     the registered rate settles (2026-09-30)
+  TestTheBuilderSendsOneValueToBothHalves   a shared keyword reaches both halves
 """
 
 import pytest
 
-from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import LAND_HECTARES_PER_CAPITA, M_BAND_HIGH, M_BAND_LOW
 from hours_eoh.research.exchange import (
+    SETTLEMENT_BAND_BOUNDS,
+    registered_rate,
+    settlement_matrix,
+    settlement_terms,
     CollectiveFrame,
     Entry,
     FederationBook,
@@ -54,13 +59,22 @@ class TestCollectiveFrame:
         with pytest.raises(TypeError):
             CollectiveFrame(collective_id=0, population=1e6, capital_stock_teh=2e9)
 
-    @pytest.mark.parametrize("bad", ["population", "land_hectares", "capital_stock_teh"])
-    def test_the_three_extensive_quantities_must_be_positive(self, bad):
+    @pytest.mark.parametrize("bad", ["population", "land_hectares"])
+    def test_population_and_land_must_be_positive(self, bad):
         kw = dict(collective_id=0, population=1e6, land_hectares=1.65e6,
                   capital_stock_teh=2e9)
         kw[bad] = 0.0
         with pytest.raises(ValueError, match=bad):
             CollectiveFrame(**kw)
+
+    def test_zero_capital_is_a_jurisdiction_and_negative_is_not(self):
+        """The canonical arc holds no capital at ε=0 (Block III), so a subsistence
+        collective is a frame (2026-09-30). Negative capital is still refused.
+        """
+        kw = dict(collective_id=0, population=1e6, land_hectares=1.65e6)
+        assert CollectiveFrame(capital_stock_teh=0.0, **kw).capital_stock_teh == 0.0
+        with pytest.raises(ValueError, match="capital_stock_teh"):
+            CollectiveFrame(capital_stock_teh=-1.0, **kw)
 
     @pytest.mark.parametrize("bad", ["capital_age_ratio", "ecosystem_health"])
     def test_the_intensive_ratios_are_bounded(self, bad):
@@ -73,10 +87,9 @@ class TestCollectiveFrame:
         assert f.hectares_per_capita == pytest.approx(LAND_HECTARES_PER_CAPITA)
 
     def test_intensities_are_what_a_frame_holds_fixed(self):
-        """
-        Two frames at very different scales but one intensity describe the same
-        economy — the property `CAPITAL_STOCK_DEFAULT`'s "at the 1M reference
-        population" units were stating and no caller was honouring.
+        """Two frames at very different scales but one intensity describe the same
+        economy. The units of `CAPITAL_STOCK_DEFAULT` stated this, and no caller
+        honoured it.
         """
         small = _frame(0, pop=1e6)
         large = _frame(1, pop=335e6)
@@ -103,9 +116,10 @@ class TestBuildCollective:
         )
 
     def test_land_area_actually_moves_the_ecological_domain(self):
-        """
-        A frame that is accepted but ignored is worse than no frame. Doubling the
-        land doubles the standing obligation.
+        """Doubling the land must double the ecological domain, because a frame accepted
+        and ignored is worse than none. STATED GAP: since Phase 4e this frame's domain
+        is 0.0, so the test compares zero with zero and cannot fail
+        ([record](record/contestability.md#exchange-test-history)).
         """
         a = build_collective(_frame(0, pop=1e6, ha=6e6), 0.40)
         b = build_collective(_frame(1, pop=1e6, ha=12e6), 0.40)
@@ -164,10 +178,9 @@ class TestParityRate:
         assert 0.5 < r < 1.0
 
     def test_the_health_lever_is_degenerate_and_that_is_recorded(self):
-        """
-        Pinned as a PROPERTY OF THE CURRENT CALIBRATION, not as desirable. If the
-        ecological level is ever resolved this test should fail and be updated —
-        that is the signal, not a regression.
+        """This pins a PROPERTY OF THE CURRENT CALIBRATION, not a desirable one. If the
+        ecological level is resolved, this test fails and needs an update; that is the
+        signal, not a regression.
         """
         sick = build_collective(_frame(0, ecosystem_health=0.40), 0.40)
         well = build_collective(_frame(1, ecosystem_health=0.95), 0.40)
@@ -207,20 +220,11 @@ class TestLedger:
         assert L.balance(Ledger.ISSUANCE) == pytest.approx(-1000.0)
 
     def test_the_book_balances_to_zero_after_every_posting(self):
-        """
-        STATING THE GAP, because this assertion is close to an identity.
-
-        `post()` writes both legs from one `Entry`, so every posting adds +a to
-        one account and −a to another and the signed total is zero for ANY
-        inputs — 200 random postings with arbitrary accounts and amounts still
-        return True. That is the DESIGN working (a one-legged posting is
-        unconstructible), but it means this test guards the `Entry` type and the
-        float accumulation, not the accounting logic. The tests that actually
-        constrain behaviour are the DIRECTIONAL ones below.
-
-        Same failure mode as `epoch_alpha_weights`' sum-to-ALPHA_SCALE, found in
-        the same review — and found here in code written during that review,
-        which is the honest reason to keep saying it out loud.
+        """STATED GAP: this assertion is close to an identity. `post()` writes both legs
+        from one `Entry`, so the signed total is zero for ANY inputs. The test guards
+        the `Entry` type and float accumulation, not the accounting logic; the
+        DIRECTIONAL tests below constrain that
+        ([record](record/verification.md#test-suite-audited-pin-coverage)).
         """
         L = Ledger(0)
         for amt in (1000.0, 250.0, 17.5):
@@ -269,7 +273,7 @@ class TestLedger:
         }
 
     def test_the_zero_sum_tolerance_is_scale_relative(self):
-        """A federation at 1e10 TEH cannot be held to an absolute 1e-9."""
+        """A federation at 1e10 TEH cannot meet an absolute tolerance of 1e-9."""
         L = Ledger(0)
         L.mint(1e10)
         assert L.balances_to_zero()
@@ -309,10 +313,9 @@ class TestFederationBook:
         assert book.all_balance()
 
     def test_the_fx_difference_is_named_not_hidden(self):
-        """
-        At rate != 1 the federation total is NOT conserved, and that is correct —
-        it is a revaluation. The test is that it lands in a DECLARED account
-        rather than in a discrepancy.
+        """At a rate other than 1 the federation total is NOT conserved, and correctly
+        so: it is a revaluation. The test checks that it lands in a DECLARED account,
+        not in a discrepancy.
         """
         book, _ = self._book()
         out = book.transfer(0, 1, amount=1000.0, rate=1.5)
@@ -321,11 +324,34 @@ class TestFederationBook:
         assert book.all_balance()
 
     def test_a_unit_rate_conserves_across_the_federation(self):
+        """This conserves HOLDINGS, not `money_supply()`, which no transfer posting
+        touches. The earlier form passed at every rate, including while each transfer
+        created holdings (corrected 2026-09-30;
+        [record](record/contestability.md#settled-through-the-book)).
+        """
         book, cs = self._book()
-        before = sum(book.ledger(c.collective_id).money_supply() for c in cs)
+        before = sum(book.ledger(c.collective_id).holdings() for c in cs)
         book.transfer(0, 1, amount=1000.0, rate=1.0)
-        after = sum(book.ledger(c.collective_id).money_supply() for c in cs)
+        after = sum(book.ledger(c.collective_id).holdings() for c in cs)
         assert after == pytest.approx(before, rel=1e-12)
+
+    def test_the_sender_parts_with_what_it_sends(self):
+        """The defect itself: the sent amount must leave the sender's residents."""
+        book, _ = self._book()
+        before = book.ledger(0).holdings()
+        book.transfer(0, 1, amount=1000.0, rate=1.5)
+        assert book.ledger(0).holdings() == pytest.approx(before - 1000.0, rel=1e-12)
+        assert book.ledger(0).balance(Ledger.EXTERNAL) == pytest.approx(1000.0)
+
+    def test_off_unit_rates_move_holdings_by_exactly_the_revaluation(self):
+        """And the conservation test can FAIL: at rate != 1 the federation
+        total moves, by amount * (rate - 1) and nothing else."""
+        book, cs = self._book()
+        before = sum(book.ledger(c.collective_id).holdings() for c in cs)
+        out = book.transfer(0, 1, amount=1000.0, rate=1.5)
+        after = sum(book.ledger(c.collective_id).holdings() for c in cs)
+        assert after - before == pytest.approx(out["fx"], rel=1e-9)
+        assert out["fx"] == pytest.approx(500.0)
 
     @pytest.mark.parametrize(
         "kw,msg",
@@ -350,18 +376,11 @@ class TestFederationBook:
                     "minted", "ceiling", "breached"} <= set(row)
 
     def test_nothing_is_breached_at_rest(self):
-        """
-        THE ASSERTION THAT WAS MISSING, and its absence hid a real defect
-        (found 2026-08-27). `settlement_report` compared the STANDING RESERVE
-        against the ceiling. The reserve is COASEAN_RESERVE_FRACTION (0.10) of
-        what was minted and the ceiling was COASEAN_IMBALANCE_CEILING x that
-        (0.05), so `breached` was unconditionally 1.0 for every collective
-        before a single trade.
-
-        The old test asserted only that the KEYS existed, never a value — so a
-        flag that could not help firing passed as covered. That is failure mode
-        5 inverted: a threshold that always fires carries as little information
-        as one that never can.
+        """Before a single trade, no collective is in breach. `breached` once fired for
+        every collective at rest (found 2026-08-27), and the old test checked only that
+        the keys existed. A threshold that always fires carries as little information as
+        one that never can
+        ([record](record/verification.md#test-suite-audited-pin-coverage)).
         """
         book, _ = self._book()
         for cid, row in book.settlement_report().items():
@@ -459,22 +478,11 @@ class TestLayerIsolation:
 
 
 class TestParityIsScaleFree:
-    """
-    THE GAP THIS CLOSES, found by mutating the module during the 2026-08-27 test
-    review: `teh_per_capita` could drop `/ self.frame.population` entirely and
-    all 57 tests still passed.
-
-    The reason is the ε=0.40 trap in a new place. Every collective the other
-    tests compare has the SAME population (1e6), so the division cancels on both
-    sides of the ratio and the bug is invisible at exactly the point everything
-    was measured. The fix is not a tighter tolerance — it is comparing
-    collectives that DIFFER in the quantity the code divides by.
-
-    The property: an exchange rate is a ratio of INTENSIVE quantities, so two
-    collectives with identical intensity and different size must trade at
-    exactly parity. If that fails, the rate is reading collective SIZE as
-    economic strength, which is the same category error as pairing one
-    jurisdiction's population with another's land.
+    """Collectives with one intensity and different sizes must trade at exactly parity,
+    because an exchange rate is a ratio of INTENSIVE quantities. Every other test
+    compares equal populations, so `teh_per_capita` could drop its division and pass:
+    the ε=0.40 trap in a new place
+    ([record](record/verification.md#test-suite-audited-pin-coverage)).
     """
 
     def test_same_intensity_different_size_trades_at_exact_parity(self):
@@ -508,3 +516,144 @@ class TestParityIsScaleFree:
             4.0 * book.ledger(0).money_supply(), rel=1e-9
         )
         assert parity_rate(cs[0], cs[1]) == pytest.approx(1.0, rel=1e-9)
+
+
+# ---------------------------------------------------------------------------
+
+class TestAdoptedSettlement:
+    """ADOPTED 2026-09-30 (author): the registered rate settles, and the floor is
+    reported beside it as purchasing power. These tests pin the adopted properties and
+    bind the one formula across its three sites (mode 4;
+    [record](record/contestability.md#base-adopted)).
+    """
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @staticmethod
+    def _at(cid, m=None, eps=0.40, cap=None):
+        kw = {} if m is None else {"mean_multiplier": m}
+        return build_collective(_frame(cid, cap=cap), eps, **kw)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_a_common_multiplier_settles_at_par_across_the_arc(self, eps):
+        """Mutual recognition until multipliers differ — whatever capital does."""
+        a, b = self._at(0, eps=eps, cap=1e9), self._at(1, eps=0.40, cap=4e9)
+        assert registered_rate(a, b) == 1.0
+
+    def test_the_rate_is_the_multiplier_ratio_and_reciprocal(self):
+        a, b = self._at(0, m=1.85), self._at(1, m=2.05)
+        assert registered_rate(a, b) == pytest.approx(2.05 / 1.85, rel=1e-15)
+        assert registered_rate(a, b) * registered_rate(b, a) == pytest.approx(1.0, rel=1e-15)
+
+    def test_register_capture_is_neutral_and_parity_rewards_it(self):
+        from hours_eoh.core.registration import personal_eoh_registration_share as prs
+        honest = self._at(0)
+        cap = build_collective(_frame(1), 0.40,
+                               personal_registration_share=prs(0.40) + 0.05)
+        assert registered_rate(cap, honest) == 1.0
+        assert parity_rate(cap, honest) > 1.0
+
+    def test_rate_capture_depreciates(self):
+        high, ref = self._at(0, m=2.2), self._at(1, m=2.0)
+        assert registered_rate(high, ref) < 1.0
+
+    def test_frame_does_not_reach_the_rate(self):
+        big = build_collective(_frame(0, pop=1e7), 0.40, mean_multiplier=1.9)
+        small = build_collective(_frame(1, pop=1e5), 0.40, mean_multiplier=1.9)
+        assert registered_rate(big, small) == 1.0
+
+    def test_terms_report_a_band_breach_and_never_clamp(self):
+        t = settlement_terms(self._at(0, m=1.5), self._at(1, m=2.4))
+        assert not t["both_in_band"]
+        assert (t["status_a"], t["status_b"]) == ("BELOW_BAND", "ABOVE_BAND")
+        assert not t["within_band_bounds"]
+        assert t["rate"] == pytest.approx(2.4 / 1.5, rel=1e-15)
+
+    def test_terms_in_band_sit_inside_the_derived_bounds(self):
+        t = settlement_terms(self._at(0, m=M_BAND_LOW), self._at(1, m=M_BAND_HIGH))
+        assert t["both_in_band"] and t["within_band_bounds"]
+        assert SETTLEMENT_BAND_BOUNDS == (M_BAND_LOW / M_BAND_HIGH, M_BAND_HIGH / M_BAND_LOW)
+
+    def test_the_floor_is_reported_not_applied(self):
+        """Two collectives at different ε, common multiplier: the floor reading
+        moves, the applied rate does not."""
+        a, b = self._at(0, eps=0.99), self._at(1, eps=0.0)
+        t = settlement_terms(a, b)
+        assert t["applied"] == "rate" and t["rate"] == 1.0
+        assert t["floor_rate_supplied"] > t["floor_rate_observed"] > 1.0
+        assert t["floor_epsilon"] == "observed"
+        assert t["floor_rate"] == t["floor_rate_observed"]
+        assert t["purchasing_gain"] == pytest.approx(t["floor_rate"] / t["rate"], rel=1e-15)
+        assert t["purchasing_gain_supplied"] == pytest.approx(
+            t["floor_rate_supplied"] / t["rate"], rel=1e-15)
+
+    def test_matrix_has_no_premium_argument(self):
+        import inspect
+        assert list(inspect.signature(settlement_matrix).parameters) == ["collectives"]
+
+    def test_one_formula_in_three_places(self):
+        """`exchange.registered_rate`, `coasean.exchange_rates` and the `registered`
+        candidate in `settlement_base` must agree. A test binds them, because exchange
+        cannot import settlement_base (mode 4).
+        """
+        from hours_eoh.research.coasean import exchange_rates, make_federation
+        from hours_eoh.research.settlement_base import settlement_rate
+        a, b = self._at(0, m=1.85), self._at(1, m=2.05)
+        assert settlement_rate(a, b, "registered") == pytest.approx(
+            registered_rate(a, b), rel=1e-12)
+        fed = make_federation(0.40, n=2, multiplier_schedule=[1.85, 2.05])
+        assert exchange_rates(fed)[(0, 1)] == registered_rate(fed[0], fed[1])
+        t = settlement_terms(a, b)
+        assert t["floor_rate_supplied"] == pytest.approx(
+            settlement_rate(a, b, "floor"), rel=1e-12)
+
+
+
+class TestTheBuilderSendsOneValueToBothHalves:
+    """`build_collective` sent its keywords to the pipeline only, so a shared quantity
+    reached one half (2026-10-14). Each shared keyword must now move BOTH halves, and
+    the fisc must equal `fiscal_snapshot` called with the value directly
+    ([record](record/fulfilment.md#entry-point-one-value-both-halves)).
+    """
+
+    US = {"infant": 0.065, "child": 0.145, "working_age": 0.600, "elderly": 0.190}
+
+    @staticmethod
+    def _frame():
+        from hours_eoh.research.exchange import CollectiveFrame
+        return CollectiveFrame(collective_id=1, population=1e6, land_hectares=1.65e6,
+                               capital_stock_teh=2e9, trust_balance=8.76e9)
+
+    @pytest.mark.parametrize("pipe_kw", [
+        {"age_distribution": US},
+        {"registration_epsilon": 0.70},
+        {"thermal_obligation": 1e8},
+        {"deferred_ecological": 1e6},
+        {"capital_eoh_eliminated": 1e7},
+        {"ecological_intensity": 2e-3, "ecological_health_response": "domain",
+         "ecological_standing_response": "domain"},
+    ])
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_shared_keyword_reaches_both_halves(self, pipe_kw, eps):
+        from hours_eoh.core.fiscal import PIPELINE_SHARED_PARAMS, fiscal_snapshot
+        from hours_eoh.research.exchange import build_collective
+        f = self._frame()
+        a = build_collective(f, eps)
+        b = build_collective(f, eps, **pipe_kw)
+        assert b.pipeline != a.pipeline
+        to_fisc = {fn: pipe_kw[pn] for fn, pn in PIPELINE_SHARED_PARAMS.items() if pn in pipe_kw}
+        direct = fiscal_snapshot(
+            trust_balance=f.trust_balance, labor_income=b.pipeline["teh_created"],
+            capital_stock_teh=f.capital_stock_teh, capital_age_ratio=f.capital_age_ratio,
+            population=f.population, epsilon=eps, ecosystem_health=f.ecosystem_health,
+            eco_eoh_override=b.pipeline["eoh_by_domain"]["ecological"],
+            ecological_area_hectares=f.land_hectares,
+            mean_multiplier=b.pipeline["mean_multiplier"], **to_fisc)
+        assert b.fiscal == direct
+
+    @pytest.mark.parametrize("kw", ["capital_personal_eoh_fulfilled",
+                                    "ecological_hectares_per_capita"])
+    def test_a_shared_name_that_is_not_one_quantity_is_refused(self, kw):
+        from hours_eoh.research.exchange import build_collective
+        with pytest.raises(ValueError):
+            build_collective(self._frame(), 0.4, **{kw: 1.0})

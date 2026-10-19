@@ -1,16 +1,15 @@
-"""
-provenance — where every constant in ``data.py`` comes from, and what would move it.
+"""provenance: where every constant in ``data.py`` comes from, and what would move it.
 
 The provenance scheme (docs/parameter_provenance.md §"The tag scheme") asks every
-constant to declare a tag, its units, and — when the tag is ``CHOSEN`` — the
-specific evidence that would take it off ``CHOSEN``. This command reads those
+constant to declare a tag and its units. A ``bounded`` or ``placeholder`` constant must
+also name the evidence that would settle it (``resolves_by``). This command reads those
 declarations straight from the source and reports them.
 
 Four subcommands:
 
-  check   coverage and every scheme violation, non-zero exit if any. This is the
-          same check the test suite runs, so the CLI and pytest cannot disagree
-          about what "clean" means.
+  check   coverage and every scheme violation, non-zero exit if any. The test
+          suite runs the same check, so the CLI and pytest cannot disagree about
+          what "clean" means.
   csv     the shipped public-audit CSV (stdout, or --write to regenerate the
           file in reference/data/)
   table   the generated markdown table for one reporting block
@@ -64,6 +63,24 @@ def build_parser(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> 
         help="Write the doc in place instead of reporting whether it is current",
     )
     doc.set_defaults(func=_doc)
+
+    regen = sub2.add_parser(
+        "regen",
+        help="After editing data.py: write the audit CSV, the doc tables and the "
+             "census in one step (csv --write, doc --write, census --write)",
+    )
+    regen.set_defaults(func=_regen)
+
+    cen = sub2.add_parser(
+        "census",
+        help="The counted figures (provenance, tiers, shadow, confidence) from "
+             "one source; --write acknowledges them and regenerates the prose",
+    )
+    cen.add_argument(
+        "--write", action="store_true",
+        help="Write tests/census_snapshot.json and every <!-- census:… --> block",
+    )
+    cen.set_defaults(func=_census)
 
     shadow = sub2.add_parser(
         "shadow",
@@ -203,7 +220,7 @@ def _shadow(args: argparse.Namespace) -> None:
     print()
     print(bold("The denominator"))
     print(f"  data.py, tagged and gated      : {tagged}/{total}  "
-          f"{green('100.0%')}")
+          f"{green(f'{tagged / total:.1%}')}")
     print(f"  shadow constants, untagged     : {len(free)}")
     print(f"  {'coverage over both':<31}: {tagged}/{wider}  "
           f"{red(f'{tagged / wider:.1%}') if tagged / wider < 0.9 else ''}")
@@ -321,6 +338,13 @@ def _check(args: argparse.Namespace) -> None:
         "what you supply and what the shipped default is; and every retired one "
         "points at a replacement that exists."
     ))
+    resting = pv.derived_on_placeholder(scanned)
+    if resting:
+        print(dim(
+            f"{len(resting)} `derived` constants rest on a placeholder through their "
+            f"own expression ({', '.join(sorted(resting))}); each says it inherits "
+            "that standing, and its debt is counted on the placeholder. "
+            "record/provenance.md#derived-is-not-placeholder."))
 
 
 def _csv(args: argparse.Namespace) -> None:
@@ -382,3 +406,30 @@ def _doc(args: argparse.Namespace) -> None:
         print(red(f"{pv.PROVENANCE_DOC.name}: tables are STALE. "
                   "Run 'eoh provenance doc --write'."))
         sys.exit(1)
+
+
+def _census(args: argparse.Namespace) -> None:
+    """Report what disagrees with the acknowledged census, or acknowledge it."""
+    from utils import census
+    if args.write:
+        s = census.write()
+        print(f"census written: provenance {s['provenance_tagged']}/{s['provenance_total']}, "
+              f"tiers {s['tiers']}, shadow {s['shadow_unbound']}, confidence "
+              f"{s['confidence_without']} of {s['confidence_soft']}")
+        return
+    bad = census.stale()
+    if not bad:
+        print("census current: live figures match the acknowledged snapshot and every block")
+        return
+    print("census STALE — run `eoh provenance census --write` if the change is intended:")
+    for line in bad:
+        print(f"  {line}")
+    raise SystemExit(1)
+
+
+def _regen(args: argparse.Namespace) -> None:
+    """Every generated artefact that data.py feeds, so none can stay stale."""
+    write = argparse.Namespace(write=True)
+    _csv(write)
+    _doc(write)
+    _census(write)

@@ -1,11 +1,10 @@
-"""
-The automation-floor measurement, and the limits it must keep stating.
+"""The automation-floor measurement, and the limits it must keep stating.
 
-WHY THIS EXISTS. `PERSONAL_AUTOMATION_FLOORS` carries one entry, and that entry
-is a charter decision rather than a measurement. This module asked whether ATUS
-can supply the other three and concluded that it cannot. These tests pin the
-measurement, the asymmetry that makes it readable in one direction only, and —
-most importantly — that the module never starts emitting a floor value.
+`PERSONAL_AUTOMATION_FLOORS` carries two entries: nutrition, adopted 2026-09-03 from the
+construction tested here, and care, set to the ordering bound. Shelter and health carry
+none. These tests pin the measurement, the asymmetry that makes it readable in one
+direction only, and that the module never emits a floor value itself
+([record](record/personal.md#nutrition-floor-adopted)).
 """
 
 from __future__ import annotations
@@ -28,10 +27,9 @@ class TestItProducesNoFloorValue:
         assert af.report()["produces_a_floor_value"] is False
 
     def test_no_returned_value_could_be_read_as_a_floor(self) -> None:
-        """
-        A floor is a fraction in [0, 1]. Nothing this module returns under a key
-        naming a floor may be a bare number — if one ever appears, someone has
-        started calibrating against a window this module says cannot carry it.
+        """A floor is a fraction in [0, 1]. No key that names a floor may hold a bare
+        number, because that would mean someone calibrates against a window that cannot
+        carry it.
         """
         rep = af.report()
         for component, row in rep["components"].items():
@@ -44,9 +42,8 @@ class TestItProducesNoFloorValue:
                     )
 
     def test_unfloored_is_derived_from_the_table_not_restated(self) -> None:
-        """
-        A hardcoded list went stale the moment nutrition was adopted. Deriving
-        it means the two cannot disagree — the `= 1500.0` lesson.
+        """A hardcoded list went stale the moment nutrition was adopted. Derived from
+        the table, the two cannot disagree (the `= 1500.0` lesson).
         """
         for component in af.UNFLOORED:
             assert component not in data.PERSONAL_AUTOMATION_FLOORS
@@ -55,9 +52,8 @@ class TestItProducesNoFloorValue:
         )
 
     def test_nutrition_stays_measurable_after_adoption(self) -> None:
-        """
-        The series is what the floor was derived FROM, so dropping it once the
-        value shipped would remove the evidence for the value.
+        """The floor was derived FROM this series. Dropping the series once the value
+        shipped would remove the evidence for the value.
         """
         assert "nutrition" in af.MEASURABLE
         assert "nutrition" not in af.UNFLOORED
@@ -65,10 +61,9 @@ class TestItProducesNoFloorValue:
 
 
 class TestTheAsymmetryIsLoadBearing:
-    """
-    Automation and marketisation both push observed unpaid hours DOWN and cannot
-    be separated here, so a rise is evidence and a fall is not. Inverting that
-    would turn every marketised component into a false automation finding.
+    """Automation and marketisation both push observed unpaid hours DOWN, and the data
+    cannot separate them. So a rise is evidence and a fall is not; the reverse reading
+    would make every marketised component a false automation finding.
     """
 
     def test_a_component_that_rose_supports_a_nonzero_floor(self) -> None:
@@ -131,10 +126,8 @@ class TestTheSaturationControl:
         assert af.beyond_shrinkage(0.05, hh) is False
 
     def test_the_verdict_reports_what_was_measured_not_what_was_hoped(self) -> None:
-        """
-        Laundry DOES clear the demographic bar, so the verdict must not claim a
-        clean null. This test exists because the first draft of the module
-        asserted one before the control was run.
+        """Laundry DOES clear the demographic bar, so the verdict must not claim a clean
+        null. The module's first draft claimed one before the control ran.
         """
         sat = af.saturation_evidence()
         if sat["window_can_see_automation"]:
@@ -164,10 +157,9 @@ class TestTheMeasurementItself:
             assert row["label"] == labels[row["code"]]
 
     def test_every_nutrition_activity_of_any_size_rose(self) -> None:
-        """
-        The finding: under 22 years of capital deepening, no nutrition activity
-        large enough to read declined. Food presentation is ~2 h/yr and is
-        dropped by the size filter rather than aggregated into a residual.
+        """Over 22 years of capital deepening, no nutrition activity large enough to
+        read declined. Food presentation (~2 h/yr) falls to the size filter and is not
+        folded into a residual.
         """
         rows = af.activity_trends("nutrition", min_hours=10.0)
         assert rows
@@ -181,15 +173,10 @@ class TestTheMeasurementItself:
 
 
 class TestTheTier3ExtractIsATruncationOfTheTier2One:
-    """
-    The two tables come from the same columns of the same file, so the six-digit
-    codes sharing a four-digit prefix must reproduce the tier-2 cell. Assert
-    against the CSV rounding bound, NOT equality: both are written at six
-    decimals, so a parent with n children can differ from their sum by up to
-    (n + 1) x 5e-7 — n child roundings PLUS the parent's own. The first version
-    used a flat 1e-6 and reported 435 false mismatches; the second used
-    n x 5e-7 and failed on a single-child family, where the parent's own
-    rounding is the whole error.
+    """The six-digit codes under a four-digit prefix must reproduce the tier-2 cell,
+    because both tables come from the same columns. The tolerance is the CSV rounding
+    bound, (n + 1) × 5e-7 for n children: n child roundings plus the parent's own. A
+    flat 1e-6 gave 435 false mismatches, and n × 5e-7 failed on a single-child family.
     """
 
     def test_tier3_rolls_up_to_tier2(self) -> None:
@@ -324,10 +311,8 @@ class TestTheCrossSectionIsNotACapitalGradient:
 class TestTheMtusExtract:
 
     def test_the_day_closes_to_1440_in_every_sample(self) -> None:
-        """
-        The units check. MTUS ships no codebook with this extract, so the
-        twelve aggregates summing to a whole day is what establishes that the
-        numbers are minutes per day.
+        """The units check. No codebook ships with this MTUS extract, so the twelve
+        aggregates summing to a whole day shows that the numbers are minutes per day.
         """
         offenders = []
         for row in mtus.domestic_by_sample():
@@ -369,11 +354,9 @@ class TestTheMtusExtract:
 
 
 class TestTheWindowYearIsBoundNotRestated:
-    """
-    The shadow ratchet caught `ATUS_WINDOW_OPENS = 2003` as a domain constant
-    declared outside data.py. It was not migrated — it was BOUND, because the
-    extract already carries the fact and a second account of one quantity is
-    how the two come to differ.
+    """The shadow ratchet caught `ATUS_WINDOW_OPENS = 2003` as a domain constant outside
+    data.py. It is BOUND to the extract, not migrated, because the extract already
+    carries the fact and a second account of it could drift.
     """
 
     def test_it_is_derived_from_the_extract(self) -> None:
@@ -388,10 +371,8 @@ class TestTheWindowYearIsBoundNotRestated:
 
 
 class TestTheSixDigitCodingSeparatesTheComponents:
-    """
-    The mapping is a declared judgement, but unlike most it is FALSIFIABLE: US
-    samples are coded independently by MTUS and ATUS, so the same
-    population-year is measured twice.
+    """The mapping is a declared judgement, but a FALSIFIABLE one. MTUS and ATUS code US
+    samples independently, so the same population-year is measured twice.
     """
 
     def test_each_mapping_reproduces_its_atus_component(self) -> None:
@@ -457,7 +438,9 @@ class TestThePerComponentBounds:
             assert b["refutes_a_zero_floor"] is True
 
     def test_a_bound_still_is_not_a_floor_value(self) -> None:
-        """A minimum that was reached and then left is not a level it cannot pass."""
+        """A minimum that the series reached and then left is not a level it cannot
+        pass.
+        """
         bounds = af.component_floor_bounds()
         assert any(b["reversed_after_minimum"] for b in bounds.values())
         assert af.report()["produces_a_floor_value"] is False
@@ -497,10 +480,9 @@ class TestTheCodeExtract:
 
 
 class TestTheReplication:
-    """
-    Seven within-country series are seven tests, not one. The cross-SECTION was
-    shown not to be a capital gradient; a within-country span does not have
-    that problem, because the institutions are roughly held and capital moves.
+    """Seven within-country series are seven tests, not one. The cross-SECTION was not a
+    capital gradient; a within-country span avoids that, because capital moves while the
+    institutions roughly hold.
     """
 
     def test_nutrition_replicates_across_countries(self) -> None:
@@ -513,9 +495,8 @@ class TestTheReplication:
         assert af.replication("shelter")["replicates"] is True
 
     def test_the_declared_break_stays_in_the_denominator(self) -> None:
-        """
-        A replication rate computed after dropping the disagreements is not a
-        replication rate. Bulgaria rose; it is flagged and COUNTED.
+        """A replication rate that drops the disagreements is not a replication rate.
+        Bulgaria rose; the test flags it and COUNTS it.
         """
         r = af.replication("nutrition")
         assert "BG" in r["countries"]
@@ -524,19 +505,16 @@ class TestTheReplication:
         assert r["replication_rate"] == len(r["fell"]) / r["n_countries"]
 
     def test_a_rise_without_an_explanation_is_reported_as_such(self) -> None:
-        """
-        South Africa rose and carries no declared break. That is not tidied
-        away — if every exception had a story, the stories would be doing the
-        work rather than the data.
+        """South Africa rose and has no declared break, and the report keeps it. If
+        every exception had a story, the stories would do the work instead of the data.
         """
         r = af.replication("nutrition")
         assert "ZA" in r["rose_without_a_declared_break"]
 
     def test_the_break_is_declared_ahead_of_the_result_not_fitted_to_it(self) -> None:
-        """
-        Only countries in INSTITUTIONAL_BREAK may be discounted, and the list
-        is short and specific. If it ever grows to cover every disagreement,
-        the mechanism has become unfalsifiable.
+        """Only countries in INSTITUTIONAL_BREAK may be discounted, and the list is
+        short and specific. A list that grew to cover every disagreement would make the
+        mechanism unfalsifiable.
         """
         assert len(af.INSTITUTIONAL_BREAK) <= 2
         for reason in af.INSTITUTIONAL_BREAK.values():
@@ -593,10 +571,8 @@ class TestTheConvergence:
 
 
 class TestChildcareIsIdentifiedExactly:
-    """
-    The strongest identification in this work, and for a different reason from
-    the others: it recovers MTUS's OWN definition rather than approximating an
-    outside survey's, so it can be exact — and is.
+    """The strongest identification in this work. It recovers MTUS's OWN definition
+    rather than an outside survey's, so it can be exact, and it is.
     """
 
     def test_it_reproduces_the_files_own_aggregate_on_every_sample(self) -> None:
@@ -616,10 +592,9 @@ class TestChildcareIsIdentifiedExactly:
 
 
 class TestChildcareIsNotTheCareComponent:
-    """
-    The scope limit is measured and travels with the series. Care is 62.1% of
-    the personal component, so overstating what is measured here would be the
-    most consequential overclaim available in this module.
+    """The scope limit is measured and travels with the series. Care is 62.1% of the
+    personal component, so overstating what this measures would be the module's
+    costliest overclaim.
     """
 
     def test_it_does_not_clear_the_mapping_bar(self) -> None:
@@ -628,7 +603,7 @@ class TestChildcareIsNotTheCareComponent:
         assert 0.7 < s["share_of_atus_care"] < 0.95
 
     def test_it_is_not_admitted_as_a_component(self) -> None:
-        """Structural, not a comment: it is kept out of the validated map."""
+        """Structural, not a comment: the validated map leaves it out."""
         assert "childcare" not in af.COMPONENT_CODES_MTUS
         assert "childcare" in af._EXTRA_CODE_SETS
         assert af.childcare_is_not_the_care_component()["admitted_as_a_component"] is False
@@ -706,10 +681,9 @@ class TestTheMarketSubstitutionCheck:
         assert s["preparation"]["change"] > 0.0
 
     def test_eating_is_the_control_and_is_flat(self) -> None:
-        """
-        Substitution changes where food is PREPARED, not how much is eaten. If
-        total eating moved sharply, something other than substitution is going
-        on and neither reading would be safe.
+        """Substitution changes where food is PREPARED, not how much people eat. If
+        total eating moved sharply, something else would be at work and neither reading
+        would be safe.
         """
         r = af.market_substitution_check()
         assert r["eating_is_roughly_flat"] is True
@@ -724,10 +698,9 @@ class TestTheMarketSubstitutionCheck:
         assert set(af.FOOD_AWAY_CODES) & set(af.GROCERY_CODES) == set()
 
     def test_it_states_the_two_things_it_does_not_cover(self) -> None:
-        """
-        The window opens in 2003, so the 1965-2005 FALL — where the converged
-        level came from — is outside it; and it is one country while the
-        convergence is a cross-country claim.
+        """The window opens in 2003, so the 1965-2005 FALL, where the converged level
+        came from, lies outside it. And it is one country, while the convergence is a
+        cross-country claim.
         """
         r = af.market_substitution_check()
         assert r["covers_the_fall"] is False
@@ -756,10 +729,9 @@ class TestTheNutritionFloorEstimate:
         assert r["estimate"] < r["superseded_reading_including_service"]
 
     def test_the_superseded_reading_survives(self) -> None:
-        """
-        The 14-point difference the decision resolves stays visible, on the
-        pattern the Psi policies and `uniform` set: a decided-against reading
-        is kept reachable so the decision can be re-examined, not erased.
+        """The decided-against reading stays reachable, 14 points from the estimate
+        today, so the decision can be re-examined. The Ψ policies and `uniform` set this
+        pattern.
         """
         r = af.nutrition_floor_estimate()
         assert r["decision_cost"] == pytest.approx(
@@ -768,10 +740,8 @@ class TestTheNutritionFloorEstimate:
         assert r["decision_cost"] > 0.10
 
     def test_the_reason_is_that_service_is_unbounded(self) -> None:
-        """
-        Structural, not a preference: a floor is a LOWER bound and elaboration
-        has no upper one, so service is a market price above the floor rather
-        than part of it.
+        """Structural, not a preference: a floor is a LOWER bound and elaboration has no
+        upper one. So service is a market price above the floor, not part of it.
         """
         import re
         r = af.nutrition_floor_estimate()
@@ -781,18 +751,17 @@ class TestTheNutritionFloorEstimate:
         assert "market_premium" in doc
 
     def test_service_is_what_splits_it(self) -> None:
-        """
-        The unassisted benchmark has ZERO service — a subsistence economy has no
-        restaurants — so service hours are an activity that did not previously
-        exist, not labour that survived automation. Both readings are defensible
-        and they differ, which is why no point estimate is given.
+        """A subsistence economy has no restaurants, so the unassisted benchmark has
+        ZERO service. Service hours are new activity, not labour that survived
+        automation. Both readings are defensible and they differ, so the module gives no
+        point estimate.
         """
         r = af.nutrition_floor_estimate()
         assert r["unassisted_service_is_zero"] is True
         assert r["decision_cost"] > 0.10
 
     def test_production_is_the_measured_part(self) -> None:
-        """Automation took essentially all of production; that half is measured."""
+        """Automation took almost all of production, and that half is measured."""
         r = af.nutrition_floor_estimate()
         assert r["production_retained"] < 0.05
         assert r["unassisted_production_benchmark"] > 0.0
@@ -811,11 +780,9 @@ class TestTheNutritionFloorEstimate:
         assert 0.0 < r["paid_share"] < 1.0, "both buckets must be non-empty"
 
     def test_it_is_adopted_but_still_not_a_measurement(self) -> None:
-        """
-        ADOPTED 2026-09-03. It remains an ESTIMATE — a ceiling on an assumed
-        term — and is tagged `placeholder` with a confidence rather than
-        promoted to `normative`, because a value that moves when the data
-        arrives is not a commitment.
+        """ADOPTED 2026-09-03. It stays an ESTIMATE, a ceiling on an assumed term,
+        tagged `placeholder` with a confidence. A value that moves when the data arrives
+        is not a `normative` commitment.
         """
         from utils import provenance as pv
         r = af.nutrition_floor_estimate()
@@ -853,12 +820,9 @@ class TestTheNutritionFloorEstimate:
             fcmod.conservation_test = original  # type: ignore[assignment]
 
     def test_the_band_brackets_the_independent_mtus_bound(self) -> None:
-        """
-        REPORTED, NOT ASSERTED AS CORROBORATION. The MTUS route gives an upper
-        bound of ~0.511 on a different quantity — unpaid preparation against its
-        own 1965 level, not total labour against an unassisted benchmark. That
-        it lands inside this band is worth noticing and is NOT evidence the two
-        agree, because they do not measure the same thing.
+        """REPORTED, NOT CORROBORATION. The MTUS route bounds a different quantity
+        (~0.511 today): unpaid preparation against its own 1965 level. That it lands
+        inside this band is NOT evidence that the two agree.
         """
         r = af.nutrition_floor_estimate()
         low = r["estimate"]
@@ -889,9 +853,8 @@ class TestTheEstimateErrsHigh:
         assert af.nutrition_floor_estimate()["errs"] == "HIGH"
 
     def test_the_resolving_field_is_named_not_just_the_source(self) -> None:
-        """
-        F-001: a pointer that names a SOURCE without naming the FIELD in it has
-        not been checked. This names the variable, the stratum and the scope.
+        """F-001: a pointer that names a SOURCE and not the FIELD in it has not been
+        checked. This one names the variable, the stratum and the scope.
         """
         field = af.PROCESSING_TERM_FIELD
         assert "hours per person" in field
@@ -905,10 +868,9 @@ class TestTheEstimateErrsHigh:
         )
 
     def test_the_direction_agrees_with_the_reference_module(self) -> None:
-        """
-        The claim that processing exceeds production is not this module's; it is
-        `personal_basket`'s, and this test fails if that statement is removed
-        rather than letting the direction float free of its source.
+        """The claim that processing exceeds production belongs to `personal_basket`.
+        This test fails if that module drops the statement, so the direction keeps its
+        source.
         """
         import re
         from hours_eoh.reference import personal_basket
@@ -917,11 +879,10 @@ class TestTheEstimateErrsHigh:
 
 
 class TestTheProcessingTermIsAnchoredNotAssumed:
-    """
-    The correction that came from checking a claim instead of asserting it. The
-    resolving field was described as "a single variable in LSMS"; the handoff
-    says ATUS "measures the processing/preparation term directly, WHICH LSMS
-    CANNOT". MTUS supplies a measured anchor instead.
+    """A claim checked instead of asserted. The resolving field was described as "a
+    single variable in LSMS", but the handoff says ATUS "measures the
+    processing/preparation term directly, WHICH LSMS CANNOT". MTUS supplies a measured
+    anchor instead.
     """
 
     def test_the_anchors_all_exceed_the_assumed_term(self) -> None:
@@ -936,10 +897,9 @@ class TestTheProcessingTermIsAnchoredNotAssumed:
             assert row["floor"] < r["assumed_estimate"], sample
 
     def test_every_anchor_yields_an_upper_bound(self) -> None:
-        """
-        None of these frames is unassisted — South Africa 2010 has mills,
-        electricity and shops — so true unassisted processing exceeds all of
-        them and the true floor is below all of these.
+        """None of these frames is unassisted; South Africa 2010 has mills, electricity
+        and shops. So true unassisted processing exceeds all of them, and the true floor
+        sits below all.
         """
         r = af.anchored_processing_estimate()
         assert r["every_anchor_is_a_lower_bound"] is True
@@ -983,9 +943,8 @@ class TestTheProcessingTermIsAnchoredNotAssumed:
 
 
 class TestShelterCannotTakeTheConstruction:
-    """
-    A negative result, recorded so it is not attempted twice — and the blocker
-    is not the one that was predicted.
+    """A negative result, recorded so nobody attempts it twice. The blocker is not the
+    one predicted.
     """
 
     def test_the_numerator_is_not_the_blocker(self) -> None:
@@ -1049,10 +1008,9 @@ class TestTheCareFloorLooksTooLow:
     """
 
     def test_paid_care_is_large_and_entirely_human(self) -> None:
-        """
-        A childcare worker and a nursing assistant are people, so care moving to
-        market does not reduce the human share — the same point that made the
-        nutrition construction work.
+        """Childcare workers and nursing assistants are people, so care that moves to
+        market keeps its human share. The same point made the nutrition construction
+        work.
         """
         r = af.care_floor_is_too_low()
         assert r["paid_workers"] > 5e6
@@ -1065,20 +1023,17 @@ class TestTheCareFloorLooksTooLow:
         assert r["total_last_exceeds_unpaid_first"] is True
 
     def test_the_comparison_is_bounded_not_closed(self) -> None:
-        """
-        The registry is one vintage, so the earlier year's paid employment is
-        unknown and the direction of the TOTAL cannot be stated. Saying so is
-        the difference between a bound and an overclaim.
+        """The registry is one vintage, so the earlier year's paid employment is unknown
+        and so is the direction of the TOTAL. Saying so keeps this a bound, not an
+        overclaim.
         """
         assert af.care_floor_is_too_low()["first_year_paid_is_unknown"] is True
 
     def test_the_inversion_is_now_RESOLVED(self) -> None:
-        """
-        THE FINDING, AND ITS RESOLUTION. Care is the least abatable component
-        and carried the LOWER floor (0.15 against nutrition's measured 0.2808)
-        until 2026-09-03, when it was raised to the ordering bound by author
-        decision. The check is kept — it is what would catch the inversion
-        returning — and now asserts the bound is SATISFIED rather than violated.
+        """Care, the least abatable component, carried the LOWER floor (0.15 against
+        nutrition's 0.2808) until 2026-09-03, when the author raised it to the ordering
+        bound. The check stays, to catch the inversion returning, and asserts the bound
+        is SATISFIED ([record](record/personal.md#care-raised-to-ordering-bound)).
         """
         r = af.care_floor_is_too_low()
         assert r["care_is_less_abatable"] is True, (
@@ -1092,11 +1047,10 @@ class TestTheCareFloorLooksTooLow:
         )
 
     def test_the_bound_is_still_only_a_lower_one(self) -> None:
-        """
-        Satisfying the bound does not make the value right. Care was set TO the
-        bound, not above it, and every piece of evidence points further: no
-        declining care activity has a machine substitute, and the paid term
-        covers the observed decline. The constant errs LOW and says so.
+        """Satisfying the bound does not make the value right. Care sits AT the bound,
+        and the evidence points further: no declining care activity has a machine
+        substitute, and the paid term covers the observed decline. The constant errs LOW
+        and says so.
         """
         from utils import provenance as pv
         record = next(
@@ -1116,20 +1070,20 @@ class TestTheCareFloorLooksTooLow:
         assert r["is_a_measurement_of_care"] is False
         assert r["is_an_internal_consistency_result"] is True
 
-    def test_the_care_floor_is_untouched(self) -> None:
-        """REPORTING ONLY — changing a charter commitment is not this module's."""
+    def test_the_floors_follow_their_live_source(self) -> None:
+        """Both floors follow the anchored bound, at the constants' four decimals. The
+        shipped 0.2808 once sat 0.3% above it with every test green (mode 4)."""
         from hours_eoh import data
         assert data.PERSONAL_AUTOMATION_FLOORS["care"] == data.CARE_AUTOMATION_FLOOR
-        assert data.CARE_AUTOMATION_FLOOR == pytest.approx(0.2808)
+        assert data.CARE_AUTOMATION_FLOOR == af.care_floor_is_too_low()["consistency_bound"]
+        assert data.NUTRITION_AUTOMATION_FLOOR == pytest.approx(
+            af.anchored_processing_estimate()["tightest_bound"], abs=5e-5)
 
 
 class TestBothSidesAreOnOneDenominator:
-    """
-    THE DEFECT THIS PINS. The first version divided paid employment by TOTAL
-    population while the unpaid side is per person 15+ — two different "per
-    person" bases, a 1.205x mismatch that understated the paid term by 20%.
-    Population growth is normalised by using per-person rates; mixing WHICH
-    person is a separate error and this is the one that was made.
+    """The first version divided paid employment by TOTAL population while the unpaid
+    side is per person 15+. The mismatch was 1.205×, and it understated the paid term by
+    20%. Both sides are now per person 15+.
     """
 
     def test_the_basis_is_declared(self) -> None:

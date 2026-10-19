@@ -307,10 +307,9 @@ class TestFiscalHealthCheckNewParams:
         assert "ecological_status" in result
 
     def test_ecological_cost_positive(self):
-        """
-        PHASES 4e/4f: the Trust's ecological allocation is zero by default —
-        the recurring cost is GUF's. The cost is exercised by supplying the
-        obligation, which is what `relocated_to_guf` reports on every snapshot.
+        """Since Phases 4e/4f the Trust's ecological allocation is zero by default,
+        because GUF carries the recurring cost. The test supplies the obligation that
+        `relocated_to_guf` reports on every snapshot.
         """
         from hours_eoh.core.eoh_generation import ecological_eoh
         obligation = ecological_eoh(0.70, 0.40, health_response="domain",
@@ -320,20 +319,9 @@ class TestFiscalHealthCheckNewParams:
         assert result["ecological_cost"] > 0.0
 
     def test_levy_pillar_reaches_all_three_verdicts(self):
-        """THE THRESHOLD THAT COULD NOT FIRE, REPLACED BY AN IDENTITY (2026-09-16).
-
-        `LEVY_SUFFICIENCY_WARN` warned below 2% guarantee coverage while the
-        shipped levy delivered ≈2% — calibrated to the value it watched, so
-        GREEN was the only reachable verdict (failure mode 9). Raising the levy
-        to 4.5% moved the configuration further above it without making it
-        bite; at the shipped default the levy now covers 1.61x the guarantee.
-
-        The replacement asks whether current flow carries the obligation, which
-        has no threshold to calibrate. Failure mode 12 says a gate that has
-        never fired is untested, so each verdict is reached here by measurement,
-        not assumed: GREEN at the shipped default, YELLOW while inflows fall
-        short and principal covers the rest, RED when balance and inflows
-        together cannot pay the guarantee at all.
+        """The levy pillar must reach GREEN, YELLOW and RED by measurement (mode 12). It
+        asks whether current flow carries the guarantee, an identity with no threshold
+        to calibrate ([record](record/fulfilment.md#mint-paid-cap-and-levy-pillar)).
         """
         def at(**kw):
             a = dict(trust_balance=TRUST_BASE_TEH, labor_income=5_000_000_000.0,
@@ -363,13 +351,12 @@ class TestFiscalHealthCheckNewParams:
         assert unfunded["levy_status"] == "RED"
 
     def test_ecological_cost_does_not_move_with_the_trust_balance(self):
-        """Third site of the 2026-09-16 cap fix, and it had no pin either.
+        """`ecological_cost` must not move with the Trust balance. This is the third
+        site of the 2026-09-16 cap fix.
 
-        `ecological_cost` reported `teh_allocated`, which is `min(required,
-        trust_balance)` — so the figure was bounded by the balance it was then
-        compared against for `ecological_status`, half a tautology (failure
-        mode 2). The mint pays this labour; the requirement is physical and
-        does not shrink because the Trust is empty.
+        It reported `min(required, trust_balance)` and then compared that figure with
+        the same balance, which is half a tautology (mode 2). The mint pays this labour,
+        and an empty Trust does not shrink a physical requirement.
         """
         from hours_eoh.core.eoh_generation import ecological_eoh
         obligation = ecological_eoh(0.70, 0.40, health_response="domain",
@@ -430,26 +417,10 @@ class TestFiscalHealthCheckNewParams:
 class TestSystemDashboard:
 
     def test_normal_operation_no_longer_draws_principal_at_eps0(self):
-        """RESTATED TWICE, AND THE SECOND TIME IS THE INTERESTING ONE.
-
-        First (2026-09-16, morning): this asserted GREEN, and GREEN was an
-        artefact — `LEVY_SUFFICIENCY_WARN` warned below 2% coverage while the
-        configuration delivered 44.81%, so the pillar could only ever say GREEN
-        while the Trust paid more than half the guarantee out of principal. The
-        threshold was retired and the verdict became YELLOW at 0.4481.
-
-        Second (2026-09-16, V1 adoption): the liability itself changed. The
-        Trust now owes what is ON the ledger — 731,530 TEH at ε=0 against
-        220,920,000 under the shipped aggregation — so the same levy covers it
-        many times over and the verdict is GREEN again. **Same verdict as the
-        original, for the opposite reason**: then because the threshold could
-        not fire, now because the obligation is one the ledger can fund.
-
-        THE RATIO IS NOT PINNED, AND THAT IS DELIBERATE. It reads 135.33 here,
-        but that measures the FIXTURE: `_normal_dashboard_kwargs` supplies a
-        labor_income of 2.2e9 at ε=0 against a pipeline mint of 27.2M — 80.88x.
-        Against the mint the levy covers V1 at 1.67x. Pinning 135.33 would pin
-        the fixture's inflated levy base and call it a property of the design.
+        """At ε=0 the levy pillar reads GREEN, because under V1 the Trust owes only what
+        is on the ledger. The test does not pin the coverage ratio, because the
+        fixture's labour income inflates it
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.0))
         assert result["conditions_all_pass"] is True
@@ -459,13 +430,10 @@ class TestSystemDashboard:
         assert result["overall_status"] == "GREEN"
 
     def test_normal_operation_no_longer_draws_principal_at_eps40(self):
-        """The ε=0.40 half of the pair above.
-
-        Both ends are pinned because a single ε is the trap failure mode 3
-        names. And the pillar has NOT become unfalsifiable by this change — at
-        ε=0.90 it still reads YELLOW (coverage 0.8705), because the mint
-        plateaus there while the guarantee does not. That case is pinned in
-        `test_the_levy_pillar_still_bites_at_the_top_of_the_arc`.
+        """The ε=0.40 half of the pair above. One ε alone is the trap of mode 3. At
+        ε=0.90 the pillar still reads YELLOW (coverage 0.8705), so the change did not
+        make it unfalsifiable; `test_the_levy_pillar_still_bites_at_the_top_of_the_arc`
+        holds that case.
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.40))
         assert result["conditions_all_pass"] is True
@@ -475,10 +443,9 @@ class TestSystemDashboard:
         assert result["overall_status"] == "GREEN"
 
     def test_the_levy_pillar_still_bites_at_the_top_of_the_arc(self):
-        """A pillar that went GREEN everywhere would be the retired threshold
-        in a new costume. Under V1 it does not: registration saturates, the
-        mint plateaus, and the guarantee keeps rising, so coverage falls back
-        below 1.0 at high ε and the verdict returns to YELLOW.
+        """At high ε the levy pillar returns to YELLOW. Registration saturates and the
+        mint plateaus while the guarantee keeps rising, so coverage falls below 1.0. A
+        pillar that read GREEN everywhere would repeat the retired threshold.
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.90))
         assert result["fiscal_health"]["levy_to_guarantee_ratio"] < 1.0
@@ -487,20 +454,10 @@ class TestSystemDashboard:
         assert "Fiscal — levy_sufficiency: YELLOW" in result["yellow_flags"]
 
     def test_a_suppressed_indicator_is_declared_not_invisible(self):
-        """MASKING MUST BE DECLARED, NEVER INFERRED (2026-09-16).
-
-        `personal_registration_status` is in neither flag loop, so at ε=0 it
-        reads RED while `red_flags` is empty — and to a reader of the flag list
-        that was indistinguishable from the indicator being GREEN, absent, or
-        forgotten. The exclusion is CORRECT: personal EOH is off-ledger at
-        subsistence by design, while REGISTRATION_WARN/_CRIT are ε-invariant, so
-        the indicator reports RED for a state the framework considers right.
-        Re-pointing it at an ε-aware threshold is a charter decision, not a fix.
-
-        What was wrong is that the masking was inferred from absence. This pins
-        the three facts together so they cannot drift apart: the indicator IS
-        red, the red-flag list stays clean, and the suppression is reported with
-        its reason.
+        """At ε=0 `personal_registration_status` reads RED, stays out of `red_flags`,
+        and `suppressed_flags` gives the reason. The exclusion is correct: personal EOH
+        is off-ledger at subsistence by design
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.0))
         assert result["eoh_health"]["personal_registration_status"] == "RED"
@@ -513,14 +470,9 @@ class TestSystemDashboard:
         assert any("by design" in s for s in suppressed), suppressed
 
     def test_a_suppressed_indicator_does_not_leak_into_the_verdict(self):
-        """The other half: suppression must not change `overall_status`.
-
-        If a suppressed RED ever raised the overall verdict, the exclusion
-        would be doing two jobs and the flag lists would stop meaning what they
-        say. At ε=0 the dashboard is GREEN on every pillar since the V1
-        adoption, while `personal_registration_status` is RED and suppressed —
-        which makes this the sharpest possible form of the check: a RED
-        indicator sitting inside an otherwise wholly GREEN verdict.
+        """A suppressed indicator must not change `overall_status`. At ε=0 every pillar
+        is GREEN and `personal_registration_status` is RED and suppressed, so a leak
+        would show at once.
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.0))
         assert result["suppressed_flags"], "expected a suppressed indicator here"
@@ -584,7 +536,7 @@ class TestSystemDashboard:
             assert key in result, f"Missing key: {key}"
 
     def test_red_flag_list_populated_when_red(self):
-        """When overall_status is RED, red_flags must be non-empty."""
+        """When `overall_status` is RED, `red_flags` holds at least one flag."""
         kwargs = _normal_dashboard_kwargs(0.40)
         kwargs["certified_by_domain"] = {d: 0.0 for d in ESSENTIAL_DOMAINS}
         result = system_dashboard(**kwargs)
@@ -720,14 +672,13 @@ class TestSystemDashboardExitFinanceable:
 
 
 class TestTheCliAssemblyIsComputedNotInvented:
-    """
-    `utils/dashboard_cmd._build_kwargs` fed the dashboard stand-ins until
-    2026-09-12: destroyed = 0.85 × created, Trust expenditure = 0.90 × earnings,
-    total EOH = population × base × 1.5. Conditions I and III passed by
-    construction and the EOH indicators read a total the model does not
-    produce. These pin that each account now comes from the function that
-    computes it, on the frame the command states — and that the one input
-    nothing tracks is declared and actually moves Condition IV.
+    """Each account the dashboard CLI uses must come from the function that computes it,
+    on the frame the command states
+    ([record](record/verification.md#dashboard-stand-ins-retired)).
+
+    Until 2026-09-12 `utils/dashboard_cmd._build_kwargs` used stand-ins, so Conditions I
+    and III passed by construction. The one input that nothing tracks, certified
+    competency, is declared, and it moves Condition IV.
     """
 
     ARC = (0.0, 0.40, 0.90, 0.99)
@@ -803,27 +754,10 @@ class TestTheCliAssemblyIsComputedNotInvented:
         assert low["condition_iv"]["passes"] is False
 
 class TestTheDeclaredSuppressionReachesTheReader:
-    """
-    THE FIRST OUTPUT-CAPTURING TEST IN THIS REPO, and the gap it closes.
-
-    `core.system_dashboard` declared the masking of `personal_registration_status`
-    on 2026-09-16 — "MASKING MUST BE DECLARED, NEVER INFERRED" — and the tests
-    above pin that the returned DICT carries `suppressed_flags`. Nothing pinned
-    that it is RENDERED. The table path is the default and is what a person
-    actually reads, and until 2026-09-17 it printed only `red_flags` and
-    `yellow_flags`: at ε=0 the reader saw `Personal registration: RED` above an
-    EMPTY red-flag list, with an overall status that did not reflect it and
-    nothing saying the exclusion was deliberate.
-
-    NO TEST IN THIS REPO CAPTURED CLI STDOUT — no capsys, no capfd, no
-    redirect_stdout anywhere under tests/. That is why a declaration could exist
-    in the library and be invisible at the documented entry point: the core pin
-    asserted the dict and the rendering was unguarded. Same shape as the ten
-    `--trust-balance` defaults, where every fix above the CLI was invisible.
-
-    It drives the real argparse tree rather than a hand-built namespace, because
-    a namespace I construct tests my reconstruction of the entry point, not the
-    entry point.
+    """The table that a person reads must print the suppressed flags, not only the dict.
+    The test captures CLI stdout through the real argparse tree, because a namespace
+    built by hand tests a copy of the entry point
+    ([record](record/fulfilment.md#suppression-reaches-the-reader)).
     """
 
     def _cli(self, capsys, *argv: str) -> str:
@@ -845,10 +779,8 @@ class TestTheDeclaredSuppressionReachesTheReader:
         )
 
     def test_nothing_is_printed_when_nothing_is_suppressed(self, capsys):
-        """
-        CAN FIRE AND CAN NOT-FIRE. A section that always prints would be
-        decorative; at ε=0.90 personal registration has risen and nothing is
-        suppressed, so the block must be absent.
+        """The section can print and can stay silent. At ε=0.90 nothing is suppressed,
+        so the block must be absent.
         """
         out = self._cli(capsys, "dashboard", "--epsilon", "0.90")
         assert "suppressed:" not in out
@@ -863,3 +795,175 @@ class TestTheDeclaredSuppressionReachesTheReader:
         out = self._cli(capsys, "dashboard", "--epsilon", "0", "--format", "json")
         snap = _json.loads(out)
         assert any("personal_registration" in s for s in snap["suppressed_flags"])
+
+
+class TestFiscalHealthOnTheSharedPath:
+    """`fiscal_health_check` reads the shared fiscal path, and its floor pillar reads
+    the OBSERVED ε (2026-10-01; [record](record/verification.md#fiscal-health-shared)).
+    Before, it rebuilt the fiscal layer by hand beside `fiscal_snapshot` (bit-identical
+    on 96 cases when routed) and read the capability ε.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_trust_reading_is_the_snapshots(self, eps):
+        from hours_eoh.core.dashboard import fiscal_health_check
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        cap = resolve_capital_stock(None, eps, population=1e6)
+        f = fiscal_health_check(35e9, 3e8, cap, 0.3, 1e6, 1000.0, eps, capital_eoh_eliminated=1e6)
+        s = fiscal_snapshot(trust_balance=35e9, labor_income=3e8, capital_stock_teh=cap,
+                            capital_age_ratio=0.3, population=1e6, epsilon=eps,
+                            capital_eoh_eliminated=1e6)
+        assert f["trust_surplus_deficit"] == s["trust"]["surplus_deficit"]
+        assert f["guarantee_cost"] == s["guarantee"]["total_cost_teh"]
+        assert f["ecological_cost"] == s["ecological"]["teh_required"]
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_floor_pillar_reads_the_observed_epsilon(self, eps):
+        from hours_eoh.core.dashboard import fiscal_health_check
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.core.prices import floor_purchasing_power
+        from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
+        cap = resolve_capital_stock(None, eps, population=1e6)
+        f = fiscal_health_check(35e9, 3e8, cap, 0.3, 1e6, 1000.0, eps)
+        obs = eoh_to_teh_pipeline(eps, population=1e6, capital_stock=cap,
+                                  capital_age_ratio=0.3)["epsilon_observable"]
+        assert f["epsilon_observable"] == pytest.approx(obs, rel=1e-12)
+        assert obs < eps
+        assert f["pp_index"] == pytest.approx(floor_purchasing_power(
+            1000.0, obs, MEANINGFUL_ACTIVITY_TEH_BASE)["pp_index"], rel=1e-12)
+        # The capability reading stays reachable, and overstates the gain.
+        cap_reading = fiscal_health_check(35e9, 3e8, cap, 0.3, 1e6, 1000.0, eps,
+                                          epsilon_observable=eps)
+        assert cap_reading["pp_index"] > f["pp_index"]
+
+
+class TestConditionIvInHoursOnTheDashboard:
+    """The dashboard reads Condition IV in hours as well as a certified fraction
+    (2026-10-01; [record](record/verification.md#dashboard-condition-iv-hours)). A
+    fraction alone read GREEN where the hours exceeded what the certified people can
+    give. Two tiers: personal short gives RED and fails Condition IV; registered short
+    beyond it gives YELLOW.
+    """
+
+    @staticmethod
+    def _cli(eps, **kw):
+        from utils.dashboard_cmd import _build_kwargs, resolve_capital_stock
+        return _build_kwargs(eps, 1.0e6, None, resolve_capital_stock(None, eps),
+                             0.70, 0.0, **kw)
+
+    def test_the_hours_are_reported_in_both_tiers(self):
+        r = system_dashboard(**self._cli(0.40))
+        assert set(r["condition_iv_hours"]) == {"personal", "registered"}
+        assert r["condition_iv_hours"]["personal"]["demand_reading"] == "personal"
+        assert r["condition_iv_hours"]["registered"]["all_covered"] is True
+        assert r["conditions_all_pass"] is True
+
+    def test_a_reserve_at_the_threshold_can_still_fail_the_survival_tier(self):
+        # The point of the change: at ε=0.78 a reserve at COMPETENCY_THRESHOLD
+        # passes the fraction check, and care cannot carry the agents' care hours.
+        r = system_dashboard(**self._cli(0.78, certified_fraction=COMPETENCY_THRESHOLD))
+        assert r["condition_iv"]["passes"] is True
+        assert r["condition_iv_hours"]["personal"]["domains_short"] == ["care"]
+        assert r["conditions_all_pass"] is False
+        assert any("personal tier" in f and "care" in f for f in r["red_flags"])
+        assert r["overall_status"] == "RED"
+
+    def test_more_certified_care_clears_it(self):
+        # Can it NOT fire: the same state with care certified above its need.
+        kw = self._cli(0.78, certified_fraction=COMPETENCY_THRESHOLD)
+        kw["certified_by_domain"] = dict(kw["certified_by_domain"],
+                                         care=kw["workforce_size"] * 0.25)
+        r = system_dashboard(**kw)
+        assert r["condition_iv_hours"]["registered"]["all_covered"] is True
+        assert not any("Condition IV" in f for f in r["red_flags"] + r["yellow_flags"])
+
+    def test_a_registered_only_shortfall_is_yellow(self):
+        # Inflate the registered infrastructure hours in a supplied pipeline:
+        # the personal tier is untouched, so the shortfall is collective only.
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        kw = self._cli(0.40)
+        p = eoh_to_teh_pipeline(0.40, population=1.0e6,
+                                capital_stock=kw["capital_stock_teh"],
+                                capital_age_ratio=kw["capital_age_ratio"])
+        reg = dict(p["registered_eoh_by_domain"])
+        reg["infrastructure"] *= 50.0
+        r = system_dashboard(**kw | {"pipeline": dict(p, registered_eoh_by_domain=reg)})
+        assert r["condition_iv_hours"]["personal"]["all_covered"] is True
+        assert r["condition_iv_hours"]["registered"]["domains_short"]
+        assert r["conditions_all_pass"] is True
+        assert any("registered tier" in f for f in r["yellow_flags"])
+        assert not any("Condition IV" in f for f in r["red_flags"])
+
+    def test_the_supplied_pipeline_is_the_one_read(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        kw = self._cli(0.90)
+        p = eoh_to_teh_pipeline(0.90, population=1.0e6,
+                                capital_stock=kw["capital_stock_teh"],
+                                capital_age_ratio=kw["capital_age_ratio"])
+        r = system_dashboard(**kw | {"pipeline": dict(p, epsilon_observable=0.5)})
+        assert r["fiscal_health"]["epsilon_observable"] == 0.5
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_without_a_pipeline_the_fiscal_pillar_is_unchanged(self, eps):
+        kw = _normal_dashboard_kwargs(eps)
+        r = system_dashboard(**kw)
+        direct = fiscal_health_check(
+            kw["trust_balance"], kw["labor_income"], kw["capital_stock_teh"],
+            kw["capital_age_ratio"], kw["population"], kw["floor_teh"], eps)
+        assert r["fiscal_health"] == direct
+
+
+class TestOneHeadcountForTheWorkforce:
+    """The workforce is the WORKING-AGE share, one figure everywhere (author,
+    2026-10-01; [record](record/verification.md#one-headcount)). EohParams carried 0.50
+    where the simulation, civilization and the shocks read 0.60. The dashboard's care
+    shortfall then ran over ε 0.62–0.94, where the shocks found 0.74–0.81.
+    """
+
+    def test_every_default_is_the_working_age_share(self):
+        from hours_eoh.core.civilization import civilization_epsilon
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.data import AGE_GROUPS
+        wa = AGE_GROUPS["working_age"]["fraction"]
+        assert EohParams()["workforce_fraction"] == wa
+        assert make_economy_state()["workforce_fraction"] == wa
+        assert civilization_epsilon({})["physical_state"]["workforce_fraction"] == wa
+
+    def test_the_dashboard_and_the_shocks_agree_at_the_threshold(self):
+        # At COMPETENCY_THRESHOLD both read care short over the same band.
+        band = [e / 100 for e in range(100)
+                if system_dashboard(**TestConditionIvInHoursOnTheDashboard._cli(
+                    e / 100, certified_fraction=COMPETENCY_THRESHOLD))[
+                        "condition_iv_hours"]["personal"]["domains_short"]]
+        assert band and min(band) >= 0.70 and max(band) <= 0.85
+
+
+class TestTheEcologicalPillarCannotFire:
+    """Under the adopted `guf` response `ecological_status` cannot fire, and the test
+    states it (mode 9). The ledger's ecological wage bill is zero by design, so the
+    pillar reads GREEN even against an empty Trust; what it should test is open for the
+    author ([record](record/fulfilment.md#test-docstring-history)).
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    @pytest.mark.parametrize("health", [0.10, 0.70])
+    def test_the_ledger_figure_is_zero_and_the_relocated_one_is_not(self, eps, health):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        cap = resolve_capital_stock(None, eps)
+        p = eoh_to_teh_pipeline(eps, population=1.0e6, capital_stock=cap,
+                                ecosystem_health=health)
+        kw = dict(trust_balance=0.0, labor_income=p["teh_created"],
+                  capital_stock_teh=cap, capital_age_ratio=0.5, population=1.0e6,
+                  epsilon=eps, ecosystem_health=health,
+                  eco_eoh_override=p["eoh_by_domain"]["ecological"])
+        eco = fiscal_snapshot(**kw)["ecological"]
+        assert eco["teh_required"] == 0.0
+        assert eco["relocated_teh_required"] > 0.0
+        r = fiscal_health_check(0.0, p["teh_created"], cap, 0.5, 1.0e6, 1000.0, eps,
+                                ecosystem_health=health,
+                                eco_eoh_override=p["eoh_by_domain"]["ecological"])
+        assert r["ecological_status"] == "GREEN"

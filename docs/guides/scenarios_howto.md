@@ -53,9 +53,10 @@ from hours_eoh.scenarios.shocks import (
     ecological_eoh_spike,
 )
 
-# Automation that was carrying EOH stops: can the competency reserve absorb it?
+# Machines stop: how much of their load can people take up within the
+# measured labour supply, and how much is deferred (survival-first)?
 result = automation_failure_shock(epsilon=0.60)
-print(result["outcome"], result["coverage_ratio"])
+print(result["outcome"], result["coverage_ratio"], result["deferred_personal_eoh"])
 
 # shock_type is "growth", "decline" or "aging"; magnitude is a fraction
 result = demographic_shock(epsilon=0.40, shock_type="aging", magnitude=0.20)

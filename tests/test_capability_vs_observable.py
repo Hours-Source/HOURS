@@ -1,29 +1,23 @@
-"""
-The machine-capability index and the observed machine share are two quantities.
+"""The machine-capability index and the observed machine share are two quantities.
 
-WHY THIS EXISTS (author decision, 2026-09-01). `epsilon` was doing two jobs: as
-an INPUT it says what machines are capable of taking, and as an OBSERVABLE it is
-DEFINED as the machine share of obligation. Under `uniform` they are identical by
-construction, so the distinction could not be seen. Phase 2 separated them — the
-personal domain now keeps a floored human share — and the observed share is
-strictly below the supplied index everywhere except zero.
+`epsilon` did two jobs (author decision, 2026-09-01). As an INPUT it says what machines
+can take; as an OBSERVABLE it is DEFINED as the machine share of obligation. Under
+`uniform` the two are identical by construction. Phase 2 gave the personal domain a
+floored human share, so the observed share sits strictly below the supplied index
+everywhere except zero
+([record](record/fulfilment.md#epsilon-split-capability-vs-observable)).
 
-That matters beyond bookkeeping. The value-anchor argument states that ε is "the
-share of civilization's obligation still dependent on human agency". At a high
-index the parameter reports the machines and the ledger reports a materially
-larger human residual. Publishing the first as the second is the
-reported-vs-applied defect, one layer up from the code.
+That matters beyond bookkeeping. The value-anchor argument calls ε "the share of
+civilization's obligation still dependent on human agency". At a high index the
+parameter reports the machines while the ledger reports a larger human residual, and
+publishing one as the other is the reported-vs-applied defect.
 
-THE PAYOFF: the arc's endpoint stops being a convention. Under `uniform` nothing
-caps automation and the ceiling is exactly 1.0. Under `per_component` the ceiling
-is `1 - personal_share · Σ share_c · floor_c` and sits strictly below 1 — a
-CONSEQUENCE of the declared floors.
+The payoff: the arc's endpoint stops being a convention. Under `per_component` the
+ceiling is `1 - personal_share · Σ share_c · floor_c`, strictly below 1, a CONSEQUENCE
+of the declared floors.
 
-NO LEVEL IS RESTATED HERE, and `TestNoFigureIsRestatedInProse` enforces that.
-Both quantities move with the floors table and the component shares, both live;
-the five figures that used to sit in `core/eoh_fulfillment`'s docstrings were
-stale from the day `NUTRITION_AUTOMATION_FLOOR` was adopted and nothing failed.
-Call `observable_epsilon()` and `observable_epsilon_ceiling()` for the numbers.
+NO LEVEL IS RESTATED HERE (`TestNoFigureIsRestatedInProse` enforces it). Call
+`observable_epsilon()` and `observable_epsilon_ceiling()` for the numbers.
 """
 
 from __future__ import annotations
@@ -52,15 +46,11 @@ _DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 
 
 def _eoh_at(capability: float) -> dict:
-    """Total EOH on the canonical arc, mapped keyword by keyword.
-
-    NOT `**state` and not a signature filter. `canonical_physical_state` names
-    two of its keys differently from `total_eoh` — `capital_stock_teh` against
-    `capital_stock`, `knowledge_base_size` against `knowledge_complexity` — so a
-    filter silently DROPS both and freezes the two largest non-personal domains
-    at their defaults for the whole arc. This helper is the instrument every
-    figure below is read off, which is why it maps explicitly, the way
-    `scenarios/ecological_floor._eoh_at` documents and for the same reason.
+    """Total EOH on the canonical arc, mapped keyword by keyword, not by `**state` or a
+    signature filter. Two keys differ in name between `canonical_physical_state` and
+    `total_eoh`, so a filter silently drops both and freezes the two largest
+    non-personal domains. `scenarios/ecological_floor._eoh_at` maps explicitly for the
+    same reason.
     """
     state = canonical_physical_state(capability)
     return total_eoh(
@@ -96,16 +86,10 @@ class TestUniformIsTheDegenerateCase:
 
 
 class TestTheInstrumentTransmitsTheCanonicalState:
-    """
-    THE HELPER EVERY FIGURE BELOW IS READ OFF, checked before it is trusted.
-
-    `_eoh_at` used to build its state by filtering `canonical_physical_state`
-    against `total_eoh`'s signature. Two keys are named differently on the two
-    sides — `capital_stock_teh`/`capital_stock` and
-    `knowledge_base_size`/`knowledge_complexity` — so the filter dropped both
-    and froze infrastructure and knowledge at their defaults for the entire arc.
-    Every shape below still held, because a shape survives a frozen domain; the
-    LEVELS did not, and the levels are what the value-anchor section quotes.
+    """The helper every figure below is read off, checked before it is trusted. A
+    signature filter once dropped `capital_stock_teh` and `knowledge_base_size` and
+    froze infrastructure and knowledge for the whole arc. Every shape still held,
+    because a shape survives a frozen domain; the LEVELS did not.
     """
 
     def test_no_capital_on_the_arc_means_no_maintenance_obligation(self):
@@ -115,8 +99,9 @@ class TestTheInstrumentTransmitsTheCanonicalState:
         assert _eoh_at(0.0)["infrastructure"] == 0.0
 
     def test_both_dropped_keys_move_an_output(self):
-        """The filtered call is RECONSTRUCTED here and shown to differ, so this
-        fails the moment the helper reverts to a signature filter."""
+        """The test rebuilds the filtered call and shows that it differs, so it fails
+        the moment the helper reverts to a signature filter.
+        """
         state = canonical_physical_state(0.99)
         as_filtered = total_eoh(
             capital_age_ratio=state["capital_age_ratio"],
@@ -135,20 +120,14 @@ class TestTheInstrumentTransmitsTheCanonicalState:
 
 
 class TestNoFigureIsRestatedInProse:
-    """
-    THE GATE FOR RECURRING FAILURE MODE 13. Five derived figures sat in
-    `core/eoh_fulfillment`'s docstrings — a capability→observed table, a gap of
-    0.081, a ceiling of 0.917 — and every one of them was stale from the day
-    `NUTRITION_AUTOMATION_FLOOR` was adopted. Nothing failed, because nothing
-    pinned them: the suite pins shapes, and a restated number is not a shape.
+    """The gate for mode 13. Five derived figures sat in `core/eoh_fulfillment`'s
+    docstrings, and all were stale from the day `NUTRITION_AUTOMATION_FLOOR` was
+    adopted; nothing failed, because a restated number is not a shape. Pinning the
+    values would need an update on every improvement and would read as a result. So a
+    derived level does not appear in prose at all; the reader calls the function.
 
-    Pinning the values instead would be the wrong fix — they move with two live
-    measurements, so the pin would need updating on every improvement and would
-    read as a result. The durable rule is that a derived level does not appear
-    in prose AT ALL; the reader calls the function.
-
-    SCOPED to the three docstrings that carried the drift, and to decimals of
-    three or more places, so a share like `0.99` or a rate stays sayable.
+    SCOPED to the three docstrings that carried the drift, and to decimals of three or
+    more places, so a share like `0.99` stays sayable.
     """
 
     _RESULT_LIKE = re.compile(r"\d\.\d{3,}")
@@ -223,11 +202,9 @@ class TestTheCeilingIsAConsequenceOfTheFloors:
         assert observable_epsilon_ceiling(dom, "per_component") < 0.99
 
     def test_the_residual_traces_to_the_floored_components(self):
-        """
-        At full capability the human residual is exactly the share-weighted sum
-        of the floors. Written over the TABLE rather than over `care` alone:
-        the first version hardcoded the single entry the table then had and
-        broke when nutrition was adopted on 2026-09-03.
+        """At full capability the human residual is exactly the share-weighted sum of
+        the floors. The test runs over the TABLE: the first version hardcoded care alone
+        and broke when nutrition was adopted (2026-09-03).
         """
         expected = sum(
             float(PERSONAL_EOH_COMPONENTS[name]["share"]) * floor
@@ -325,7 +302,7 @@ class TestTheAliasIsOneQuantityUnderTwoNames:
             human_eoh_per_domain(_eoh_at(0.4), 0.40, machine_capability=0.90)
 
     def test_supplying_both_with_the_same_value_is_allowed(self):
-        """Migrating a caller should not be punished for being explicit."""
+        """A caller that migrates explicitly should not fail for it."""
         r = eoh_to_teh_pipeline(epsilon=0.40, machine_capability=0.40)
         assert r["machine_capability"] == 0.40
 
@@ -339,11 +316,9 @@ class TestTheAliasIsOneQuantityUnderTwoNames:
 
 
 class TestTheObservableIgnoresTheLabourConstraint:
-    """
-    A labour shortfall is DEFERRED, not machine-fulfilled. Computing the share
-    after rationing would credit machines with obligation that simply went
-    unserved — what machines take does not depend on whether the people exist to
-    do the rest.
+    """A labour shortfall is DEFERRED, not machine-fulfilled. A share computed after
+    rationing would credit machines with obligation that went unserved, and what
+    machines take does not depend on whether people exist to do the rest.
     """
 
     def test_rationing_does_not_move_the_observed_machine_share(self):

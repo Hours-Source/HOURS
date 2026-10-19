@@ -829,3 +829,35 @@ class TestCompoundingAndRegenerativeShape:
                for e in (0.0, 0.25, 0.5, 0.75, 0.99)]
         assert lev == sorted(lev), lev
         assert all(1.0 <= x <= 1.0 + REGEN_AUTOMATION_LEVERAGE_MAX + 1e-9 for x in lev)
+
+
+class TestTheStrategyCompareReadsTheDerivedCrossover:
+    """2026-10-04: the default write-down is the derived crossover on the asset's
+    own rebuild cost over its upkeep — the clock the maintenance scenario reads —
+    not a generic 0.20. A threshold passed explicitly keeps the old absolute
+    reading."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_default_is_derived_and_explicit_is_absolute(self, eps):
+        from hours_eoh.core.capital import asset_condition, rebuild_crossover_ratio
+        from hours_eoh.core.eoh_dynamics import maintenance_strategy_compare
+        r = maintenance_strategy_compare("generic_infra", 1e6, 3e7, epsilon=eps, years_horizon=60)
+        assert r["writedown_basis"].startswith("derived")
+        assert r["writedown_threshold"] == rebuild_crossover_ratio(30.0)
+        y = r["deferred_to_writedown"]["writedown_year"]
+        c = m = 1.0
+        ratios = []
+        for _ in range(y):
+            c = asset_condition(c, [{"eoh_demanded": 1e6, "eoh_fulfilled": 0.0}])
+            m = asset_condition(m, [{"eoh_demanded": 1e6, "eoh_fulfilled": 1e6}])
+            ratios.append(c / m)
+        assert ratios[-1] < r["writedown_threshold"] <= min(ratios[:-1] or [1.0])
+        old = maintenance_strategy_compare("generic_infra", 1e6, 3e7, epsilon=eps,
+                                           years_horizon=60, writedown_threshold=0.20)
+        assert old["writedown_basis"].startswith("absolute")
+
+    def test_dearer_upkeep_writes_down_sooner(self):
+        from hours_eoh.core.eoh_dynamics import maintenance_strategy_compare
+        years = [maintenance_strategy_compare("generic_infra", 1e6, tv, years_horizon=80)
+                 ["deferred_to_writedown"]["writedown_year"] for tv in (4e7, 2e7, 5e6)]
+        assert years == sorted(years, reverse=True)

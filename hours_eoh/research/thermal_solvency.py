@@ -30,60 +30,60 @@ never touches it — it matters only for the programme's own dissipation (F8/F9)
 That collapses the gate's sensitivity onto one Tier D number, which is exactly
 the number the backward query targets.
 
-SELF-FUNDING IS MODELLED, NOT ASSUMED AWAY. As of 2026-08-05 the obligation is
-injected through `thermal_obligation`, a real fourth term in
-`core.eoh_generation.ecological_eoh` rather than the earlier
-`deferred_ecological` workaround (which had to be divided by the monitoring
-factor to cancel a visibility curve that does not apply to measured forcing). It
-therefore flows through the whole pipeline: more ecological EOH → more human EOH
-→ more registered EOH → more TEH created → a larger levy base. The obligation
-partly pays for itself, and pricing the cost without that income would be
-pessimistic in a way the ledger identity does not license. Both the loaded and
-unloaded economies are computed.
+THE GATE MODELS SELF-FUNDING; IT DOES NOT ASSUME IT AWAY. As of 2026-08-05 the
+obligation is injected through `thermal_obligation`, a real fourth term in
+`core.eoh_generation.ecological_eoh` rather than the earlier `deferred_ecological`
+workaround (which had to be divided by the monitoring factor to cancel a visibility
+curve that does not apply to measured forcing). It therefore flows through the whole
+pipeline: more ecological EOH → more human EOH → more registered EOH → more TEH created
+→ a larger levy base. The obligation partly pays for itself, and pricing the cost
+without that income would be pessimistic in a way the ledger identity does not license.
+The gate computes both the loaded and unloaded economies.
 
 PASS CONDITIONS — fixed in advance, in writing, so they cannot move later:
 
   1. Trust solvent at every ε ∈ {0, 0.40, 0.90, 0.99}.
-  2. The levy needed to COVER EXPENDITURE stays within labour income. Note this
-     is deliberately not `full_solvency`, which additionally demands the Trust's
-     whole dividend be replaced from levy every period — a target the unloaded
-     baseline misses at every ε by 1.3–9.4×, because it is a property of the
-     Trust's dividend design rather than of any load placed on it. Testing
-     against it would have reported a thermal failure that was nothing of the
-     kind.
-  3. Ecological and stewardship remain CO-EQUAL — neither becomes residual.
+  2. The levy needed to COVER EXPENDITURE stays within labour income. Note this is
+  deliberately not `full_solvency`, which then also demanded that the levy replace the
+  Trust's whole dividend every period. The unloaded baseline missed that target at every
+  ε by 1.3–9.4×, because it was a property of the Trust's dividend design, not of any
+  load. Testing against it would have reported a thermal failure that was nothing of the
+  kind. Since 2026-09-15 the Trust keeps unspent dividend, and `full_solvency` equals
+  the guarantee (`core.fiscal.min_levy_for_solvency`).
+  3. Ecological and stewardship remain CO-EQUAL, neither residual (retired 2026-09-16,
+  below).
   4. The labour to service it exists.
   5. Arc coherence: finite and meaningful at every ε.
 
-SINCE 2026-09-15 (minted TEH is the wage) what conditions 1–3 can see changed.
-The Trust owes only the guarantee, so ecological and stewardship labour — and
-with them the thermal load — no longer reach Trust solvency or the
-cover-expenditure levy. Conditions 1–2 are near-vacuous for this question; the
-gate now breaks on labour. The margin grew 48.2 → 335.3 h/t for that reason, not
-because the fisc got stronger.
+SINCE 2026-09-15 (minted TEH is the wage) what conditions 1–3 can see changed. The Trust
+owes only the guarantee, so ecological and stewardship labour — and with them the
+thermal load — no longer reach Trust solvency or the cover-expenditure levy. Conditions
+1–2 are near-vacuous for this question; the gate now breaks on labour. The breaking
+labour intensity grew 48.2 → 335.3 h/t for that reason (559× the shipped 0.6 on
+2026-10-18), not because the fisc got stronger.
 
-CO-EQUALITY WAS RETIRED 2026-09-16 (author decision), and it is worth saying why
-rather than quietly dropping it. It asked whether the Trust's ecological funding
-coverage stayed within a tolerance of its stewardship coverage — "ecological must
-not become residual". Both coverages are `min(required, trust_balance) / required`
-against a balance that, since the wage doctrine, funds NEITHER domain: they are
-artifacts of a cap that no longer means anything. Measured across trust balances
-1e6–3.5e10 and ε ∈ {0, 0.40, 0.90} it passed 9 of 9, and at its most extreme cell
-(trust 1e6, ε=0) stewardship coverage was 0.0056 against ecological 0.7013 — a
-69-point gap in the SAFE direction. It could not fail.
+THE AUTHOR RETIRED CO-EQUALITY ON 2026-09-16, and it is worth saying why instead of
+dropping it quietly. It asked whether the Trust's ecological funding coverage stayed
+within a tolerance of its stewardship coverage — "ecological must not become residual".
+Both coverages are `min(required, trust_balance) / required` against a balance that,
+since the wage doctrine, funds NEITHER domain: they are artifacts of a cap that no
+longer means anything. Measured across trust balances 1e6–3.5e10 and ε ∈ {0, 0.40, 0.90}
+it passed 9 of 9, and at its most extreme cell (trust 1e6, ε=0) stewardship coverage was
+0.0056 against ecological 0.7013 — a 69-point gap in the SAFE direction. It could not
+fail.
 
-Restating it against REQUIREMENTS rather than coverages was considered and
-rejected: that would assert "the ecological requirement must not be much smaller
-than the stewardship one", which no part of the theory claims. Phases 4e/4f moved
-both recurring ecological terms to GUF deliberately, so a small ecological line
-in the Trust's books is the partition working, not a failure. A check that
-manufactures a requirement the framework does not hold is worse than no check —
-it shapes later work around a demand nobody made.
+A restatement against REQUIREMENTS instead of coverages was considered and rejected:
+that would assert "the ecological requirement must not be much smaller than the
+stewardship one", which no part of the theory claims. Phases 4e/4f moved both recurring
+ecological terms to GUF deliberately, so a small ecological line in the Trust's books is
+the partition working, not a failure. A check that manufactures a requirement the
+framework does not hold is worse than no check — it shapes later work around a demand
+nobody made.
 
-The DOCTRINE is untouched: `ecological_allocation` and `stewardship_allocation`
-remain co-equal requirements and neither is residual (CLAUDE.md § Key design
-invariants). Both are paid at the mint. What was retired is a Trust-funding
-comparison that has had nothing to compare since the mint started paying.
+The DOCTRINE stands: `ecological_allocation` and `stewardship_allocation` remain
+co-equal requirements and neither is residual (CLAUDE.md § Key design invariants). The
+mint pays both. The retirement removed a Trust-funding comparison that has had nothing
+to compare since the mint started paying.
 
 ALL FOUR, or the layer stays advisory. A failure here is a publishable finding —
 "the thermal overage is not fiscally absorbable" would be among the strongest
@@ -195,9 +195,9 @@ def thermal_flow_eoh(
     1750–2024 table; without it, or for an unknown name, this falls back to
     population and says so rather than substituting one rule for the other.
 
-    units: hours/year. ε-behavior: essentially flat — the job moves under 10%
-    across the whole arc, because Φ is ~1% of the forcing reduction. The debt is
-    owed regardless of how far automation has run.
+    units: hours/year. ε-behavior: essentially flat — the job moves under 10% across the
+    whole arc, because Φ is ~1% of the forcing reduction. The debt stands however far
+    automation has run.
 
     Worked example (ΔT_max = 2.0 K, 1M of 8.16e9 people, 40 yr, 0.6 h/t):
         973 Gt × 0.6 h/t × 1.225e-4 / 40 = 1,789,174 h/yr — about 2.5× the
@@ -246,10 +246,9 @@ def solvency_at_epsilon(
     green) is not a runtime quantity.
 
     The obligation is injected through `thermal_obligation` — a real term in the
-    ecological domain — so it flows through the entire pipeline rather than being
-    bolted onto the cost side: EOH → human EOH → registered EOH → TEH created →
-    levy base. That self-funding is real under the ledger identity and is
-    modelled.
+    ecological domain — so it flows through the entire pipeline rather than being bolted
+    onto the cost side: EOH → human EOH → registered EOH → TEH created → levy base. That
+    self-funding is real under the ledger identity, and the gate models it.
 
     units: mixed; every field carries its own. Returns a verdict per ε with the
     failures named, so a FAIL says which condition broke rather than only that
@@ -419,10 +418,9 @@ def breaking_labor_intensity(
     sensitivity collapses onto this single number (the energy term cancels out of
     the EOH), so this is the whole answer in one figure.
 
-    Reading it: a large margin means the verdict is robust to the Tier D
-    placeholder being wrong by that factor. A margin near 1 means the answer is
-    being decided by a number nobody has measured, and the verdict should not be
-    published either way.
+    Reading it: a large margin means the verdict is robust to the Tier D placeholder
+    being wrong by that factor. A margin near 1 means a number nobody has measured
+    decides the answer, and nobody should publish the verdict either way.
 
     Returns None for `breaking_value` when the gate holds across the entire
     search range — which is itself a strong result.

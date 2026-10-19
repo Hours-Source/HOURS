@@ -1,30 +1,22 @@
-"""
-The stock is bounded — by the founding endowment PLUS cumulative fulfilment.
+"""The stock is bounded by the founding endowment PLUS cumulative fulfilment.
 
-WHY THIS EXISTS. The value-anchor argument ends on a proposition rather than a
-valuation: that the circulating stock is bounded above by cumulative registered
-fulfilment net of destruction, so each unit is a claim rather than a promise.
-That is the fourth of four things the anchor rests on, and nothing checked it.
+The value-anchor argument ends on a proposition: the circulating stock is bounded above
+by cumulative registered fulfilment net of destruction, so each unit is a claim, not a
+promise. It is the fourth of four things the anchor rests on, and nothing checked it.
 
-**Checked, the proposition as drafted is FALSE at founding.** The economy starts
-with an endowment — a Trust balance and a capital stock — that no registered
-fulfilment created. The identity that actually holds is
+**Checked, the proposition as drafted is FALSE at founding.** The economy starts with an
+endowment (a Trust balance and a capital stock) that no registered fulfilment created.
+The identity that holds is
 
     supply(t) = endowment + Σ created − Σ destroyed
 
-and the tighter bound the anchor wants, `supply ≤ Σ created`, is false for a long
-initial stretch and becomes true later, as destruction outpaces creation and the
-founding stock turns over. That is a real and defensible position — but it is a
-statement about the long run, not about period zero, and the section has to say
-which.
+so `supply ≤ Σ created` is a statement about the long run, not about period zero
+([record](record/verification.md#stock-is-an-identity)).
 
-TWO ACCOUNTS OF ONE QUANTITY, and this is how the finding surfaced.
-`core.eoh_fulfillment.teh_supply()` implements exactly the tighter bound and
-raises "impossible in a correct system" when destruction exceeds creation. It is
-listed in its own module's pipeline docstring. **It is called by nothing, and it
-raises on the shipped model's canonical trajectory** — because it encodes an
-economy with no endowment. Pinned below rather than quietly deleted: it is the
-bound the theory wants, and the gap between it and what ships is the finding.
+TWO ACCOUNTS OF ONE QUANTITY. `core.eoh_fulfillment.teh_supply()` implements the tighter
+bound, an economy with no endowment, and nothing calls it. It is pinned, not deleted: it
+is the bound the theory wants, and its gap from what ships is the finding
+([record](record/verification.md#teh-supply-guard-re-pointed)).
 """
 
 from __future__ import annotations
@@ -67,10 +59,9 @@ class TestTheStockIdentityHoldsEveryPeriod:
             )
 
     def test_the_reported_flows_match_the_state_counters(self):
-        """
-        `states[i]` is the state AFTER `period_results[i]` — the initial state is
-        not in the list, which is worth stating because the off-by-one silently
-        passes for any constant flow and fails only because minting grows.
+        """`states[i]` is the state AFTER `period_results[i]`; the list leaves out the
+        initial state. An off-by-one would pass for any constant flow and fails only
+        because minting grows.
         """
         state, res = _run()
         assert len(res["states"]) == len(res["period_results"])
@@ -94,9 +85,8 @@ class TestTheStockIdentityHoldsEveryPeriod:
 
 
 class TestTheFoundingEndowmentIsNotBackedByFulfilment:
-    """
-    THE HONEST LIMIT. Measured, not conceded: at founding the entire stock exists
-    and nothing has been minted.
+    """THE HONEST LIMIT, measured: at founding the whole stock exists and nothing has
+    been minted.
     """
 
     def test_at_founding_nothing_has_been_minted_and_the_stock_is_large(self):
@@ -113,10 +103,8 @@ class TestTheFoundingEndowmentIsNotBackedByFulfilment:
         )
 
     def test_the_endowment_dwarfs_a_period_of_minting(self):
-        """
-        MAGNITUDE CLASS, not a level. If the endowment were small relative to
-        annual minting it would be a rounding detail; it is not, and that is why
-        the anchor argument has to declare it.
+        """A magnitude class, not a level. An endowment small against annual minting
+        would be a rounding detail; it is not, so the anchor argument must declare it.
         """
         state, res = _run(1)
         first_mint = res["period_results"][0]["teh_created"]
@@ -132,21 +120,12 @@ class TestTheFoundingEndowmentIsNotBackedByFulfilment:
 
 
 class TestTheEndowmentTurnsOverInTheLongRun:
-    """
-    WHY THE POSITION IS STILL DEFENSIBLE — RESTATED 2026-09-17 (author decision).
-
-    The founding stock is PRIOR WORK: TEH, and assets that reduce EOH and carry
-    EOH costs of their own, brought by the people who form or join a collective.
-    A collective founded at subsistence brings NOTHING, and a joiner may bring
-    nothing; the level is an instance input, not a constant of the framework.
-
-    This class used to assert the mechanism "destruction outpaces creation
-    early, so the founding stock is RETIRED". That was never a property of the
-    system — it was a property of starting above what the flows support.
-    Measured across three levels of prior work at 20/40/60/80/120/200 periods:
-    at 35,000 TEH/person destruction does outpace creation; at 8,760 it never
-    does at any horizon; at 0 there is nothing to retire. The overtaking is what
-    survives all three, so the overtaking is what is pinned.
+    """Restated 2026-09-17 (author decision). The founding stock is PRIOR WORK, brought
+    by the people who form or join a collective; at subsistence it is nothing, and its
+    level is an instance input. "Destruction outpaces creation early" held only at
+    35,000 TEH/person: at 8,760 it never does, and at 0 there is nothing to retire.
+    Cumulative creation overtaking the total supply holds at every level, so this class
+    pins that ([record](record/fulfilment.md#inheritance-repriced-as-prior-work)).
     """
 
     def test_cumulative_minting_eventually_exceeds_the_standing_stock(self):
@@ -172,14 +151,10 @@ class TestTheEndowmentTurnsOverInTheLongRun:
     def test_the_overtaking_does_not_depend_on_how_much_was_brought(
         self, prior_work, label
     ):
-        """
-        REPLACES test_destruction_outpaces_creation_early (2026-09-17).
-
-        The anchor claim is that nothing ultimately stands which registered
-        fulfilment did not create. That must hold at EVERY level of prior work,
-        or it is a claim about one calibration rather than about the system.
-        The retired test asserted the retirement MECHANISM, which holds only
-        when enough was brought to start above what the flows support.
+        """The anchor claim is that nothing ultimately stands which registered
+        fulfilment did not create. It must hold at EVERY level of prior work, or it
+        describes one calibration. It replaces
+        `test_destruction_outpaces_creation_early` (2026-09-17).
         """
         state = make_economy_state(trust_balance=prior_work)
         res = run_simulation(make_economy_state(trust_balance=prior_work),
@@ -227,19 +202,11 @@ class TestTheOrphanedSupplyFunctionContradictsTheShippedModel:
         )
 
     def test_its_identity_differs_from_the_shipped_one_by_the_endowment(self):
-        """
-        RE-POINTED 2026-09-17. This asserted that `teh_supply` RAISES on the
-        shipped cumulative flows — which it did only while the inheritance was
-        large enough to drive cumulative destruction above creation. At 8,760
-        TEH/person it no longer raises at ANY horizon (checked at 20/40/60/80/
-        120/200 periods), and the old assertion would have read as "the two
-        accounts merged" when they had not: the endowment is still 11.16e9.
-
-        The difference itself is the claim, so the difference is what is
-        asserted. `teh_supply` computes `created - destroyed`; the shipped
-        model computes `endowment + created - destroyed`. They differ by
-        exactly the endowment, at any inheritance, which is the fact that
-        makes the two accounts two.
+        """`teh_supply` computes created − destroyed and the shipped model endowment +
+        created − destroyed, so they differ by exactly the endowment at any inheritance.
+        The test asserts that difference. It once asserted that `teh_supply` RAISES,
+        which stopped at 8,760 TEH/person while the endowment stayed 11.16e9
+        ([record](record/verification.md#teh-supply-guard-re-pointed)).
         """
         state, res = _run(40)
         created = sum(r["teh_created"] for r in res["period_results"])
@@ -261,9 +228,8 @@ class TestTheOrphanedSupplyFunctionContradictsTheShippedModel:
         )
 
     def test_it_is_correct_for_the_economy_it_describes(self):
-        """
-        The function is not wrong — it is unendowed. Given flows from an economy
-        that started at zero, it behaves exactly as the anchor argument wants.
+        """The function is not wrong; it is unendowed. Given flows from an economy that
+        started at zero, it behaves as the anchor argument wants.
         """
         assert teh_supply(1000.0, 400.0) == pytest.approx(600.0)
         assert teh_supply(1000.0, 1000.0) == pytest.approx(0.0)
@@ -276,14 +242,10 @@ class TestNothingGrowsWithoutLabour:
     """
 
     def test_the_trust_has_no_interest_term(self):
-        """
-        THE SHARP FORM (2026-09-15). This asserted `trust_end < trust_start`
-        with nothing owed, which held only because the dividend left the
-        balance unconditionally. Unspent capacity is now retained, so a quiet
-        period is FLAT — and flat is not a yield. What Condition III actually
-        forbids is the balance itself moving the balance: for identical flows
-        the movement must be the same at any size, so no term can depend on
-        the holding.
+        """Condition III forbids the balance itself moving the balance. For identical
+        flows the movement must be the same at any size, so no term depends on the
+        holding. Since 2026-09-15 unspent capacity stays, so a quiet period is FLAT, and
+        flat is not a yield.
         """
         from hours_eoh.core.fiscal import trust_management
         def delta(balance):

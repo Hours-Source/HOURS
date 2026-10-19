@@ -78,7 +78,7 @@ below names the families and a representative of each; it is not exhaustive.
 | Family | Representative scenarios |
 |---|---|
 | Arc coherence | `sweep` |
-| Shocks | `automation_failure`, `demographic_shock`, `ecological_spike`, `labor_income_shock`, `compound_shock` |
+| Shocks | `automation_failure`, `demographic_shock`, `ecological_spike`, `labor_income_shock`, `compound_shock`, `capital_loss` |
 | Maintenance & recovery | `maintenance_crisis`, `care_delay`, `recovery` |
 | Long run | `canonical_arc`, `trust_stress`, `transition`, `indust_baseline`, `indust_recovery` |
 | Land / GUF | `guf_integration`, `guf_writedown`, `guf_sweep`, `guf_magnitude`, `servicing_census`, `land_tenure` |
@@ -90,7 +90,141 @@ below names the families and a representative of each; it is not exhaustive.
 python3 utils/eoh_cli.py scenario run automation_failure --format csv > results/shock.csv
 ```
 
+**A flag is read or refused.** `--epsilon` is refused by a scenario whose
+output is the same at every ε — an arc it sweeps itself, or measured and
+reference data — rather than accepted and ignored; `feasibility` reads it only
+with `--adult-capacity` or `--adult-share`. Frame flags follow the same rule.
+
 See [Running Scenarios](scenarios_howto.md) for Python API usage.
+
+---
+
+## frame — running on your own frame
+
+**Every scenario that takes a population runs on a frame**, as does
+`corridor band`: a population, its age mix, its adult labour capacity, its
+capital, its land, its Trust and its ε. Each prints the inputs it READS, with
+where each came from, and refuses a flag it does not read — the shocks read the
+age mix and labour supply; the long-run, Trust and simulation scenarios read
+population, capital, Trust and ε; `indust_*` read population and ε; the arcs
+(`canonical_arc`, `transition`, `thermal_load`) sweep ε themselves and refuse
+`--epsilon`. `collective` is the exception: its frame is its own parcel
+inventory, so it refuses `--frame`; the parcel-based GUF scenarios take only
+the frame's ε for the same reason:
+
+| Kind | Meaning |
+|---|---|
+| `supplied` | you gave it — a flag, or your frame file |
+| `measured` | read from a dataset the repo ships for a built-in frame (`--frame us`: Census ages, MTUS capacity, both ε instruments, BEA stock ages, EIA energy) |
+| `derived` | computed from other inputs, all of them supplied or measured |
+| `derived (partly from defaults)` | computed, but leaning on a framework default (e.g. a per-head intensity) |
+| `derived (from defaults)` / `default` | the framework's reference value — it says nothing about your frame. A `default` whose source begins *charter choice* (the Trust's opening balance, the retirement register, who carries ecological work) is a governance setting, not missing data |
+
+Read a result only as far as its inputs go: an outcome built on `default` rows
+is a statement about the reference collective, not about yours.
+
+On `--frame us` the capital is the US stock: BEA's inventory at the midpoint of
+`conversion_band()`, the derived dollars-per-hour band. Each scenario that reads
+capital also reports its verdict at both ends of that band ("at both ends of the
+conversion band"). `--bea-usd-per-teh` or `--capital-stock` states your own.
+
+```bash
+# What a frame resolves to, every input labelled
+python3 utils/eoh_cli.py frame show --frame us
+
+# Start your own frame from the US one, then replace what you have measured
+python3 utils/eoh_cli.py frame show --frame us --format json > my_frame.json
+
+# Run a shock and the corridor on it
+python3 utils/eoh_cli.py scenario run demographic_shock --frame-file my_frame.json --shock-type aging --shock-magnitude 0.2
+python3 utils/eoh_cli.py corridor band --frame-file my_frame.json
+```
+
+**The frame file** is JSON with any of: `name`, `population`, `age_fractions`
+(every `AGE_GROUPS` group, summing to 1), `epsilon` (a number, or
+`{"low": a, "high": b}`), `capital_teh`, `land_hectares`,
+`adult_capacity_h_yr`, `utilization`, `trust_balance`, `retirement_age`,
+`retired_share`, `years_in_collective`. Anything else is refused, never
+patched. What you leave out is derived or defaulted — and
+labelled so. **ε is never imputed:** without a reading it runs at the
+reference value, labelled `default`.
+
+**Shipped and constructed frames.** A frame file is the one intake — a
+country's, an institution's, or a constructed scenario's. `eoh frame shipped`
+lists the files that ship with the repo (`--write` regenerates them from the
+module that owns each), and `--frame-file NAME` runs one. `indust_overbuilt` is
+CONSTRUCTED, not measured: an overbuilt industrial collective (10× capital per
+head, an aged stock, ecosystem health below the spike threshold) whose
+ecological work its people carry rather than the GUF. Constructed frames are
+fictitious on purpose — some extreme, to test the framework's bounds and how it
+handles collapse; a combination that looks unworkable and still reads stable is
+itself a finding. A frame file may also state `ecosystem_health`,
+`capital_age_ratio` and `ecological_carried_by_people`; declared carried, the
+health deficit over the frame's land is priced as a restoration obligation and
+carried as labour with the recurring ecological work, in the shocks, the band
+and the overbuild floor.
+
+```bash
+python3 utils/eoh_cli.py frame shipped
+python3 utils/eoh_cli.py corridor band --frame-file indust_overbuilt
+python3 utils/eoh_cli.py scenario run capital_loss --frame-file indust_overbuilt --capital-fraction-lost 0.2
+```
+
+**Retirement as a register event** is a governance choice, so it is off unless
+you ask for it. With `--retirement-age` (bare: the charter default, or give an
+age within the elderly band), members past that age join the guarantee at the
+elderly obligation. `--years-in-collective` sets their claim through the
+framework's vesting curve — `0` is no claim, the same as leaving it off. The
+retired share is measured from Census ages where the frame has them, and
+labelled as leaning on the Census age profile where it does not.
+
+```bash
+python3 utils/eoh_cli.py scenario run demographic_shock --frame us --shock-type aging --shock-magnitude 0.04 --retirement-age
+python3 utils/eoh_cli.py scenario run demographic_shock --frame us --retirement-age 70 --years-in-collective 0
+```
+
+**A disaster that destroys capital** — a wildfire, flood or earthquake — is
+`capital_loss`. The share destroyed is written down (D1: the TEH it embodied is
+reported, not charged to the Trust), its upkeep leaves the obligation, and the
+machine work it did falls to people. By default machine capability falls by the
+same share as the capital, which assumes the loss is spread across the stock;
+`--capability-fraction-lost` sets it apart (a fire that takes houses and spares
+the grid). Rebuilding is a choice, off unless `--rebuild-years` is given; when
+on, it is booked as the reconstruction obligation (`reconstruction_obligation`
+in `total_eoh` and the pipeline) and the result says `rebuild: on`. The
+result separates **capacity** (the machine stock that can still run — only a
+rebuild restores it) from **efficiency** (the share of people's work actually
+done — labour restores it), so a broken plant and an unstaffed one do not read
+alike. A wildfire also burns ecosystem: `compound_shock --ecology-collapse
+--capital-fraction-lost F` applies both to one state.
+
+```bash
+python3 utils/eoh_cli.py scenario run capital_loss --frame us --capital-fraction-lost 0.05 --rebuild-years 5
+```
+
+**Deferred upkeep against the overbuild floor.** On a frame,
+`maintenance_crisis` reads every year against the overbuild floor — whether
+the apparatus still saves more hours than it costs its members against
+autarky. Deferred upkeep pushes toward the floor two ways: the compounding
+backlog adds upkeep, and the neglected stock, its condition falling, abates
+less. The table shows the condition ratio and the margin each year, and the
+year the stock is past saving: from then on catching up the neglect costs more
+labour than rebuilding. That year is derived, not set — an older or more
+upkeep-intensive stock reaches it sooner — and the frame's capital age sets
+where the stock starts. On `--frame us` that age is measured: BEA's average
+ages over BEA's service lives (`frame show --frame us` gives the band and what
+is excluded).
+
+```bash
+python3 utils/eoh_cli.py scenario run maintenance_crisis --frame us --fulfilment-fraction 0.5 --periods 30
+```
+
+**When ε is a range** (a frame-file range, or the US instruments), the
+scenario also runs at both ends and prints each outcome. Where they differ,
+the difference is the result; when the instruments DISAGREE, the midpoint is
+labelled as not a reading. Precedence: a flag, then `--frame-file`, then
+`--frame`, then the default. A scenario that reads no frame refuses frame
+flags rather than ignoring them.
 
 ---
 
@@ -383,8 +517,28 @@ Research-tier federation mechanics. `--format table|json` goes before the subcom
 python3 utils/eoh_cli.py coasean n1-check                  # N=1 regression anchor
 python3 utils/eoh_cli.py coasean count                     # emergent N(ε) across the arc
 python3 utils/eoh_cli.py coasean federation --epsilon 0.4  # per-collective snapshot
+python3 utils/eoh_cli.py coasean federation --frame us --split us_states  # the US frame by state
 python3 utils/eoh_cli.py coasean simulate --periods 10     # multi-period arc
 ```
+
+### coasean federation on a frame
+
+Without a frame, `federation` divides the reference economy into N(ε) equal
+collectives and charges no land fee. On `--frame` / `--frame-file` it divides
+the FRAME instead. Each collective runs the same path as `scenario run
+collective` on that frame: its land, its labour supply, and the per-parcel land
+fee, capped at what its own mint can pay. A total row and the whole frame run
+as one collective are printed beside the collectives.
+
+`--split NAME|PATH` names how the frame divides. `us_states` ships, holding the
+48 states and DC. Without `--split`, the frame divides into N(ε) equal shares,
+or `--n` of them. A split file is JSON. Each entry in its `collectives` list
+gives an `id`, an optional `label`, and positive `population`,
+`land_hectares` and `parcel_count`. Those three are WEIGHTS: each collective
+gets its share of the frame's totals, and its population share of the frame's
+capital and Trust. Every other input (age mix, labour capacity, stock age,
+ε) is the frame's. Because the fee cap applies collective by collective, the
+collected fees need not add up to the whole frame's.
 
 ### coasean simulate flags
 

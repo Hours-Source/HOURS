@@ -32,6 +32,7 @@ from hours_eoh.core.multipliers import (
     multiplier_band_check,
 )
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     M_BAND_LOW, M_BAND_HIGH, M_MAX, ALPHA_SCALE,
     GOVERNANCE_MIN_ASSESSORS,
     GOVERNANCE_IRR_WARN_THRESHOLD, GOVERNANCE_IRR_CRIT_THRESHOLD,
@@ -280,7 +281,7 @@ def _arc(args: argparse.Namespace) -> None:
 
     rows_data = []
     for i in range(n):
-        eps = i / (n - 1) * 0.99 if n > 1 else 0.40
+        eps = i / (n - 1) * EPSILON_ARC_MAX if n > 1 else 0.40
         a1, a2, a3, a4 = epoch_alpha_weights(eps)
         m = tier_multiplier(T, D, S, I, alpha_coefficients=(a1, a2, a3, a4))
         band_pass = M_BAND_LOW <= m <= M_BAND_HIGH

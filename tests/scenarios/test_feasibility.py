@@ -1,10 +1,8 @@
-"""
-Tests for scenarios/feasibility.py — the labor-feasibility ceiling.
+"""Tests for scenarios/feasibility.py, the labour-feasibility ceiling.
 
-The headline assertion is uncomfortable and deliberately so: on the repo's own
-constants, ε = 0 is not a feasible state. These tests pin that, pin the
-arithmetic that produces it, and pin the direction of every lever so the result
-cannot be quietly tuned away without a test going red.
+The headline result is uncomfortable on purpose: on the repo's own constants, ε = 0 is
+not a feasible state. These tests pin that result, the arithmetic behind it, and the
+direction of every lever. Then no one can tune the result away without a red test.
 
 Arc coverage at ε ∈ {0.0, 0.40, 0.90, 0.99}.
 """
@@ -15,7 +13,7 @@ import math
 
 import pytest
 
-from hours_eoh.data import AGE_GROUPS, H_REF, PERSONAL_EOH_BASE
+from hours_eoh.data import AGE_GROUPS, H_REF, MEASURED_CAPACITY_H_YR, PERSONAL_EOH_BASE
 from hours_eoh.scenarios.feasibility import (
     SUBSISTENCE_ADULT_SHARE_BAND,
     SUBSISTENCE_CAPACITY_BAND,
@@ -66,10 +64,9 @@ def test_supply_is_capacity_times_share():
 
 
 def test_supply_defaults_to_the_models_own_capacity_weighted_share():
-    """
-    The default share was the bare `working_age` fraction until 2026-09-04. It
-    is now Σ fraction·capacity_weight, which carries the 65-69 who sit inside
-    the band `MEASURED_CAPACITY_H_YR` is measured over.
+    """The default share is Σ fraction·capacity_weight, which includes the 65-69 inside
+    the band of `MEASURED_CAPACITY_H_YR`. Until 2026-09-04 it was the bare `working_age`
+    fraction.
     """
     from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
     assert labor_supply_per_capita(2000.0) == pytest.approx(
@@ -130,7 +127,8 @@ def test_implied_ceiling_is_far_below_the_shipped_base():
 
 
 def test_supply_side_resolution_demands_an_implausible_working_day():
-    """The other way to close it, priced so it can be judged."""
+    """The other way to close the gap, with its price stated so a reader can judge it.
+    """
     c = feasibility_check(adult_capacity_h_yr=float(H_REF), adult_share=0.6,
                           epsilon=0.0)
     # 2400.63 → 2267.90 on 2026-09-09 (capital-path decision, R falls at ε=0).
@@ -143,24 +141,13 @@ def test_supply_side_resolution_demands_an_implausible_working_day():
 
 
 def test_report_no_longer_flags_over_determination_on_the_measured_path():
-    """
-    THE VERDICT FLIPPED ON 2026-09-04, AND NOT BECAUSE THE MODEL GOT BETTER AT
-    ANYTHING. The self-consistency arm ran on `H_REF × 0.5 = 1,040
-    h/person·yr` — the paid-work calendar year times the same 1e9-for-1M
-    convention the corridor CLI carried — which is 68% of the measured supply.
-    The 2026-09-03 capacity migration replaced `H_REF` on the feasibility path
-    and missed this caller, so the report published OVER-DETERMINED from a
-    supply basis the repo had already retired.
+    """On the measured path the report no longer reads OVER-DETERMINED (2026-09-04;
+    [record](record/personal.md#ceiling-check-and-band)). The model did not improve.
 
-    THIS IS THE THIRD CHANGE TO DISSOLVE THE OVER-DETERMINATION AND ALL THREE
-    WENT THE FLATTERING WAY: the capacity migration narrowed it, the band
-    alignment closed it on the shipped path, and this one closes it on the
-    report's own arm. The first and third correct a supply figure to one the
-    repo already adopted; the second was one-sided and its objection stands in
-    `record/personal.md`. Recorded together because the pattern is worth more
-    than any of them alone.
-
-    The old arm stays reachable and still returns OVER-DETERMINED.
+    The self-consistency arm ran on `H_REF × 0.5 = 1,040 h/person·yr`, 68% of the
+    measured supply, a basis the repo had already retired. This was the THIRD change to
+    dissolve the over-determination, and all three went the flattering way. The old arm
+    stays reachable and still returns OVER-DETERMINED.
     """
     r = over_determination_report()
     assert r["over_determined"] is False
@@ -177,27 +164,10 @@ def test_report_no_longer_flags_over_determination_on_the_measured_path():
 # ---------------------------------------------------------------------------
 
 def test_subsistence_sweep_clears_only_at_implausible_labour_budgets():
-    """
-    TWO cases now clear, and which two is the whole finding.
-
-    History, because the sign of each move matters:
-      PERSONAL_EOH_BASE 1500   no case feasible
-      repriced to 1000         exactly one clears, ratio 0.99, at 2,600 h/yr
-                               adult capacity — ABOVE the modern full-time
-                               reference — and a 0.60 adult share
-      KNOWLEDGE_EOH_BASE       that case now reads 1.0019 and fails
-      AGE_GROUPS elderly       w 1.475 → 1.3528 cuts personal demand 11.76%
-      2.5 → 1.48 (2026-08-10)  and TWO cases clear, best ratio 0.889
-
-    The over-determination is REDUCED, not resolved, and the two cases that
-    clear are the two most generous corners in the sweep: 2,600 h/yr adult
-    capacity (7.1 h/day every day, above the modern full-time reference) at
-    both adult shares. Every case at a plausible labour budget still fails,
-    and the central reading — 1,387 demand against 1,000 supply, ratio 1.39 —
-    is still infeasible.
-
-    The honest statement moved from "infeasible everywhere in the sweep" to
-    "feasible only where the labour budget is implausible".
+    """Every subsistence case that clears sits at the TOP of the capacity band, above
+    1,400 h/capita of supply. The clearing count moved 0 → 1 → 2 → 1 → 2 on unrelated
+    changes, so the test pins the ordering, not the count
+    ([record](record/personal.md#feasibility-test-history)).
     """
     # 2026-09-01: ONE survivor, not two. AGE_WEIGHT_CHILD took the MTUS
     # self-maintenance measurement for ages 6-14 (1.5 -> 1.82), which raises
@@ -221,15 +191,10 @@ def test_subsistence_sweep_clears_only_at_implausible_labour_budgets():
 
 
 def test_sweep_covers_a_capacity_above_the_modern_reference():
-    """The test must not rest on a stingy labour budget.
-
-    THE SOFTENING IS WITHDRAWN (2026-09-01). The 2026-08-10 elderly revalue had
-    made the most generous corner CLEAR, and this test was rewritten then to
-    assert that. AGE_WEIGHT_CHILD taking the MTUS measurement for ages 6-14
-    reverses it: at 2,600 h/yr per adult — 7.1 hours every day of the year with
-    no rest days — and the most favourable adult share, subsistence STILL does
-    not clear. Ratio 1.0073, only just over, which is why it flipped on a 3.6%
-    demand change and why the ORDERING is asserted rather than the level.
+    """The sweep includes 2,600 h/yr per adult, so it does not rest on a stingy labour
+    budget. That corner has flipped twice on moves under 5%, so the test asserts the
+    ordering and the closeness, not a verdict
+    ([record](record/personal.md#feasibility-test-history)).
     """
     assert max(SUBSISTENCE_CAPACITY_BAND) > 2080.0
     generous = feasibility_check(adult_capacity_h_yr=max(SUBSISTENCE_CAPACITY_BAND),
@@ -375,8 +340,15 @@ def test_closed_form_understates_the_crossover():
     # arc reaches feasibility earlier.
     # 0.35553 → 0.32816 on 2026-09-09: less non-personal demand at ε=0 means
     # the arc reaches feasibility sooner.
-    assert actual == pytest.approx(0.32816, abs=0.005)
+    # 0.32816 → 0.44034 on 2026-10-01: demand split `per_component` (the
+    # adopted response) instead of (1 − ε). Care and nutrition keep automation
+    # floors, so human demand falls more slowly and feasibility arrives later.
+    # The naive form reads ε=0 only, where the two responses agree, so it did
+    # not move — and the gap it understates by widened, 0.063 → 0.175.
+    assert actual == pytest.approx(0.44034, abs=0.005)
     assert actual - naive > 0.05
+    legacy = feasible_epsilon(2000.0, 0.5, automation_response="uniform")
+    assert legacy == pytest.approx(0.32816, abs=0.005)
 
 
 def test_feasible_epsilon_returns_zero_when_already_feasible():
@@ -511,18 +483,10 @@ def test_prediction_is_never_negative():
 
 
 def test_tol_still_changes_the_answer_where_the_search_actually_runs():
-    """
-    THE WIRING RATCHET CAUGHT THIS ON 2026-09-04 AND WAS RIGHT TO.
-
-    `feasible_epsilon(tol=)` went inert on the shipped defaults the moment the
-    supply band was aligned: ε=0 became feasible, so the bisection returns
-    immediately and the tolerance never enters. That is not a dead parameter —
-    it is a parameter whose branch the new default no longer reaches, which is
-    exactly the shape corpus F-016 warns about from the other direction.
-
-    So it is exercised where the search runs: a capacity low enough that ε=0
-    does not clear. Declaring it inert instead would have loosened a ratchet
-    that is at its bound, to hide a default change.
+    """`feasible_epsilon(tol=)` must still change the answer where the bisection runs,
+    so the test uses a capacity at which ε=0 does not clear. On the shipped defaults ε=0
+    clears and the tolerance never enters
+    ([record](record/personal.md#feasibility-test-history)).
     """
     lo = feasible_epsilon(adult_capacity_h_yr=1200.0, tol=1e-2)
     hi = feasible_epsilon(adult_capacity_h_yr=1200.0, tol=1e-6)
@@ -534,20 +498,11 @@ def test_tol_still_changes_the_answer_where_the_search_actually_runs():
 
 
 class TestTheDocumentedFiguresAreLive:
-    """
-    `w` was written as 1.475 in FIVE places in `feasibility.py` and was 1.3528
-    live — one of them inside a worked derivation, so a stale figure was doing
-    arithmetic in a docstring. It went stale on the AGE_WEIGHT_CHILD revalue,
-    not on anything that touched this module, so no test here would ever have
-    caught it: the drift arrived from outside.
+    """Where prose must carry a number, the test pins it to the live value (mode 13;
+    [record](record/personal.md#feasibility-test-history)).
 
-    Failure mode 13 says compute rather than restate. Where prose must carry a
-    number — a module docstring explaining WHY the weighting matters cannot be
-    a function call — the number gets pinned instead.
-
-    STATED GAP: this checks the figures the docstrings state TODAY. It cannot
-    notice a new figure written into prose tomorrow, and there is no general
-    mechanism that would; the general rule stays "return it from the function".
+    STATED GAP: it checks the figures the docstrings state TODAY, not a figure written
+    tomorrow.
     """
 
     def test_the_documented_w_matches_the_live_one(self) -> None:
@@ -572,7 +527,7 @@ class TestTheDocumentedFiguresAreLive:
         assert round((266.0 + h - 76.0) / w) == 633, "the worked example's B"
 
     def test_the_documented_elderly_weight_is_the_shipped_one(self) -> None:
-        """The module said elderly was weighted 2.5x; it is 1.48."""
+        """The module said the elderly weight was 2.5×; the shipped weight is 1.48."""
         from hours_eoh.data import AGE_WEIGHT_ELDERLY, AGE_WEIGHT_INFANT
         import inspect
         from hours_eoh.scenarios import feasibility as f
@@ -582,28 +537,14 @@ class TestTheDocumentedFiguresAreLive:
 
 
 class TestTheBandIsLive:
-    """
-    The ceiling check the existence argument actually supports.
+    """The shipped personal base must sit inside the feasibility band, a one-sided
+    check. `implied_base_ceiling` tracks the adult share, so adopting it would fit the
+    constant to its own check (corpus F-018;
+    [record](record/personal.md#feasibility-test-history)).
 
-    `implied_base_ceiling` is NOT a derivation of the personal obligation — it
-    is linear in the adult share (888 at a=0.55, 975 at 0.60, 1,065 at the
-    shipped 0.652411, 1,147 at 0.70) and moves whenever the SUPPLY frame moves,
-    which it did on 2026-09-04 without anything about human maintenance
-    changing. So it cannot be adopted as the value: setting the base to its own
-    ceiling fits the constant to the target its test checks against and makes
-    feasibility unfalsifiable by construction — corpus F-018, which this repo
-    has already committed twice (`GUF_USE_SCALE_FACTOR`, `DEFAULT_SEGMENTS`).
+    STATED GAP: inside-the-band is a weak claim.
 
-    What it supports is a ONE-SIDED CHECK: the shipped base must sit inside the
-    band. That is falsifiable, it currently passes, and it would have failed
-    before the band alignment — the ceiling was 974.7 against a shipped 1,000.
-    Nothing asserted it then.
-
-    STATED GAP: inside-the-band is a weak claim. The band spans 427–1092, a
-    factor of 2.6, and `PERSONAL_EOH_BASE` is the most leveraged constant in
-    the model (elasticity 0.94 on total EOH at ε=0). Passing this says the base
-    is not impossible, not that it is right. What would settle the point inside
-    the band is `personal_statutory_floor`, at 6.9% coverage.
+    Passing says the base is not impossible, not that it is right.
     """
 
     def test_the_shipped_base_sits_inside_the_band(self) -> None:
@@ -616,8 +557,9 @@ class TestTheBandIsLive:
         )
 
     def test_the_documented_band_matches_the_live_one(self) -> None:
-        """It was restated in `data.py` as 390–1006 and went stale on a change
-        to `w` made elsewhere. Restated figures are pinned or removed."""
+        """`data.py` restated the band as 390–1006, and it went stale on a change to `w`
+        made elsewhere. A restated figure gets a pin or goes.
+        """
         import pathlib
         lo, hi = over_determination_report()["ceiling_band"]
         block = pathlib.Path(__file__).resolve().parents[2] / "hours_eoh" / "data.py"
@@ -644,7 +586,7 @@ class TestTheBandIsLive:
         assert old["self_consistency"]["supply_per_capita"] == pytest.approx(1040.0)
 
     def test_the_ceiling_is_a_supply_quantity_not_a_demand_one(self) -> None:
-        """The reason it must not be adopted: it tracks the adult share."""
+        """The reason not to adopt the ceiling: it tracks the adult share."""
         seen = [feasibility_check(epsilon=0.0, adult_share=a)["implied_base_ceiling"]
                 for a in (0.55, 0.60, 0.70)]
         assert seen == sorted(seen), "the ceiling should rise with the adult share"
@@ -659,18 +601,10 @@ class TestTheBandIsLive:
 
 
 class TestVerificationIsReachableFromTheEntryPoint:
-    """
-    THE STRANDED PARAMETER, CAUGHT BEFORE IT BECAME ONE (2026-09-11).
-
-    `reference/verification.py` and `scenarios/verification_cost.py` measured
-    the register's own labour, and the term stopped there: `feasibility_check`
-    — the documented entry point for "can this population supply what it owes"
-    — could not see it. A parameter that is accepted nowhere on the path a
-    reader actually runs is not wired, which is `test_parameter_wiring`'s rule.
-
-    Default 0.0 is the pre-existing behaviour and is correct: the term is
-    REPORTING ONLY and whether it enters the obligation is Phase 3. What the
-    default must not do is make the parameter unreachable.
+    """`feasibility_check` must accept the register's own labour, or the term stops
+    before the documented entry point (mode 5). The 0.0 default keeps the earlier
+    behaviour; the term is REPORTING ONLY until Phase 3
+    ([record](record/personal.md#feasibility-test-history)).
     """
 
     def test_the_default_changes_nothing(self):
@@ -726,3 +660,165 @@ class TestVerificationIsReachableFromTheEntryPoint:
                     f"at ε={row['epsilon']} basis={basis} the arithmetic bound "
                     "and the wired path disagree"
                 )
+
+
+class TestMintFloorReach:
+    """How much of the labour supply the mint can pay (2026-09-30). The floor
+    protects a market wage only as an outside option, and only this far."""
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_coherent_across_the_arc(self, eps):
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        r = mint_floor_reach(eps)
+        assert 0.0 < r["reach"] < 1.0
+        assert r["reach"] * r["supply_per_capita"] == pytest.approx(
+            r["registered_hours_per_capita"], rel=1e-12)
+        assert r["market_hours_per_capita"] == pytest.approx(
+            max(0.0, r["supply_per_capita"] - r["human_obligation_hours_per_capita"]), rel=1e-12)
+
+    def test_shape_small_at_subsistence_peaks_mid_arc_falls_at_the_top(self):
+        """The peak sits BETWEEN reporting points (mode 3) — searched on its
+        own grid, not read off the four."""
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        grid = [i * 0.99 / 99 for i in range(100)]
+        reach = [mint_floor_reach(e)["reach"] for e in grid]
+        peak_at = grid[reach.index(max(reach))]
+        assert 0.40 < peak_at < 0.90
+        assert reach[0] < 0.05, "the register admits almost nothing at subsistence"
+        assert reach[-1] < max(reach)
+        assert max(reach) < 0.5, "even at its peak the mint cannot pay most hours"
+
+    def test_frame_invariant(self):
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        ref = mint_floor_reach(0.40)["reach"]
+        for pop in (1.0e5, 3.35e8):
+            assert mint_floor_reach(0.40, population=pop)["reach"] == pytest.approx(ref, rel=1e-9)
+
+
+class TestDemandIsThePipelinesSplit:
+    """2026-10-01: demand was (1 − ε)·[w·B + R] — the `uniform` response,
+    retired as the default at Phase 2 — understating human demand 1.13× /
+    2.20× / 13.15× at ε = 0.40 / 0.90 / 0.99."""
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_demand_is_the_pipelines_human_eoh(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        for resp in ("per_component", "uniform"):
+            f = feasibility_check(epsilon=eps, automation_response=resp)
+            p = eoh_to_teh_pipeline(eps, automation_response=resp)
+            assert f["total_demand_per_capita"] == pytest.approx(
+                p["human_eoh"] / 1.0e6, rel=1e-9), resp
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_inversion_is_exact_at_the_ceiling(self, eps):
+        # The ceiling assumes h_p does not depend on B; evaluating the check
+        # AT the ceiling must land on demand == supply.
+        f = feasibility_check(epsilon=eps)
+        at = feasibility_check(epsilon=eps, personal_base=f["implied_base_ceiling"])
+        assert at["demand_supply_ratio"] == pytest.approx(1.0, rel=1e-9)
+
+    def test_the_responses_agree_where_nothing_is_automated(self):
+        a = feasibility_check(epsilon=0.0)
+        b = feasibility_check(epsilon=0.0, automation_response="uniform")
+        assert a["total_demand_per_capita"] == pytest.approx(
+            b["total_demand_per_capita"], rel=1e-12)
+
+    def test_the_ceiling_stays_finite_at_the_top(self):
+        # Care keeps a human floor, so some base is infeasible at every ε.
+        pc = feasibility_check(epsilon=0.99)["implied_base_ceiling"]
+        un = feasibility_check(epsilon=0.99, automation_response="uniform")["implied_base_ceiling"]
+        assert pc < un / 10.0
+
+    @pytest.mark.parametrize("cap", [600.0, 900.0, MEASURED_CAPACITY_H_YR])
+    def test_the_bisection_premise_holds(self, cap):
+        r = [feasibility_check(adult_capacity_h_yr=cap, epsilon=i / 100)["demand_supply_ratio"]
+             for i in range(100)]
+        assert all(b <= a + 1e-12 for a, b in zip(r, r[1:]))
+
+
+class TestTheDemographicMargin:
+    """`demographic_margin` had no test (2026-10-03) although the record said it
+    was "pinned flat" on 2026-10-01. Pinned here, plus the age mix it gained."""
+
+    @staticmethod
+    def _us_ages() -> dict[str, float]:
+        from hours_eoh.data import AGE_GROUP_RANGES
+        from hours_eoh.reference.care_demand import population_shares
+        return population_shares(AGE_GROUP_RANGES, year=2025)
+
+    def test_flat_in_epsilon(self):
+        from hours_eoh.scenarios.feasibility import demographic_margin
+        m = [demographic_margin(epsilon=e)["margin_pp"] for e in (0.0, 0.40, 0.90, 0.99)]
+        assert max(m) - min(m) == pytest.approx(0.0, abs=1e-9)
+
+    def test_the_default_ages_are_the_shipped_ones(self):
+        from hours_eoh.data import AGE_GROUP_FRACTIONS
+        from hours_eoh.scenarios.feasibility import demographic_margin
+        assert demographic_margin(age_fractions=dict(AGE_GROUP_FRACTIONS)) == pytest.approx(
+            demographic_margin())
+
+    def test_an_age_mix_moves_both_sides(self):
+        """Supply AND obligation: the US 2025 mix differs from the shipped one in
+        the adult share and in the per-capita personal obligation."""
+        from hours_eoh.scenarios.feasibility import demographic_margin
+        base, us = demographic_margin(), demographic_margin(age_fractions=self._us_ages())
+        assert us["adult_share"] != pytest.approx(base["adult_share"], rel=1e-4)
+        assert us["personal_demand_per_capita"] != pytest.approx(
+            base["personal_demand_per_capita"], rel=1e-4)
+        assert us["margin_pp"] != pytest.approx(base["margin_pp"], rel=1e-3)
+
+    def test_it_is_assembled_from_its_parts(self):
+        from hours_eoh.core.eoh_generation import total_eoh
+        from hours_eoh.scenarios.feasibility import (
+            capacity_weighted_adult_share, demographic_margin)
+        ages = self._us_ages()
+        m = demographic_margin(epsilon=0.40, population=335e6, age_fractions=ages)
+        a = capacity_weighted_adult_share(ages)
+        d = total_eoh(epsilon=0.40, population=335e6, age_distribution=ages)["personal"] / 335e6
+        assert m["margin_pp"] == pytest.approx((a - d / MEASURED_CAPACITY_H_YR) * 100.0)
+
+
+class TestMeasuredCapacityWeights:
+    """The age groups' capacity weights, measured on the same instrument as
+    `MEASURED_CAPACITY_H_YR` (2026-10-08). Reporting only: nothing adopted.
+    """
+
+    def test_the_by_age_extract_is_the_same_instrument(self):
+        from hours_eoh.reference.mtus_time_use import capacity_frames, capacity_in_band
+        for sample, c in capacity_frames().items():
+            assert capacity_in_band(sample, 18, 69)["h_yr"] == pytest.approx(c, rel=1e-5), sample
+
+    def test_each_group_is_its_parts_weighted_by_population(self):
+        from hours_eoh.scenarios.feasibility import measured_capacity_weights
+        r = measured_capacity_weights()
+        for name, g in r["groups"].items():
+            assert g["shipped"] == AGE_GROUPS[name]["capacity_weight"]
+            assert g["measured"] == pytest.approx(
+                sum(p["share_of_group"] * p["ratio_to_c"] for p in g["parts"]), rel=1e-12)
+            for p in g["parts"]:
+                assert p["ratio_to_c"] == {"in band": 1.0, "not surveyed": 0.0}.get(
+                    p["kind"], p["ratio_to_c"])
+        # The over-69 are measured, not zero, and supply rises with them.
+        elderly = r["groups"]["elderly"]
+        assert any(p["kind"] == "measured" and p["ratio_to_c"] > 0.0 for p in elderly["parts"])
+        assert r["adult_share_measured"] > r["adult_share_shipped"]
+        assert r["adopted"] is False
+
+
+class TestTheAdultShareReachesTheMintsReach:
+    """2026-10-14: `mint_floor_reach` read supply off the shipped age weights
+    whatever share a frame measured — found by wiring it to the CLI."""
+
+    def test_a_supplied_share_moves_supply_and_reach(self):
+        from hours_eoh.scenarios.feasibility import labor_supply_per_capita, mint_floor_reach
+        base = mint_floor_reach(0.40)
+        moved = mint_floor_reach(0.40, adult_share=0.70)
+        assert moved["supply_per_capita"] == pytest.approx(
+            labor_supply_per_capita(adult_share=0.70), rel=1e-12)
+        assert moved["reach"] < base["reach"]
+        assert base["adult_share_source"].startswith("NOT SUPPLIED")
+        assert moved["adult_share_source"] == "passed in by the caller"

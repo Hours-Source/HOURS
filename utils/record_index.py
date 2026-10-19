@@ -1,13 +1,13 @@
 """
 Generate the per-entry index at the top of each `record/<area>.md` history.
 
-WHY THIS EXISTS. `record/` holds 85 entries across nine area files, 89% of the
-bytes being history. History is the evidence that makes the failure modes in
+WHY THIS EXISTS. `record/` holds nine area files, and nearly all of their bytes
+are history. History is the evidence that makes the failure modes in
 CLAUDE.md believable and the detail to reach for when one fires — so it must
 NOT be capped. But a file nobody can navigate prevents no repeats, however
 complete it is. The quantity to bound is the cost of ONE retrieval, and an index
 bounds it without deleting anything: a reader jumps to an anchor instead of
-scanning 50k of prose.
+scanning the whole history.
 
 WHAT IT DOES NOT DO. It does not summarise, rank or judge an entry — the row is
 the entry's own bold lead, truncated. Anything cleverer would be a second

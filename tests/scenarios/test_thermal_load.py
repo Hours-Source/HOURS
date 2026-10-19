@@ -1,14 +1,13 @@
-"""
-Tests for scenarios/thermal_load.py — the thermal obligation carried in the ledger.
+"""Tests for scenarios/thermal_load.py: the thermal obligation carried in the ledger.
 
-Two findings are pinned here and they point opposite ways:
-  1. The obligation is TINY as a share of total EOH (~0.12%), because the
-     ecological domain it lands in is itself a rounding error. It read 0.078%
-     before PERSONAL_EOH_BASE was repriced 1500 → 1000 — the obligation did not
-     grow, the denominator shrank.
+Two findings point opposite ways:
+
+  1. The obligation is TINY as a share of total EOH, because the ecological
+     domain it lands in is itself a rounding error.
   2. It is nonetheless UNAFFORDABLE at low ε, where labour income is thin.
 
-Arc coverage at ε ∈ {0.0, 0.40, 0.99} throughout.
+Arc coverage at ε ∈ {0.0, 0.40, 0.99} throughout
+([record](record/thermal.md#thermal-solvency-test-history)).
 """
 
 from __future__ import annotations
@@ -68,25 +67,20 @@ def test_share_of_total_is_tiny():
 
 
 def test_personal_dominates_the_low_arc_even_loaded():
-    """
-    Block K-IV loosened this from a flat >0.86 to an arc-dependent claim.
-    Putting knowledge on its measured footing cut personal's share from
-    94% to 51% across the arc, so "personal dominates everywhere" is no longer
-    true at high ε. It remains true where the thermal obligation actually bites
-    — the low arc, where the coverage gap lives.
-
-    The thermal domain-balance finding is UNAFFECTED and is what this file is
-    about: the obligation is still ~0.1% of total EOH and the ecological domain
-    is still ~2.5 h/person·yr against personal's 1,400+.
+    """Personal dominates where the thermal obligation bites: the low arc, where the
+    coverage gap lives. Since Block K-IV it does not dominate at high ε, because
+    knowledge's measured footing cut personal's share across the arc. The ecological
+    domain stays a few hours per person-year against personal's thousand-plus.
     """
     for r in thermal_load_arc(arc=ARC):
         assert r["ecological_per_capita"] < 5.0
         # > 1,400 until the elderly revalue took w to 1.3016; the claim under
-        # test is personal DOMINANCE, which 1,301.6 carries just as well.
+        # test is personal DOMINANCE, which 1,301.6 carried just as well
+        # (1,352.8 live, 2026-10-17).
         assert r["personal_per_capita"] > 1_250.0
         if r["epsilon"] <= 0.40:
-            # > 0.84 until the knowledge re-anchor; 0.819 at ε=0.40 still
-            # leaves personal the dominant domain where the obligation bites.
+            # > 0.84 until the knowledge re-anchor; 0.819 at ε=0.40 then, 0.880
+            # live (2026-10-17): personal dominates where the obligation bites.
             assert r["personal_share_of_total"] > 0.81
 
     top = thermal_load_arc(arc=ARC)[-1]
@@ -137,27 +131,11 @@ def test_coverage_rises_with_epsilon():
 
 
 def test_carrying_the_obligation_reduces_coverage():
-    """
-    CARRYING THE OBLIGATION COSTS THREE ORDERS OF COVERAGE, NOT A FACTOR OF 3.5.
-
-    This test recorded 3.5 — the same stale figure, from the same cause, as
-    `test_thermal_solvency.test_flow_more_than_triples_the_ecological_domain`,
-    which was corrected to ~1,626x on 2026-08-17 while this sibling was not.
-    Both compared the thermal load against an ecological baseline inflated by
-    the frame mismatch. Here the inflation entered through `fiscal_snapshot`,
-    which scaled the levy base and the guarantee with its own `population` and
-    then took its ecological requirement from ECOLOGICAL_BASE_RATE — the whole
-    contiguous US — so the denominator of `coverage_margin` was another
-    jurisdiction's obligation.
-
-    Framed consistently the ratio is ~1,162x. It is not the same number as the
-    solvency test's 1,626x and should not be: that one is a load ratio on the
-    domain, this one is levy capacity over obligation cost at ε=0.99. Same
-    cause, same order, different quantity.
-
-    Asserted as an ORDER OF MAGNITUDE, not a level — it moves with every
-    constant in the chain, and pinning the level here is what let the stale
-    3.5 survive its own correction.
+    """Carrying the obligation costs three orders of coverage at ε=0.99, not a factor of
+    3.5. The old 3.5 divided by an ecological requirement taken from the whole
+    contiguous US, while the levy base and guarantee scaled with the collective's
+    population. The test asserts an ORDER OF MAGNITUDE, because pinning the level let
+    the stale 3.5 survive ([record](record/thermal.md#thermal-solvency-test-history)).
     """
     loaded = thermal_load_arc(arc=(0.99,))[0]["coverage_margin"]
     unloaded = thermal_load_arc(thermal_obligation=0.0, arc=(0.99,))[0]["coverage_margin"]
@@ -191,3 +169,21 @@ def test_rejects_bad_inputs():
         thermal_load_arc(thermal_obligation=-1.0)
     with pytest.raises(ValueError):
         thermal_load_arc(population=0.0)
+
+
+def test_the_reference_flow_is_the_research_call_it_records():
+    """`REFERENCE_THERMAL_FLOW_EOH` is a copy of
+    `research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"]`, rounded
+    to the hour. scenarios/ cannot import research/, so this test is the binding (mode
+    4).
+    """
+    from hours_eoh.research.thermal_solvency import solvency_at_epsilon
+    assert REFERENCE_THERMAL_FLOW_EOH == pytest.approx(
+        solvency_at_epsilon(0.40)["thermal_flow_eoh"], abs=0.5)
+
+
+def test_the_reference_population_is_the_frame():
+    from hours_eoh.data import REFERENCE_FRAME_POPULATION
+    from hours_eoh.scenarios.thermal_load import REFERENCE_POPULATION
+    assert REFERENCE_POPULATION is REFERENCE_FRAME_POPULATION or \
+        REFERENCE_POPULATION == REFERENCE_FRAME_POPULATION

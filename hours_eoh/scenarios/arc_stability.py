@@ -15,11 +15,11 @@ The repo has three neighbouring questions and none of them is this one.
 against ceilings. `core/autarky.overbuild_check` asks whether one collective at
 one capital stock is worth being in.
 
-The compass is different and simpler: **at this ε, with no further automation
-ever arriving, can the system stay here indefinitely?** A currency that must
-keep growing to avoid collapse has a ceiling that eventually fails it. One that
-is stationary at every point on its arc does not — and whether post-scarcity is
-reachable becomes a question about ambition rather than about survival.
+The compass is different and simpler: **at this ε, with no further automation ever
+arriving, can the system stay here indefinitely?** A currency that must keep growing to
+avoid collapse has a ceiling that eventually fails it. One that is stationary at every
+point on its arc does not, and whether post-scarcity is reachable becomes a question
+about ambition, not survival.
 
 THE THREE CONDITIONS, and they are not the same question asked three ways:
 
@@ -36,8 +36,8 @@ THE THREE CONDITIONS, and they are not the same question asked three ways:
                           obligation while your bridges rot**, which is why this
                           is separate from (1).
 
-Conditions 1 and 3 are ordered by construction: 3 implies 1. They are reported
-separately anyway, because WHICH one fails says what to do about it.
+Construction orders conditions 1 and 3: 3 implies 1. The module reports them separately
+anyway, because WHICH one fails says what to do about it.
 
 EVERY VERDICT STATES ITS STANDARD, and that is not decoration. This module
 shipped for one commit evaluating conditions 1 and 3 at `collapsed` and
@@ -48,14 +48,13 @@ outright: it is F_a·(1 − a), already abated, and `core/autarky` will not acce
 an abated value as the autarky reference because a standard with the apparatus
 baked into it cannot be the counterfactual FOR the apparatus.
 
-HOW THIS RELATES TO `corridor`, stated so the two do not read as contradicting.
-Corridor asks which ε are SURVIVABLE; this asks where the system could STAND
-STILL, which additionally requires the delivery cost to be covered. Stability is
-therefore strictly stronger at the same standard. The levels are NOT written
-here: the sufficiency floor has moved six times (the last, 2026-09-15, when this
-module moved to the adopted per-component split), and a table in a docstring
-outlived the first five. Run `band_by_standard()` beside `eoh corridor band`;
-the levels are pinned in `tests/test_measured_capacity.py`.
+HOW THIS RELATES TO `corridor`, stated so the two do not read as contradicting. Corridor
+asks which ε are SURVIVABLE; this asks where the system could STAND STILL, which also
+requires that something covers the delivery cost. Stability is therefore strictly
+stronger at the same standard. This docstring writes NO levels. The sufficiency floor
+moved six times by 2026-09-15, when this module moved to the adopted per-component
+split, and a table in a docstring outlived the first five. Run `band_by_standard()`
+beside `eoh corridor band`; the levels are pinned in `tests/test_measured_capacity.py`.
 
 THE HUMAN SHARE IS THE ADOPTED SPLIT (2026-09-15). Until then `stability_at`
 multiplied both accounts by a uniform `1 − ε`, while the adopted default keeps
@@ -65,10 +64,10 @@ put the sufficiency floor at 0.29; under the adopted split the personal part of
 the obligation carries `personal_human_fraction(ε)` and everything else keeps
 `1 − ε`, exactly as `eoh_fulfillment.human_eoh_per_domain` splits the domains.
 
-WHAT THIS DOES NOT DO. It takes no charter decision and moves no number. It does
-not assert that the stationary band is where the system SHOULD sit — a society
-may rationally accept a non-stationary point while it builds through one. It
-reports where standing still is possible.
+WHAT THIS DOES NOT DO. It takes no charter decision and moves no number. It does not
+assert that the stationary band is where the system SHOULD sit. A society may rationally
+accept a non-stationary point while it builds through one. It reports where standing
+still is possible.
 
 Layer: scenarios/ — imports core/ and scenarios/; imported by neither.
 """
@@ -81,8 +80,8 @@ from typing import Any
 from hours_eoh.core.autarky import overbuild_check
 from hours_eoh.core.eoh_fulfillment import personal_human_fraction
 from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
-from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT
-from hours_eoh.scenarios.feasibility import labor_supply_per_capita
+from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
+from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share, labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 
 __all__ = [
@@ -155,9 +154,12 @@ def _as_dict(x: Any) -> dict:
 def stability_at(
     epsilon: float = 0.40,
     capital_stock_teh: float | None = None,
-    population: float = 1.0e6,
+    population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     standard: str = "sufficiency",
+    capital_age_ratio: float | None = None,
+    adult_share: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     The three conditions at one ε. Can the system stop here?
@@ -181,10 +183,10 @@ def stability_at(
     so the two conditions bind at opposite ends. That is the point of reporting
     them separately.
 
-    Worked example (canonical, ε=0.40, sufficiency, 2e9 TEH over 1e6 people):
-    supply 1,200.0 h/person·yr against an obligation and a delivery cost that
-    the arc table reports; the three flags are returned separately so which one
-    fails is legible.
+    Worked example (canonical, ε=0.40, sufficiency, 2e9 TEH over 1e6 people): supply
+    1,523.9 h/person·yr (2026-10-18) against an obligation and a delivery cost that the
+    arc table reports; the three flags are returned separately so which one fails is
+    legible.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -197,33 +199,66 @@ def stability_at(
             there was no apparatus.**
         population: Frame population.
         adult_capacity_h_yr: Hours an adult can supply in a year.
+        capital_age_ratio: The stock's age over its service life — it sets the
+            infrastructure upkeep in the delivery account and in condition 2.
+            None reads `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
+        adult_share: Share of the population able to supply labour — sets the
+            supply. None derives it from `age_fractions` when you
+            supply them, else from the shipped age weights (`labor_supply_per_capita`'s
+            default), and the result says which.
+        age_fractions: The population's age mix, `{group: fraction}`. Reaches
+            the obligation (`obligation_accounts`), condition 2
+            (`overbuild_check`'s B₀ and B(K)) and — unless `adult_share` is
+            given — the supply, so demand and supply read one population.
+            None → the shipped AGE_GROUPS mix, and the result says so.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
+    capital_supplied = capital_stock_teh is not None
+    age_supplied = capital_age_ratio is not None
+    age = CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None else capital_age_ratio
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if standard not in STANDARDS:
         raise ValueError(f"standard must be one of {STANDARDS}, got {standard!r}")
 
     base = personal_base_for(standard)
+    # THE AGE MIX REACHES DEMAND AND SUPPLY (2026-10-14). The frame's adult
+    # share set the supply while the obligation read the shipped pyramid — one
+    # function, two populations. An age mix with no adult share derives the
+    # share from the mix, so neither side can read a population the other
+    # does not.
+    ages = {} if age_fractions is None else {"age_distribution": age_fractions}
+    share_from_ages = adult_share is None and age_fractions is not None
+    if share_from_ages:
+        adult_share = capacity_weighted_adult_share(age_fractions)
+    # THE STOCK REACHES THE ACCOUNTS (2026-10-07). Until now only
+    # `overbuild_check` saw a supplied stock; the obligation and delivery came
+    # from `obligation_accounts` at the CANONICAL arc's capital, so `--frame us`
+    # printed BEA capital in its inputs and canonical capital in its figures —
+    # bit-identical across the whole conversion band.
     acct = obligation_accounts(
-        epsilon, population=population, personal_standard=standard
+        epsilon, population=population, personal_standard=standard,
+        capital_stock=capital_stock_teh, capital_age_ratio=age, **ages,
     )
     # `labor_supply_per_capita` directly, NOT `feasibility_check`: the only
     # quantity needed here is the supply, which does not depend on
     # `personal_base` at all. Passing a standard into a call whose output
     # ignores it is the silently-ignored-parameter failure, and it was in this
     # module for one commit.
-    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr)
+    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr,
+                                     adult_share=adult_share)
     over = _as_dict(overbuild_check(
         capital_stock_teh=capital_stock_teh,
         population=population,
         epsilon=epsilon,
         standard=standard,
+        capital_age_ratio=age,
+        age_distribution=age_fractions,
     ))
 
     # THE ADOPTED SPLIT: the personal part carries its own human share (care and
@@ -286,6 +321,22 @@ def stability_at(
         "autarky_reference":  over["autarky_reference"],
         "net_vs_autarky":     over["net_vs_autarky"],
         "capital_stock_teh":  capital_stock_teh,
+        "capital_supplied":   capital_supplied,
+        "capital_source": (
+            "passed in by the caller" if capital_supplied
+            else "NOT SUPPLIED — the canonical arc's stock at this ε and population"
+        ),
+        "capital_age_ratio":  age,
+        "capital_age_supplied": age_supplied,
+        "adult_share_source": ("derived from the supplied age mix" if share_from_ages
+                               else "passed in by the caller" if adult_share is not None
+                               else "NOT SUPPLIED — the shipped age weights"),
+        "age_fractions_source": ("passed in by the caller" if age_fractions is not None
+                                 else "NOT SUPPLIED — the shipped AGE_GROUPS mix"),
+        "capital_age_source": (
+            "passed in by the caller" if age_supplied
+            else "NOT SUPPLIED — CAPITAL_AGE_RATIO_DEFAULT"
+        ),
         "note": (
             "Conditions 1 and 3 are ordered by construction — 3 implies 1 — and "
             "are reported separately because WHICH fails says what to do. All "
@@ -324,17 +375,17 @@ def stationary_band(
 
     units: dimensionless ε.
 
-    A CONTIGUOUS BAND IS NOT ASSUMED. If the conditions fail in the middle and
-    hold at both ends the band is reported as non-contiguous rather than
-    silently spanned — the same discipline `guf_over_levy` needed when a ratio
-    assumed monotone turned out to be U-shaped.
+    THE FUNCTION DOES NOT ASSUME A CONTIGUOUS BAND. If the conditions fail in the middle
+    and hold at both ends the band is reported as non-contiguous rather than silently
+    spanned — the same discipline `guf_over_levy` needed when a ratio assumed monotone
+    turned out to be U-shaped.
 
     THE BAND IS NOT A TARGET. A society may rationally sit outside it while
     building through; this reports where standing still is possible, not where
     anyone should stand.
     """
-    n = max(2, int(round(0.99 / tol)))
-    grid = [i * 0.99 / n for i in range(n + 1)]
+    n = max(2, int(round(EPSILON_ARC_MAX / tol)))
+    grid = [i * EPSILON_ARC_MAX / n for i in range(n + 1)]
     flags = [(e, stability_at(e, **kw)["stationary"]) for e in grid]
     return band_from_flags(flags)
 
@@ -426,6 +477,14 @@ def stability_report(epsilon: float = 0.40, **kw: Any) -> dict:
             + (f", and the band is ε ∈ [{band['lower']:.3f}, {band['upper']:.3f}]"
                f"{'' if band['contiguous'] else ' — NOT contiguous'}."
                if band["any_stationary"] else ", and no point is.")
+            + ("" if here["capital_supplied"] else
+               " Capital was NOT supplied: every point reads the canonical arc's "
+               "stock at its own ε, not an economy's.")
+            + ("" if here["capital_age_supplied"] else
+               " Capital age was NOT supplied: upkeep reads "
+               "CAPITAL_AGE_RATIO_DEFAULT.")
+            + ("" if "NOT SUPPLIED" not in here["adult_share_source"] else
+               " Adult share was NOT supplied: supply reads the shipped age weights.")
             + " The compass asks whether the system can STOP here, not whether "
               "it can reach the end of the arc."
         ),

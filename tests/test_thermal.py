@@ -1,9 +1,8 @@
-"""
-Tests for the Thermal Sink EOH P0 bound (research/thermal.py, E29 / finding F2).
+"""Tests for the Thermal Sink EOH P0 bound (research/thermal.py, E29 / finding F2).
 
 Covers the budget chain (E6–E8), the EOH-weighted thermodynamic floor (E27), the
-provable ceiling bound (E29) and its degradation sentinels, and the §10.2
-sensitivity artifact. Advisory-only: asserts no obligation/TEH is produced.
+provable ceiling bound (E29) and its degradation sentinels, and the §10.2 sensitivity
+artifact. Advisory only: the tests assert that the module produces no obligation or TEH.
 
 Arc coverage at ε ∈ {0.0, 0.40, 0.90, 0.99}.
 """
@@ -51,16 +50,10 @@ def test_planetary_budget_floored_at_zero():
 
 
 def test_budget_scales_with_the_planet_area_ABOVE_the_clamp():
-    """
-    CLOSING THE LAST UNEXERCISED PHYSICS PARAMETER (2026-08-31, found by
-    `tests/test_parameter_wiring`). `a_earth` was the only one of the five that
-    no test touched: at the shipped defaults P0 is clamped to 0, which makes
-    EVERY parameter inert there, and the tests above correctly exercise
-    delta_t_lo, lam and f_ghg away from the clamp — but not this one.
-
-    P0 is a forcing DENSITY times an area, so above the clamp it must be
-    strictly linear in the area. Asserted as a proportionality rather than a
-    level: A_EARTH_M2 is `physics` and the level is not this test's business.
+    """Above the clamp, P0 is a forcing DENSITY times an area, so it must be strictly
+    linear in the area. `a_earth` was the last physics parameter no test touched
+    (`tests/test_parameter_wiring`, 2026-08-31). At the shipped defaults P0 clamps to 0,
+    and every parameter is inert. The test asserts proportionality, not a level.
     """
     live = dict(delta_t_lo=3.0, lam=2.0, f_ghg=3.0)
     base = planetary_budget(**live)
@@ -70,11 +63,9 @@ def test_budget_scales_with_the_planet_area_ABOVE_the_clamp():
 
 
 def test_the_area_is_inert_ON_the_clamp_and_that_is_the_clamp_not_the_area():
-    """
-    The companion reading, so neither can be quoted alone. At the shipped
-    defaults the budget is exhausted and NO parameter can move it — which is why
-    an inertness probe flags all five here and why it is not evidence of a
-    defect.
+    """The companion reading. At the shipped defaults no budget remains, and NO
+    parameter can move it. So an inertness probe flags all five parameters here, and
+    that is not evidence of a defect.
     """
     assert planetary_budget() == 0.0
     assert planetary_budget(a_earth=2 * A_EARTH_M2) == 0.0
@@ -103,8 +94,10 @@ def test_allocated_density_rejects_nonpositive_area():
 # ---------------------------------------------------------------------------
 
 def test_decarbonization_headroom_reproduces_measured():
-    # net-ERF forcing 2.72 at ΔT_lo=3.0 K → ~1110 TW freed (Path C)
-    h = decarbonization_headroom(delta_t_lo=3.0, f_ghg=2.72)
+    # net-ERF forcing 2.72 at ΔT_lo=3.0 K → ~1110 TW freed (Path C). Net ERF
+    # already contains land-use albedo, so f_alb is 0 here, as in Path C —
+    # the measured THERMAL_F_ALB would count it twice.
+    h = decarbonization_headroom(delta_t_lo=3.0, f_ghg=2.72, f_alb=0.0)
     assert h["gain_w"] / 1e12 == pytest.approx(1110, abs=5)
     assert h["binds_now"] is True
 
@@ -112,10 +105,27 @@ def test_decarbonization_headroom_reproduces_measured():
 def test_decarbonization_headroom_sharp_form_no_budget_now():
     # at ΔT_lo=2.0 K the current budget is 0 (GHG has consumed it) yet the gain
     # is large — F3 in its sharpest form
-    h = decarbonization_headroom(delta_t_lo=2.0, f_ghg=2.72)
+    h = decarbonization_headroom(delta_t_lo=2.0, f_ghg=2.72, f_alb=0.0)
     assert h["allocated_now_w"] == 0.0
     assert h["binds_now"] is False
     assert h["gain_w"] / 1e12 == pytest.approx(979, abs=5)
+
+
+def test_the_albedo_term_is_the_shipped_igcc_land_use():
+    # THERMAL_F_ALB was a 0.0 placeholder until 2026-10-16; nothing at the
+    # shipped threshold reads it (the budget floors at 0 there), so it is held
+    # to the extract here or not at all. record/provenance.md#placeholders-audited
+    import json
+    from pathlib import Path
+
+    from hours_eoh.data import THERMAL_F_ALB
+    src = json.loads((Path(__file__).resolve().parents[1] / "hours_eoh" / "reference"
+                      / "data" / "thermal_path_c.json").read_text())
+    land = src["climate_parameters"]["F_land_use_erf"]
+    assert THERMAL_F_ALB == land["value"]
+    assert land["p05"] < THERMAL_F_ALB < land["p95"] < 0.0
+    assert residual_thermal_forcing() - residual_thermal_forcing(f_alb=0.0) == pytest.approx(
+        -THERMAL_F_ALB)
 
 
 def test_decarbonization_gain_nonnegative():

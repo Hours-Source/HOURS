@@ -17,6 +17,10 @@ from __future__ import annotations
 from typing import Callable
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    CAPITAL_AGE_RATIO_DEFAULT,
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     SUFF_LEVY_RATE,
     DEP_RATE,
     DIV_RATE,
@@ -37,12 +41,12 @@ def fiscal_parameter_sweep(
     parameter: str,
     values: list[float],
     epsilon: float = 0.40,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
-    labor_income: float = 2_200_000_000.0,
+    labor_income: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict:
     """
     Sweep a single fiscal parameter across a list of values at a given ε.
@@ -73,7 +77,10 @@ def fiscal_parameter_sweep(
         epsilon: Automation level [0.0, 0.99]. Default: 0.40.
         population: Population.
         trust_balance: Trust fund balance.
-        labor_income: Annual labor income (TEH/year).
+        labor_income: Annual labour income (TEH/year). None (default) → the
+            MINT at this ε and population (wage doctrine). It defaulted to
+            2.2e9 — ~4.4× the mint at ε=0.40 and unscaled by population —
+            until 2026-09-30.
         capital_stock_teh: Capital stock in TEH.
         capital_age_ratio: Mean asset age as fraction of design life.
         ecosystem_health: Ecological health [0,1].
@@ -93,6 +100,11 @@ def fiscal_parameter_sweep(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
+    if labor_income is None:
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        labor_income = float(eoh_to_teh_pipeline(
+            epsilon, population=population, capital_stock=capital_stock_teh,
+        )["teh_created"])
     # `need_fraction` added 2026-09-16 with the V1 adoption. `floor_fraction`
     # survives but is swept against `design="shipped"`, because that is the only
     # design that reads it: under V1 it moved nothing, and a swept parameter
@@ -163,7 +175,7 @@ def fiscal_parameter_sweep(
 
 def eoh_arc_sensitivity(
     epsilon_start: float = 0.0,
-    epsilon_end: float = 0.99,
+    epsilon_end: float = EPSILON_ARC_MAX,
     n_points: int = 20,
     delta_epsilon: float = 0.05,
 ) -> list[dict]:
@@ -173,6 +185,12 @@ def eoh_arc_sensitivity(
     Useful for identifying which ε windows produce the largest changes in
     EOH demand, labor income, and registration per unit of automation advance.
 
+    Every row is a full Δε step INSIDE [epsilon_start, epsilon_end]: the base
+    points span [start, end − Δε] for an advance (and [start − Δε, end] for a
+    retreat), so the last step lands on the end. Until 2026-10-03 the bases
+    spanned [start, end] and the last row stepped 0.99 → 0.99 — a clamped,
+    empty step reported as "0.0%" on the steepest window of the arc.
+
     Args:
         epsilon_start: Starting ε value.
         epsilon_end: Ending ε value.
@@ -181,11 +199,20 @@ def eoh_arc_sensitivity(
 
     Returns:
         List of epsilon_delta_sensitivity() result dicts, one per ε point.
+
+    Raises:
+        ValueError: if |Δε| exceeds the range, so no full step fits.
     """
     from hours_eoh.core.eoh_generation import epsilon_delta_sensitivity
 
-    step = (epsilon_end - epsilon_start) / max(n_points - 1, 1)
+    lo = epsilon_start - min(delta_epsilon, 0.0)
+    hi = epsilon_end - max(delta_epsilon, 0.0)
+    if hi < lo:
+        raise ValueError(
+            f"|delta_epsilon| = {abs(delta_epsilon)} does not fit in "
+            f"[{epsilon_start}, {epsilon_end}]")
+    step = (hi - lo) / max(n_points - 1, 1)
     return [
-        epsilon_delta_sensitivity(epsilon_start + i * step, delta_epsilon)
+        epsilon_delta_sensitivity(lo + i * step, delta_epsilon)
         for i in range(n_points)
     ]

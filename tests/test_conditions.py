@@ -2,7 +2,7 @@
 Tests for hours_eoh.core.conditions
 
 Covers: condition_i_check, condition_ii_check, balance_check,
-condition_iv_check, dashboard_snapshot, domain_eoh_coverage,
+condition_iv_check, dashboard_snapshot,
 condition_iii_balance_growth_check.
 """
 
@@ -15,7 +15,6 @@ from hours_eoh.core.conditions import (
     balance_check,
     condition_iv_check,
     dashboard_snapshot,
-    domain_eoh_coverage,
     condition_iii_balance_growth_check,
 )
 from hours_eoh.core.eoh_generation import total_eoh, eoh_to_essential_domains
@@ -208,108 +207,6 @@ class TestDashboardSnapshot:
 
 
 # ===========================================================================
-# domain_eoh_coverage
-# ===========================================================================
-
-class TestDomainEohCoverage:
-
-    def _reserve(self, certified_per_domain=200, workforce=1000):
-        certified = {d: certified_per_domain for d in [
-            "healthcare", "water", "energy", "agriculture", "logistics", "manufacturing", "construction"
-        ]}
-        return competency_reserve(certified, workforce)
-
-    def test_adequate_coverage_passes(self):
-        reserve  = self._reserve(certified_per_domain=200, workforce=1000)
-        demands  = {"healthcare": 1000.0, "water": 500.0}  # small demands → covered
-        result   = domain_eoh_coverage(reserve, demands, epsilon=0.0)
-        assert result["all_covered"] is True
-        assert result["status"] == "OK"
-
-    def test_zero_demand_always_covered(self):
-        reserve = self._reserve(certified_per_domain=5, workforce=1000)
-        result  = domain_eoh_coverage(reserve, {"healthcare": 0.0}, epsilon=0.40)
-        assert result["per_domain"]["healthcare"]["meets_coverage"] is True
-
-    def test_high_demand_flags_gap(self):
-        reserve = self._reserve(certified_per_domain=1, workforce=1000)
-        demands = {"healthcare": 1_000_000_000.0}  # impossible to cover with 1 worker
-        result  = domain_eoh_coverage(reserve, demands, epsilon=0.40)
-        assert result["all_covered"] is False
-        assert "healthcare" in result["domains_at_risk"]
-
-    def test_high_epsilon_reduces_capacity(self):
-        reserve    = self._reserve(certified_per_domain=100, workforce=1000)
-        demands    = {"water": 50_000.0}
-        low_eps    = domain_eoh_coverage(reserve, demands, epsilon=0.10)
-        high_eps   = domain_eoh_coverage(reserve, demands, epsilon=0.90)
-        # At higher ε, certified workers cover less human EOH → capacity drops
-        low_cap    = low_eps["per_domain"]["water"]["capacity_eoh"]
-        high_cap   = high_eps["per_domain"]["water"]["capacity_eoh"]
-        assert high_cap < low_cap
-
-    def test_unknown_domain_treated_as_zero_certified(self):
-        reserve = self._reserve(certified_per_domain=100, workforce=1000)
-        result  = domain_eoh_coverage(reserve, {"completely_new_domain": 10.0}, epsilon=0.40)
-        assert result["per_domain"]["completely_new_domain"]["certified_count"] == 0.0
-
-    def test_result_keys(self):
-        reserve = self._reserve()
-        result  = domain_eoh_coverage(reserve, {"healthcare": 1000.0})
-        for key in ("per_domain", "domains_at_risk", "all_covered", "status", "epsilon"):
-            assert key in result
-
-    def test_round_trip_with_eoh_to_essential_domains(self):
-        """eoh_to_essential_domains() output must feed domain_eoh_coverage() correctly."""
-        from hours_eoh.data import COMPETENCY_THRESHOLD
-        eoh = {k: total_eoh(0.40)[k]
-               for k in ("personal", "infrastructure", "ecological", "knowledge")}
-        essential = eoh_to_essential_domains(eoh)
-        workforce = 600_000.0
-        threshold_count = workforce * COMPETENCY_THRESHOLD
-        certified = {d: threshold_count for d in ESSENTIAL_DOMAINS}
-        reserve = competency_reserve(certified, workforce_size=workforce)
-        result = domain_eoh_coverage(reserve, essential, epsilon=0.40)
-        assert "all_covered" in result
-        assert "per_domain" in result
-
-    def test_all_essential_domains_checked(self):
-        eoh = {k: total_eoh(0.40)[k]
-               for k in ("personal", "infrastructure", "ecological", "knowledge")}
-        essential = eoh_to_essential_domains(eoh)
-        from hours_eoh.data import COMPETENCY_THRESHOLD
-        workforce = 600_000.0
-        certified = {d: workforce * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}
-        reserve = competency_reserve(certified, workforce_size=workforce)
-        result = domain_eoh_coverage(reserve, essential, epsilon=0.40)
-        for domain in ESSENTIAL_DOMAINS:
-            assert domain in result["per_domain"]
-
-    def test_coverage_ratios_finite(self):
-        eoh = {k: total_eoh(0.40)[k]
-               for k in ("personal", "infrastructure", "ecological", "knowledge")}
-        essential = eoh_to_essential_domains(eoh)
-        from hours_eoh.data import COMPETENCY_THRESHOLD
-        workforce = 600_000.0
-        certified = {d: workforce * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}
-        reserve = competency_reserve(certified, workforce_size=workforce)
-        result = domain_eoh_coverage(reserve, essential, epsilon=0.40)
-        for domain, info in result["per_domain"].items():
-            assert math.isfinite(info["coverage_ratio"])
-
-    def test_status_field_valid(self):
-        eoh = {k: total_eoh(0.40)[k]
-               for k in ("personal", "infrastructure", "ecological", "knowledge")}
-        essential = eoh_to_essential_domains(eoh)
-        from hours_eoh.data import COMPETENCY_THRESHOLD
-        workforce = 600_000.0
-        certified = {d: workforce * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}
-        reserve = competency_reserve(certified, workforce_size=workforce)
-        result = domain_eoh_coverage(reserve, essential, epsilon=0.40)
-        assert result["status"] in ("OK", "COVERAGE_GAP")
-
-
-# ===========================================================================
 # condition_iii_balance_growth_check
 # ===========================================================================
 
@@ -383,3 +280,88 @@ class TestConditionIIIBalanceGrowthCheck:
         new = prev + levy_in - stew_out
         result = condition_iii_balance_growth_check(prev, new, levy_in, stew_out)
         assert result["passes"] is True
+
+
+# ===========================================================================
+# condition_iv_coverage — Condition IV in hours (2026-10-01)
+# ===========================================================================
+
+class TestConditionIvCoverage:
+    """Capacity is certified × measured adult hours, independent of ε; demand
+    is the registered (default) or human hours, through the essential-domain
+    bridge. Replaces `domain_eoh_coverage`, which multiplied hours by the TEH
+    multiplier and by (1 − ε) and so failed everywhere, worse with ε."""
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @staticmethod
+    def _threshold_reserve(population=1.0e6):
+        from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD
+        wf = population * AGE_GROUPS["working_age"]["fraction"]
+        return competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+
+    @staticmethod
+    def _pipe(eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        return eoh_to_teh_pipeline(eps)
+
+    def test_capacity_does_not_depend_on_epsilon(self):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        caps = {e: condition_iv_coverage(self._threshold_reserve(), self._pipe(e))[
+            "per_domain"]["healthcare"]["capacity_eoh"] for e in self.ARC}
+        assert len(set(caps.values())) == 1
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_demand_is_the_pipelines_through_the_bridge(self, eps):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        p = self._pipe(eps)
+        for reading, key in (("registered", "registered_eoh_by_domain"), ("human", "human_eoh_by_domain")):
+            r = condition_iv_coverage(self._threshold_reserve(), p, demand=reading)
+            ref = eoh_to_essential_domains({k: p[key][k] for k in
+                                            ("personal", "infrastructure", "ecological", "knowledge")})
+            for d in ESSENTIAL_DOMAINS:
+                assert r["per_domain"][d]["demand_eoh"] == pytest.approx(ref[d], rel=1e-12)
+
+    def test_it_can_pass_and_it_can_fail_at_threshold_certification(self):
+        # Mode 9 both ways: covered at ε=0.40, short (CARE, since it became a
+        # domain 2026-10-01) inside a narrow upper-arc band — found on a fine
+        # grid; none of the 4 reporting points sits in it.
+        from hours_eoh.core.conditions import condition_iv_coverage
+        assert condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40))["all_covered"]
+        r = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78))
+        assert r["domains_short"] == ["care"]
+
+    def test_the_two_readings_disagree(self):
+        # The open author question, pinned so a change to either shows.
+        from hours_eoh.core.conditions import condition_iv_coverage
+        reg = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40), demand="registered")
+        hum = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40), demand="human")
+        assert reg["all_covered"] and not hum["all_covered"]
+
+    def test_coverage_travels_with_the_frame(self):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        ratios = [condition_iv_coverage(self._threshold_reserve(p), eoh_to_teh_pipeline(0.78, population=p))[
+            "per_domain"]["healthcare"]["coverage_ratio"] for p in (1e5, 1e6, 1e7)]
+        assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9)
+
+    def test_the_verdict_rests_on_the_bridge_weight(self):
+        # The verdict rests on the care weight (the desk care share, confidence
+        # 25): moving 0.02 of personal EOH from care to healthcare clears it.
+        import copy
+        from hours_eoh.core.conditions import condition_iv_coverage
+        from hours_eoh.core.eoh_generation import essential_weights
+        w = copy.deepcopy(essential_weights())
+        assert not condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78), weights=w)["all_covered"]
+        w["care"]["personal"] -= 0.02
+        w["healthcare"]["personal"] += 0.02
+        assert condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78), weights=w)["all_covered"]
+
+    def test_bad_inputs_refused(self):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        with pytest.raises(ValueError):
+            condition_iv_coverage(self._threshold_reserve(), self._pipe(0.4), demand="gross")
+        with pytest.raises(ValueError):
+            condition_iv_coverage(self._threshold_reserve(), self._pipe(0.4),
+                                  hours_per_certified_worker=0.0)
+

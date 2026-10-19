@@ -24,8 +24,8 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.data import (
-    HUMAN_CAPITAL_NATURAL_DECAY,
-    AGE_GROUPS, HUMAN_CAPITAL_NATURAL_DECAY, PERSONAL_EOH_BASE,
+    AGE_GROUPS, ASSET_MAX_MAINTENANCE_QUALITY, ASSET_NATURAL_WEAR_RATE,
+    ASSET_WRITEDOWN_CONDITION, PERSONAL_EOH_BASE,
     INFANT_EOH_EPSILON_FACTOR, MATURATION_AUTO_LEVERAGE,
     ANNUAL_DEATH_RATE, ESTATE_INHERITANCE_FRACTION,
     ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
@@ -170,9 +170,8 @@ def aggregate_personal_eoh_fulfilled(
           "population":                         float,
         }
 
-    Usage: a reported coverage figure. Do NOT pass it to sufficiency_guarantee()
-    as capital_personal_eoh_fulfilled_per_person — that parameter is deprecated
-    and not applied (it warns).
+    Usage: a reported coverage figure. The guarantee does not subtract it: the
+    human share in `effective_personal_eoh` already carries machine fulfilment.
 
     Reference: Mission Statement §"Capital stock fulfills personal EOH on behalf
     of the population — water treatment, healthcare infrastructure, energy grids."
@@ -194,10 +193,17 @@ def aggregate_personal_eoh_fulfilled(
 def asset_condition(
     initial_condition: float,
     maintenance_history: list[dict],
-    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
+    natural_decay_rate: float = ASSET_NATURAL_WEAR_RATE,
+    ceiling: float | None = None,
 ) -> float:
     """
     Compute current asset condition from its maintenance history.
+
+    `ceiling` (2026-10-04) bounds what surplus maintenance can restore: the
+    condition full upkeep would have left — the MAINTENANCE path. None → the
+    history's `initial_condition`, as before. `asset_condition_trajectory`
+    passes the maintained path, so ground lost to neglect can be won back and
+    age cannot be polished away.
 
     Each period, the asset's condition evolves based on:
     1. Maintenance quality: fulfilled / demanded (< 1.0 → condition declines)
@@ -235,7 +241,7 @@ def asset_condition(
 
         # Maintenance quality this period
         if demanded > 0:
-            quality = min(fulfilled / demanded, 2.0)  # cap surplus at 2×
+            quality = min(fulfilled / demanded, ASSET_MAX_MAINTENANCE_QUALITY)
         else:
             quality = 1.0  # no demand → perfect quality
 
@@ -252,7 +258,8 @@ def asset_condition(
             surplus = quality - 1.0
             # Diminishing returns on over-maintenance
             restoration = surplus * ASSET_OVER_MAINT_RESTORE_RATE * condition
-            condition = min(initial_condition, condition + restoration)
+            condition = min(initial_condition if ceiling is None else ceiling,
+                            condition + restoration)
 
         condition = max(0.0, min(1.0, condition))
 
@@ -264,10 +271,20 @@ def asset_condition_trajectory(
     annual_eoh: float,
     fulfillment_fraction: float,
     years: int,
-    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
+    natural_decay_rate: float = ASSET_NATURAL_WEAR_RATE,
+    as_built: float | None = None,
 ) -> list[dict]:
     """
     Simulate asset condition over time at a constant maintenance level.
+
+    THE MAINTAINED PATH IS THE CEILING (2026-10-04). Each year called
+    `asset_condition` afresh, whose restore cap is the condition the call
+    STARTS from — so the cap fell with every year of neglect and surplus
+    upkeep could never restore anything (ten years at double upkeep left a
+    0.4 asset at 0.4). The ceiling is now the path full upkeep would have
+    taken from `as_built` (default `initial_condition`): neglect damage can be
+    won back, wear and age cannot. At fulfilment ≤ 1 nothing restores, so
+    those trajectories are unchanged.
 
     Useful for modeling scenarios: what happens if we fully maintain an asset
     vs. let it degrade to 70% of required maintenance?
@@ -278,12 +295,15 @@ def asset_condition_trajectory(
         fulfillment_fraction: Fraction of demand fulfilled each year, ∈ [0, 2].
         years: Number of years to simulate.
         natural_decay_rate: Annual wear rate.
+        as_built: Where the maintained path starts — the condition the asset
+            would hold had it never been neglected. None → `initial_condition`.
 
     Returns:
         List of dicts: [{"year": int, "condition": float,
                          "eoh_demanded": float, "eoh_fulfilled": float}, ...]
     """
     condition = initial_condition
+    maintained = initial_condition if as_built is None else as_built
     history   = []
 
     for year in range(1, years + 1):
@@ -291,8 +311,12 @@ def asset_condition_trajectory(
         fulfilled = demanded * fulfillment_fraction
         period    = {"eoh_demanded": demanded, "eoh_fulfilled": fulfilled}
 
-        # Apply one period of condition evolution
-        condition = asset_condition(condition, [period], natural_decay_rate)
+        # One period; the maintained path wears too, and is the restore ceiling
+        maintained = asset_condition(maintained, [{"eoh_demanded": demanded,
+                                                   "eoh_fulfilled": demanded}],
+                                     natural_decay_rate)
+        condition = asset_condition(condition, [period], natural_decay_rate,
+                                    ceiling=maintained)
         history.append({
             "year":          year,
             "condition":     condition,
@@ -309,7 +333,7 @@ def asset_condition_trajectory(
 
 def writedown_trigger(
     condition: float,
-    recoverability_threshold: float = 0.20,
+    recoverability_threshold: float = ASSET_WRITEDOWN_CONDITION,
 ) -> bool:
     """
     Determine whether an asset has degraded beyond the recovery point.
@@ -322,7 +346,7 @@ def writedown_trigger(
     Args:
         condition: Current asset condition ∈ [0, 1].
         recoverability_threshold: Condition below which recovery is not viable.
-                                  Default: 0.20 (20% of original condition).
+                                  Default: ASSET_WRITEDOWN_CONDITION.
 
     Returns:
         True if write-down should be triggered; False if asset is recoverable.
@@ -332,6 +356,45 @@ def writedown_trigger(
     function, the associated EOH must be formally written off."
     """
     return condition < recoverability_threshold
+
+
+def rebuild_crossover_ratio(
+    rebuild_years: float,
+    max_quality: float = ASSET_MAX_MAINTENANCE_QUALITY,
+    restore_rate: float | None = None,
+) -> float:
+    """
+    THE WRITE-DOWN POINT, DERIVED (2026-10-04, author): the condition — as a
+    share of the MAINTAINED path — below which catching up costs more labour
+    than rebuilding. Both irreversibility tests were defined as this crossover
+    and set by hand: the condition threshold (0.20) and a backlog multiple (5×)
+    that disagreed with it at every fulfilment.
+
+    Catching up at the most surplus a period can absorb, s = max_quality − 1,
+    restores the ratio ρ by (1 + s·r) a year (`asset_condition` with the
+    maintained path as ceiling), at s years of upkeep a year. From ρ that is
+    s · ln(1/ρ) / ln(1 + s·r) years of upkeep; rebuilding costs
+    `rebuild_years` (the asset's rebuild labour, `execute_writedown`'s
+    `rebuild_eoh_needed`, over its annual upkeep). Equal at
+
+        ρ* = exp(−rebuild_years · ln(1 + s·r) / s)
+
+    A stock that costs more to keep relative to its value — older, more
+    upkeep-intensive — has a higher ρ* and is written down sooner. The labour
+    compared is labour alone: a rebuild's new asset is not credited above a
+    caught-up old one, which errs toward keeping.
+
+    units: ratio ∈ (0, 1). `restore_rate` None → ASSET_OVER_MAINT_RESTORE_RATE.
+    """
+    from hours_eoh.data import ASSET_OVER_MAINT_RESTORE_RATE
+    import math
+    r = ASSET_OVER_MAINT_RESTORE_RATE if restore_rate is None else restore_rate
+    s = max_quality - 1.0
+    if rebuild_years <= 0.0:
+        return 1.0
+    if s <= 0.0 or r <= 0.0:
+        return 1.0                      # nothing can catch up: any damage is permanent
+    return math.exp(-rebuild_years * math.log(1.0 + s * r) / s)
 
 
 # ---------------------------------------------------------------------------

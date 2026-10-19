@@ -3,10 +3,10 @@ The ten ratios, split the way the partition split the domain — REPORTING ONLY.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-THE PROBLEM. `GUF_USE_*` gives ten per-SLU coefficients indexed by USE CATEGORY.
-They are `placeholder`, and the ×100 factor above them was reverse-engineered so
-aggregate GUF matched levy revenue at mid-arc. Three things were known and none
-of them settled the ratios:
+THE PROBLEM. `GUF_USE_*` gives ten per-SLU coefficients indexed by USE CATEGORY. They
+are `placeholder`, and the ×100 factor above them was reverse-engineered so aggregate
+GUF matched levy revenue at mid-arc. Three things were known, and none of them settled
+the ratios:
 
   * the servicing census settles the LEVEL (~35× over in aggregate) and says so;
   * only **41.9%** of measured servicing hours scale with AREA — 44.5% follow
@@ -44,17 +44,16 @@ This does the same to U:
                  hiding inside a number that looks measured.
 
 THE RESIDUAL IS THE FINDING, NOT AN ERROR TERM. Ranking the ten categories by
-disturbance (1−ρ) and by fee gives a Spearman correlation of **0.891** — most of
-U is disturbance — with four categories off by two ranks, and those four are
-legible: `residential_secondary` and `agricultural_fallow` are charged ABOVE
-their disturbance (a luxury and a land-banking judgement), `institutional` and
-`industrial_light` BELOW it (social relief). U conflates a measured physical
-ordering with unmeasured policy, and naming the second is what lets the first be
-measured.
+disturbance (1−ρ) and by fee gives a Spearman correlation of **0.891** — most of U is
+disturbance — with four categories off by two ranks, and those four are legible:
+`residential_secondary` and `agricultural_fallow` are charged ABOVE their disturbance (a
+luxury and a land-banking judgement), `institutional` and `industrial_light` BELOW it
+(social relief). U mixes a measured physical ordering with unmeasured policy, and naming
+the second is what lets anyone measure the first.
 
-REPORTING ONLY. No coefficient moves; `TestUSplitChangesNothing` fails the
-moment that stops being true. What this reports is what a split WOULD imply, so
-the charter decision can be taken against numbers rather than against intuition.
+REPORTING ONLY. No coefficient moves; `TestUSplitChangesNothing` fails the moment that
+stops being true. This reports what a split WOULD imply, so the author can take the
+charter decision against numbers, not intuition.
 
 WHAT IT STILL CANNOT SETTLE, stated so the module is not read as more than it
 is: the per-parcel term needs a national PARCEL COUNT, which this package does
@@ -82,6 +81,7 @@ from hours_eoh.data import (
     GUF_USE_RESIDENTIAL_SECONDARY,
 )
 from hours_eoh.reference.servicing import workers_by_scaling_basis
+from hours_eoh.scenarios.servicing_census import census
 
 __all__ = [
     "SHIPPED_U",
@@ -140,9 +140,9 @@ def rank_disagreement() -> dict[str, Any]:
 
         ρ_s = 1 − 6·Σd² / (n(n²−1))          n = 10
 
-    Returns the coefficient plus a per-category rank gap. A category whose fee
-    rank is BELOW its disturbance rank is charged more than disturbance alone
-    would warrant; above, less.
+    Returns the coefficient plus a per-category rank gap. The fee charges a category
+    whose fee rank is BELOW its disturbance rank more than disturbance alone would
+    warrant; above, less.
 
     THE DISAGREEMENTS ARE THE POINT. ρ_s ≈ 0.89 says most of U is disturbance.
     The four categories off by two ranks are where a policy judgement has been
@@ -219,13 +219,14 @@ def scaling_basis_gap() -> dict[str, Any]:
 
 def split_report() -> dict[str, Any]:
     """
-    The proposed decomposition, with what is measured and what is not.
+    The proposed decomposition, with what has a measurement and what does not.
 
-    REPORTING ONLY — no coefficient moves. This states what a split would imply
-    so the charter decision is taken against numbers.
+    REPORTING ONLY — no coefficient moves. This states what a split would imply, so the
+    author takes the charter decision against numbers.
     """
     ranks = rank_disagreement()
     basis = scaling_basis_gap()
+    serviced = census("core")
     return {
         "scenario": "use_split",
         "shipped_u": dict(SHIPPED_U),
@@ -235,7 +236,8 @@ def split_report() -> dict[str, Any]:
         "terms": {
             "U_servicing": (
                 "what the BUILT ENVIRONMENT demands. Measured by "
-                "scenarios/servicing_census at 45.92 h/ha·yr over 37.1 Mha. "
+                f"scenarios/servicing_census at {serviced['hours_per_hectare_year']:.2f} "
+                f"h/ha·yr over {serviced['serviced_hectares'] / 1e6:.1f} Mha. "
                 f"Only {basis['expressible_now']:.1%} of it scales with area, so "
                 "the fee needs a per-parcel term it does not have."
             ),

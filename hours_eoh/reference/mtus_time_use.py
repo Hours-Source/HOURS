@@ -14,13 +14,13 @@ covering children would close the band from below."*
 This is that survey: **977,809 diaries, 21 countries, 89 country-years**, with
 children surveyed from age 3.
 
-WHAT IT MEASURES. Non-sleep personal care plus unpaid domestic work, which is
-the MTUS analogue of the repo's self-maintenance definition (ATUS tier-1 01
-less sleep, plus 02). Sleep is separable and was removed; see
-`utils/mtus_ingest.py` for how the layout and the activity aggregation were
-derived from the raw file, which ships no codebook.
+WHAT IT MEASURES. Non-sleep personal care plus unpaid domestic work, which is the MTUS
+analogue of the repo's self-maintenance definition (ATUS tier-1 01 less sleep, plus 02).
+Sleep is separable, and the ingest removed it; `utils/mtus_ingest.py` shows how it
+derived the layout and the activity aggregation from the raw file, which ships no
+codebook.
 
-TWO LIMITS, BOTH LOAD-BEARING, AND NEITHER IS CORRECTED HERE:
+TWO LIMITS, BOTH LOAD-BEARING, AND THIS MODULE CORRECTS NEITHER:
 
   1. **MEALS ARE STILL IN.** MTUS puts eating inside its personal-care block;
      ATUS counts it under tier-1 11 and the repo's definition excludes it.
@@ -29,13 +29,13 @@ TWO LIMITS, BOTH LOAD-BEARING, AND NEITHER IS CORRECTED HERE:
      runs 29 and 83. So a level from this file sits ABOVE the repo's definition:
      working-age reads 263.7 here against 153.2 in `care_curve`.
 
-     **The bias direction is known and it is the safe one.** Eating is roughly
-     age-invariant, so it enters numerator and denominator alike and pulls any
-     ratio TOWARD 1. For a band whose value is below 1 — children — the measured
+     **The bias direction is known, and it is the safe one.** Eating is roughly
+     age-invariant, so it enters numerator and denominator alike and pulls any ratio
+     TOWARD 1. For a band whose value is below 1 — children — the measured
      ratio therefore OVERSTATES, and `AGE_WEIGHT_*` errs HIGH by design.
 
-  2. **AGES 0–2 ARE 260 DIARIES FROM ONE SAMPLE.** They are reported and must
-     not be leaned on. More importantly an infant's maintenance IS the
+  2. **AGES 0–2 ARE 260 DIARIES FROM ONE SAMPLE.** The module reports them; do not lean
+  on them. More importantly an infant's maintenance IS the
      caregiver's work, which `care_curve` already counts on the care-received
      side — so an extrapolated self-maintenance term for 0–2 would DOUBLE COUNT,
      and this module does not extrapolate one.
@@ -57,6 +57,8 @@ __all__ = [
     "LABOUR_AGGREGATES",
     "measured_capacity",
     "capacity_frames",
+    "CAPACITY_BY_AGE_FILE",
+    "capacity_in_band",
     "NONSTANDARD_DAY_SAMPLES",
     "day_closes",
     "CODES_FILE",
@@ -239,7 +241,7 @@ def domestic_by_sample() -> list[dict[str, float | str | int]]:
     by construction — the arithmetic check that the units are minutes per day,
     which matters because MTUS ships no codebook with this extract.
 
-    Derived by `utils/mtus_domestic_ingest.py`; the raw file is gitignored.
+    `utils/mtus_domestic_ingest.py` derives it; the raw file is gitignored.
     """
     rows: list[dict[str, float | str | int]] = []
     with DOMESTIC_FILE.open(newline="") as fh:
@@ -267,16 +269,15 @@ def codes_by_sample() -> dict[str, dict[int, float]]:
     """
     Minutes per day by MTUS activity code, per sample, ages 18-69.
 
-    The six-digit episode file carries 56-67 distinct codes per sample against
-    the twelve `ACT_*` aggregates, which is what separates nutrition from
-    shelter. NO MAPPING IS APPLIED HERE — the codes ship raw and the
-    code→component judgement lives in `scenarios/automation_floors`, declared
-    and validated there.
+    The six-digit episode file carries 56-67 distinct codes per sample against the
+    twelve `ACT_*` aggregates, which is what separates nutrition from shelter. THIS
+    APPLIES NO MAPPING: the codes ship raw, and the code→component judgement lives in
+    `scenarios/automation_floors`, declared and validated there.
 
     AT1992, FR1985 and FR1999 are ABSENT: `SERIAL` is empty in those three
     samples so the episode join cannot reach them. Recorded rather than hidden.
 
-    Derived by `utils/mtus_code_ingest.py`; the 3.1 GB raw file is gitignored.
+    `utils/mtus_code_ingest.py` derives it; the 3.1 GB raw file is gitignored.
     """
     out: dict[str, dict[int, float]] = {}
     with CODES_FILE.open(newline="") as fh:
@@ -340,12 +341,55 @@ def measured_capacity(sample: str, extra: tuple[str, ...] = ()) -> float:
 
 def capacity_frames(extra: tuple[str, ...] = ()) -> dict[str, float]:
     """
-    Measured capacity for every MTUS sample: 50 frames over 1965-2024 and ten
-    countries, each a year-and-place a feasibility run can be compared against.
+    Measured capacity for every MTUS sample: 50 frames over 1965-2024 and eight
+    countries, each a year and place a feasibility run can compare against.
     """
     return {
         str(r["sample"]): measured_capacity(str(r["sample"]), extra)
         for r in domestic_by_sample()
+    }
+
+
+#: The same three LABOUR_AGGREGATES as `measured_capacity`, by single year of
+#: age and sample — derived by `utils/mtus_capacity_age_ingest.py` from the same
+#: file and weight; the raw file is gitignored.
+CAPACITY_BY_AGE_FILE = pathlib.Path(__file__).with_name("data") / "mtus_capacity_by_age.csv"
+
+
+@lru_cache(maxsize=1)
+def _capacity_by_age() -> dict[str, dict[int, tuple[float, float, int]]]:
+    out: dict[str, dict[int, tuple[float, float, int]]] = {}
+    with CAPACITY_BY_AGE_FILE.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            minutes = sum(float(row[k]) for k in LABOUR_AGGREGATES)
+            out.setdefault(row["sample"], {})[int(row["age"])] = (
+                float(row["weight"]), minutes, int(row["diaries"]))
+    return out
+
+
+def capacity_in_band(sample: str, lo: int, hi: int) -> dict[str, float]:
+    """
+    Measured entropy-resistance labour over ages `lo`–`hi` inclusive, h/yr —
+    `measured_capacity`'s three fields, weighted the same way, for any band.
+    Over 18-69 it reproduces `measured_capacity(sample)`.
+
+    Only the ages the sample SURVEYED enter; `age_lo` / `age_hi` say which
+    those were, and a band the sample did not reach raises rather than read 0.
+    MTUS top-codes old ages in some samples, so `age_hi` is the code, not
+    necessarily the oldest respondent.
+    """
+    ages = _capacity_by_age().get(sample)
+    if ages is None:
+        raise KeyError(f"{sample} not in the by-age extract")
+    cells = {a: v for a, v in ages.items() if lo <= a <= hi}
+    if not cells:
+        raise ValueError(f"{sample} surveyed no one aged {lo}-{hi}")
+    weight = sum(w for w, _, _ in cells.values())
+    minutes = sum(w * m for w, m, _ in cells.values()) / weight
+    return {
+        "h_yr": minutes * _MIN_PER_DAY_TO_H_PER_YEAR,
+        "diaries": float(sum(n for _, _, n in cells.values())),
+        "age_lo": float(min(cells)), "age_hi": float(max(cells)),
     }
 
 
@@ -391,10 +435,9 @@ def band_minutes(lo: int, hi: int) -> dict[str, float]:
 
     units: minutes per day.
 
-    Worked example: the child band (6, 17) reads 170.9 min/day over 88,763
-    diaries — against the 24.5 `care_curve` reports, which is an ATUS figure
-    observed only on ages 15–17 and diluted across the whole band by counting
-    6–14 as zero.
+    Worked example: the child band (6, 17) reads 171.1 min/day (2026-10-18) over 88,763
+    diaries — against the 24.5 `care_curve` reports, which is an ATUS figure observed
+    only on ages 15–17 and diluted across the whole band by counting 6–14 as zero.
 
     Raises:
         ValueError: if the band is empty or reversed.
@@ -459,11 +502,11 @@ def childcare_hours_per_person_year(codes: tuple[int, ...]) -> float:
     samples are not a probability sample of anything, so a mean would weight
     whichever countries happen to have run more surveys.
 
-    **THIS BOUNDS THE CARE OBLIGATION FROM BELOW, FOR TWO INDEPENDENT REASONS,
-    and it is not a measurement of the obligation.** (1) It is CHILDcare only —
-    elder care and adult care are outside these codes entirely. (2) It measures
-    care DELIVERED, not care owed, and no sample here delivers all of what is
-    owed. Either reason alone makes it a floor; together they make it a loose one.
+    **THIS BOUNDS THE CARE OBLIGATION FROM BELOW, FOR TWO INDEPENDENT REASONS, and it is
+    not a measurement of the obligation.** (1) It is CHILDcare only — elder care and
+    adult care are outside these codes entirely. (2) It measures care DELIVERED, not
+    care owed, and no sample here delivers all that a population owes. Either reason
+    alone makes it a floor; together they make it a loose one.
 
     THE BENCHMARK ALSO RUNS BACKWARDS HERE, which is why care could not reuse
     the nutrition template. For nutrition the low-capital frame gives the higher

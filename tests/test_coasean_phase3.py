@@ -68,6 +68,8 @@ class TestPhase3RegressionAnchors:
         """discovery_premium=None reproduces the parity baseline exactly."""
         fed = make_federation(0.40, n=3, ecosystem_health_schedule=[0.5, 0.7, 0.9])
         assert exchange_rates(fed) == exchange_rates(fed, discovery_premium=None)
+        assert exchange_rates(fed, basis="parity") == \
+            exchange_rates(fed, discovery_premium=None, basis="parity")
 
 
 # ---------------------------------------------------------------------------
@@ -236,35 +238,50 @@ class TestSettlementCheck:
 # ---------------------------------------------------------------------------
 
 class TestDiscoveryPremium:
+    """The premium seam lives on the PARITY basis only. Since 2026-09-30 the
+    federation settles on `registered`, and §5 forbids a discovered deviation
+    crossing a boundary as a settlement price — so the premium is refused there."""
+    """The premium seam lives on the PARITY basis only. Since 2026-09-30 the
+    federation settles on `registered`, and §5 forbids a discovered deviation
+    crossing a boundary as a settlement price — so the premium is refused there."""
 
     def _fed(self):
         return make_federation(0.40, n=2, ecosystem_health_schedule=[0.6, 0.8])
 
     def test_premium_scales_parity(self):
         fed = self._fed()
-        base = exchange_rates(fed)
-        with_prem = exchange_rates(fed, discovery_premium={(0, 1): 0.10})
+        base = exchange_rates(fed, basis="parity")
+        with_prem = exchange_rates(fed, discovery_premium={(0, 1): 0.10}, basis="parity")
         assert with_prem[(0, 1)] == pytest.approx(base[(0, 1)] * 1.10)
         assert with_prem[(1, 0)] == pytest.approx(base[(1, 0)])  # untouched pair
 
     def test_negative_premium_allowed_above_minus_one(self):
         fed = self._fed()
-        base = exchange_rates(fed)
-        discounted = exchange_rates(fed, discovery_premium={(0, 1): -0.50})
+        base = exchange_rates(fed, basis="parity")
+        discounted = exchange_rates(fed, discovery_premium={(0, 1): -0.50}, basis="parity")
         assert discounted[(0, 1)] == pytest.approx(base[(0, 1)] * 0.50)
 
     def test_premium_at_or_below_minus_one_raises(self):
         fed = self._fed()
         with pytest.raises(ValueError):
-            exchange_rates(fed, discovery_premium={(0, 1): -1.0})
+            exchange_rates(fed, discovery_premium={(0, 1): -1.0}, basis="parity")
 
     def test_empty_premium_dict_is_identity(self):
         fed = self._fed()
-        assert exchange_rates(fed, discovery_premium={}) == exchange_rates(fed)
+        assert exchange_rates(fed, discovery_premium={}, basis="parity") == exchange_rates(fed, basis="parity")
 
     def test_single_collective_still_empty(self):
         fed = make_federation(0.99, n=1)
-        assert exchange_rates(fed, discovery_premium={(0, 1): 0.5}) == {}
+        assert exchange_rates(fed, discovery_premium={(0, 1): 0.5}, basis="parity") == {}
+
+    def test_a_premium_on_the_settlement_basis_is_refused(self):
+        fed = self._fed()
+        with pytest.raises(ValueError, match="settle on the base"):
+            exchange_rates(fed, discovery_premium={(0, 1): 0.10})
+
+    def test_an_unknown_basis_is_refused(self):
+        with pytest.raises(ValueError, match="basis"):
+            exchange_rates(self._fed(), basis="discovered")
 
 
 # ---------------------------------------------------------------------------

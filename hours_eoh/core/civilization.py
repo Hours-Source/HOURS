@@ -1,8 +1,8 @@
 """
 Civilization ε derivation from physical capital state.
 
-Provides the endogenous machine-capacity sub-model that compute_epsilon() was
-designed to receive. Given a description of a civilization's capital stock
+This module is the endogenous machine-capacity sub-model that compute_epsilon()
+was designed to receive. Given a description of a civilization's capital stock
 (explicit or shorthand tier), derives machine_eoh_fulfilled and therefore ε
 from first principles rather than as an exogenous scenario assumption.
 
@@ -30,7 +30,7 @@ Usage::
     })
     print(f"ε = {result['epsilon']:.3f}")
 
-Capital can be specified three ways:
+A caller can state capital in three ways:
   - Tier string:  "power_grid": "standard"
   - Explicit dict: "power_grid": {"teh_value": 2e9, "age": 18, "condition": 0.75}
   - Mixed tier with override: "power_grid": {"tier": "standard", "age": 25}
@@ -50,9 +50,14 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
+    AGE_GROUPS,
     CAPITAL_MACHINE_PROFILES,
     CANONICAL_MONITORING_CAPABILITY_BASE,
-    COND_DECAY_SLOPE,
+    AGE_EFFICIENCY_BETA_EQUIPMENT,
+    AGE_EFFICIENCY_BETA_STRUCTURES,
+    CAPITAL_STRUCTURES_SHARE_DEFAULT,
     COND_DECAY_FLOOR,
     ENV_MONITORING_SATURATION_TEH_PER_CAPITA,
 )
@@ -62,16 +67,37 @@ from hours_eoh.data import (
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _condition_from_age(age: float, design_life: float) -> float:
+def age_efficiency(age_ratio: float, beta: float) -> float:
     """
-    Derive condition from age and design life when condition is not specified.
+    An asset's productive efficiency relative to new, from its age as a share
+    of its service life — BLS's hyperbolic age-efficiency function,
+    (1 − x) / (1 − β·x) (BLS Handbook of Methods, industry productivity),
+    floored at COND_DECAY_FLOOR for an asset still in service. β is
+    `AGE_EFFICIENCY_BETA_EQUIPMENT` (0.5) or `_STRUCTURES` (0.75): structures
+    hold their capacity longer, then lose it faster.
+    """
+    if not 0.0 <= beta < 1.0:
+        raise ValueError(f"beta must be in [0, 1), got {beta}")
+    x = min(1.0, max(0.0, age_ratio))
+    return max(COND_DECAY_FLOOR, (1.0 - x) / (1.0 - beta * x))
 
-    Linear decay: 1.0 (brand new) → 0.30 (at end of design life).
-    Assets past their design life are floor-capped at 0.30 — degraded but
-    still operational (full write-down is a separate event via execute_writedown).
-    """
-    age_fraction = min(1.0, max(0.0, age / max(design_life, 1.0)))
-    return max(COND_DECAY_FLOOR, 1.0 - COND_DECAY_SLOPE * age_fraction)
+
+def condition_from_age_ratio(age_ratio: float,
+                             structures_share: float = CAPITAL_STRUCTURES_SHARE_DEFAULT) -> float:
+    """A stock's condition from its age as a share of its life.
+
+    Use it where only the ratio is known (a frame's `capital_age_ratio`). It
+    blends the two BLS curves by the stock's structures share, the US share by
+    default. The result runs from 1.0 new to COND_DECAY_FLOOR at end of life."""
+    return (structures_share * age_efficiency(age_ratio, AGE_EFFICIENCY_BETA_STRUCTURES)
+            + (1.0 - structures_share) * age_efficiency(age_ratio, AGE_EFFICIENCY_BETA_EQUIPMENT))
+
+
+def _condition_from_age(age: float, design_life: float) -> float:
+    """Condition from age and design life, for an entry that states no
+    condition: the BLS curve at age / design life (`condition_from_age_ratio`). Replaced the
+    linear 1.0 → 0.30 decay on 2026-10-04."""
+    return condition_from_age_ratio(age / max(design_life, 1.0))
 
 
 def _resolve_capital_entry(
@@ -87,8 +113,8 @@ def _resolve_capital_entry(
       - dict: explicit   e.g. {"teh_value": 2e9, "age": 15, "condition": 0.82}
       - dict: tier+override  e.g. {"tier": "standard", "age": 25}
 
-    When a tier is used, teh_value = tier["teh_per_capita"] × population.
-    When age is provided without condition, condition is derived from design_life.
+    For a tier, teh_value = tier["teh_per_capita"] × population.
+    For an age without a condition, the function derives condition from design_life.
     """
     if type_name not in CAPITAL_MACHINE_PROFILES:
         raise ValueError(
@@ -125,7 +151,11 @@ def _resolve_capital_entry(
         td        = tiers[tier_name]
         teh_value = float(explicit.get("teh_value", td["teh_per_capita"] * population))
         age       = float(explicit.get("age",       td["default_age"]))
-        condition = explicit.get("condition", td["default_condition"])
+        # A tier's condition is its age's, on the one curve (2026-10-04) — the
+        # hand-set `default_condition` per tier was a copy of a curve.
+        condition = explicit.get("condition")
+        if condition is None:
+            condition = _condition_from_age(age, design_life)
     else:
         if "teh_value" not in explicit:
             raise ValueError(
@@ -252,7 +282,8 @@ def civilization_epsilon(civ: dict) -> dict:
         civ: Civilization description dict. All keys are optional with defaults.
 
             population (float):          Total population. Default: 1_000_000.
-            workforce_fraction (float):  Active workforce ∈ [0, 1]. Default: 0.60.
+            workforce_fraction (float):  Active workforce ∈ [0, 1]. Default: the
+                                         working-age share (`AGE_GROUPS`).
             ecosystem_health (float):    Ecosystem state ∈ [0, 1]. Default: 0.70.
             deferred_ecological (float): Accumulated deferred eco EOH. Default: 0.
             knowledge_complexity (float | None): ACTUAL corpus size relative to
@@ -289,11 +320,12 @@ def civilization_epsilon(civ: dict) -> dict:
             "warnings":        list[str],
         }
 
-    Note on double-counting: capital_eoh_eliminated is NOT passed to the TEH
-    pipeline because ε already encodes all machine fulfillment (including
-    system EOH elimination). Passing both would double-count machine capacity.
-    capital_personal_eoh_fulfilled is passed to the pipeline for reporting; it
-    no longer sizes the guarantee (effective_personal_eoh does, since 2026-09-15).
+    Note on double-counting: this function does NOT pass capital_eoh_eliminated
+    to the TEH pipeline, because ε already encodes all machine fulfillment
+    (including system EOH elimination). Both together would double-count
+    machine capacity. It passes capital_personal_eoh_fulfilled to the pipeline
+    for reporting; that no longer sizes the guarantee (effective_personal_eoh
+    does, since 2026-09-15).
 
     Mission Statement: §"ε is a physical observable — the civilization's
     measured progress toward post-scarcity, expressed as the fraction of EOH
@@ -307,11 +339,12 @@ def civilization_epsilon(civ: dict) -> dict:
 
     warnings: list[str] = []
 
-    population           = float(civ.get("population",           1_000_000.0))
+    population           = float(civ.get("population",           REFERENCE_FRAME_POPULATION))
     if population <= 0.0:
         raise ValueError(f"population must be positive, got {population}")
-    workforce_fraction   = float(civ.get("workforce_fraction",   0.60))
-    ecosystem_health     = float(civ.get("ecosystem_health",     0.70))
+    workforce_fraction   = float(civ.get("workforce_fraction",
+                                         AGE_GROUPS["working_age"]["fraction"]))
+    ecosystem_health     = float(civ.get("ecosystem_health",     ECOSYSTEM_HEALTH_DEFAULT))
     deferred_ecological  = float(civ.get("deferred_ecological",  0.0))
     # None when absent, so the arc fills it at this ε (2026-09-09) — a hard
     # 1.0 would freeze the corpus at the ε=0 reference now that a supplied

@@ -1,5 +1,4 @@
-"""
-contestability — contestability invariant arc table and stress sweep.
+"""contestability — contestability invariant arc table and stress sweep.
 
   eoh contestability arc    [--regime increasing_returns|replicable] [--points N]
                             [--population F] [--trust-balance F] [--capital-stock F]
@@ -32,47 +31,45 @@ contestability — contestability invariant arc table and stress sweep.
                             [--commons-balance F]
                             [--regime increasing_returns|replicable]
                             [--format table|json]
+'arc' prints the full contestability sweep across ε: P (portable endowment), K_entry
+(founding cost), χ = P/K_entry, φ (commonized fraction), τ = T/K, levy_fraction (levy
+required against automated output), and PASS/FAIL status.
 
-'arc' prints the full contestability sweep across ε: P (portable endowment),
-K_entry (founding cost), χ = P/K_entry, φ (commonized fraction), τ = T/K,
-levy_fraction (levy required vs automated output), and PASS/FAIL status.
+'stress' forces the increasing_returns regime and reports the first ε where χ < 1.
 
-'stress' forces increasing_returns regime and reports the first ε where χ < 1.
+'levy' prints the derived common-fund levy schedule (§8.2). It gives the Trust balance
+required at each ε to hold χ ≥ target, the per-step levy that funds it, and whether
+automated output can pay that levy.
 
-'levy' prints the derived common-fund levy schedule (§8.2): the Trust balance
-required at each ε to hold χ ≥ target, the per-step levy needed to fund it,
-and whether the levy is feasible from automated output.
+'recal' prints the §8.9/§8.9b recalibrated arc. The commons owns share φ(ε) of an
+ε-consistent capital stock K(ε) = K₀ + ν·Y(ε), so τ = φ ≤ 1 with dτ/dε ≥ 0 structural.
+Labour (low ε), commons underwriting (mid ε) or dividend savings (high ε) finance exit:
+t_exit ≤ horizon replaces the flow/stock χ (§8.8 RC4). --phi-policy selects the
+doctrine:
 
-'recal' prints the §8.9/§8.9b recalibrated arc: the commons owns share φ(ε)
-of an ε-consistent capital stock K(ε) = K₀ + ν·Y(ε), so τ = φ ≤ 1 with
-dτ/dε ≥ 0 structural; exit is financed by labor (low ε), commons
-underwriting (mid ε), or dividend savings (high ε) — t_exit ≤ horizon
-replaces the flow/stock χ (§8.8 RC4). --phi-policy selects the doctrine:
-'dilution' (default, §8.9b charter formation — the commons' share attaches
-to NEW capital at commissioning; private capital is never sold down, so φ
-caps at ≈0.66 by ε=0.99), 'target' (§8.9a purchase model, regression
-anchor), or 'escalated' (dilution + the charter escalation clause: full
-generational conversion if observed concentration threatens exit; never
-fires at canonical defaults).
+  * 'dilution' (default, §8.9b charter formation): the commons' share attaches to NEW capital at commissioning. Private capital is never sold down, so φ caps below target at ε=0.99 (read the cap from the output).
+  * 'target' (§8.9a purchase model, the regression anchor).
+  * 'escalated': dilution plus the charter escalation clause, full generational
+    conversion if observed concentration threatens exit. It never fires at
+    canonical defaults.
 
-'formation' runs the §8.9c formation-feedback simulation: capital formation
-is FINANCED or it does not happen (private supply falls as the charter share
-rises; the commons co-funds from net income per --priority), and ε is
-DERIVED from the capital actually formed. Reports the year-by-year path and
-the verdict: pace vs the canonical 50-yr arc, stall/crawl, the
-feedback-consistent dividend, and whether exit stays financeable.
---charter-share 0 is the null anchor (no charter — must reproduce canonical
-pace). Raising --hurdle/--full-supply toward fiat-like returns quantifies
-the Condition III finding: zero interest is what makes the charter share
+'formation' runs the §8.9c formation-feedback simulation. Capital formation is FINANCED
+or it does not happen. Private supply falls as the charter share rises, and the commons
+co-funds from net income per --priority. ε is DERIVED from the capital actually formed.
+The command reports the year-by-year path and the verdict. The verdict covers pace
+against the canonical 50-yr arc, stall or crawl, the feedback-consistent dividend, and
+whether exit stays financeable. --charter-share 0 is the null anchor (no charter; it
+must reproduce the canonical pace). Raising --hurdle/--full-supply toward fiat-like
+returns quantifies the Condition III finding: zero interest makes the charter share
 affordable.
 
-'audit' checks proposed membership terms (§8.7e) against the invariant:
-admission cost adds to K_entry; exit notice, minimum hours, vesting length,
-and dividend retention are checked against the MEMBERSHIP_* thresholds.
-The code audits the contract; it does not legislate it.
+'audit' checks proposed membership terms (§8.7e) against the invariant. Admission cost
+adds to K_entry. The audit checks exit notice, minimum hours, vesting length and
+dividend retention against the MEMBERSHIP_* thresholds. The code audits the contract; it
+does not legislate it.
 
-NOTE: levy_fraction > 1 means the required levy exceeds the entire automated
-output — an adversarial finding, not a bug (reconciliation §8.3).
+NOTE: levy_fraction > 1 means the required levy exceeds the entire automated output.
+That is an adversarial finding, not a bug (reconciliation §8.3).
 """
 
 from __future__ import annotations
@@ -89,6 +86,7 @@ from hours_eoh.research.formation import (
 )
 from hours_eoh.research.recalibration import recalibrated_arc
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
     CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
@@ -121,7 +119,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                    help="K_entry regime (default: increasing_returns / adversarial)")
     a.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
-    a.add_argument("--population", type=float, default=1_000_000.0)
+    a.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
     # balance resolves against --population, so the inheritance travels with
     # the frame. Supplying the flag states YOUR balance and it is used as given.
@@ -140,7 +138,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     )
     s.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
-    s.add_argument("--population", type=float, default=1_000_000.0)
+    s.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     s.add_argument("--trust-balance", type=float, default=None,
                    dest="trust_balance")
     s.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
@@ -160,7 +158,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                     help="K_entry regime (default: increasing_returns / adversarial)")
     lv.add_argument("--points", type=int, default=20, metavar="N",
                     help="Number of ε points (default: 20)")
-    lv.add_argument("--population", type=float, default=1_000_000.0)
+    lv.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     lv.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
                     dest="capital_stock")
     lv.add_argument("--chi-target", type=float, default=CONTESTABILITY_CHI_CRIT,
@@ -201,7 +199,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                     dest="min_viable_population",
                     help="Founding cohort size (raise to stress the "
                          "escalation trigger)")
-    rc.add_argument("--population", type=float, default=1_000_000.0)
+    rc.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     rc.add_argument("--capital-output-ratio", type=float,
                     default=RECAL_CAPITAL_OUTPUT_RATIO, dest="capital_output_ratio",
                     help="ν: capital stock per unit annual machine output "
@@ -274,7 +272,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     au.add_argument("--epsilon", type=float, default=0.40)
     au.add_argument("--collective-trust", type=float, default=None,
                     dest="collective_trust")
-    au.add_argument("--collective-population", type=float, default=1_000_000.0,
+    au.add_argument("--collective-population", type=float, default=REFERENCE_FRAME_POPULATION,
                     dest="collective_population")
     au.add_argument("--federation-population", type=float, default=None,
                     dest="federation_population")

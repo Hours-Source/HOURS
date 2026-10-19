@@ -15,10 +15,22 @@ neutral with respect to other entropy domains.  The result:
   - Decades of industrial externalities have pushed ecosystem health below
     the spike threshold (0.38 < 0.40) and accumulated a 100 B-hour
     deferred ecological backlog
-  - No investment has been made in ecological monitoring or restoration
+  - The collective has made no investment in ecological monitoring or restoration
 
 This is the archetype of industrial overshoot: large capital stock,
 maximum maintenance burden, zero ecological credit, large deferred backlog.
+
+RESHAPED TO THE PARTITION (2026-10-04, author: "an overbuilt collective deferring all
+eco towards GUF that is then carried by the people"). The 100 B hours below predates the
+ecological partition (Phases 4e/4f). It entered the domain as ONE year's demand: 1,538
+h/head, more than the labour supply. The backlog is now DERIVED: the health deficit (1 −
+INDUST_ECOSYSTEM_HEALTH) over the archetype's land, priced by
+`restoration_cost.deficit_obligation`, and carried by its PEOPLE as labour with the
+recurring ecological work (the GUF's under the partition) —
+`INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE`. The 100 B stays as the BASELINE the derived
+backlog meets. The archetype is also a FRAME FILE (`indust_frame()`, shipped as
+`indust_overbuilt`), so the corridor band and every frame-aware shock run on it as on
+the US frame.
 
 Compare with the canonical baseline (ε=0.40, ecosystem_health=0.82,
 capital offsets zero EOH) to observe fiscal and domain divergence.
@@ -34,9 +46,11 @@ Usage
         capital_stock    = p["capital_stock_teh"],
         capital_age_ratio= p["capital_age_ratio"],
         ecosystem_health = p["ecosystem_health"],
-        deferred_ecological = p["deferred_ecological"],
         **INDUST_NO_ECO_PIPELINE_KWARGS,
     )
+
+`scenarios/indust_overshoot`, which owns the scenario, applies the derived ecological
+backlog and its carriage by people.
 """
 
 from __future__ import annotations
@@ -65,6 +79,20 @@ INDUST_ECOSYSTEM_HEALTH:     float = 0.38
 # At ε=0.40 monitoring capability = 0.70, so 70 B hours are visible to
 # the ledger (nearly half of personal EOH for a 65 M population).
 INDUST_DEFERRED_ECOLOGICAL:  float = 100_000_000_000.0
+# THE FRAME THE BACKLOG IS STATED AT (2026-10-03). The 100 B hours above is "at
+# a 65 M-person scale", and was applied unscaled at every population — at the
+# CLI's 1M default, 65× the stated backlog per head; at the US frame, a fifth.
+# Mode 6, the frame seam. It now scales with population like the capital
+# beside it; at 65M it is bit-identical.
+INDUST_REFERENCE_POPULATION: float = 65_000_000
+
+# BASELINE since 2026-10-04: the derived backlog above replaced it. Kept so the
+# old reading stays comparable (`indust_baseline_backlog`), never applied.
+
+# The archetype's ε — a declaration, not a reading (ε is never imputed), and
+# the ecological work carried by its people rather than the GUF.
+INDUST_EPSILON: float = 0.40
+INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE: bool = True
 
 # Capital provides no EOH reduction in any domain — it consumes only.
 # Setting both to zero explicitly: the industrial capital stock generates
@@ -79,7 +107,6 @@ INDUST_CAPITAL_PERSONAL_EOH_FULFILLED: float = 0.0
 INDUST_NO_ECO_OVERRIDES: dict = {
     "capital_age_ratio":   INDUST_CAPITAL_AGE_RATIO,
     "ecosystem_health":    INDUST_ECOSYSTEM_HEALTH,
-    "deferred_ecological": INDUST_DEFERRED_ECOLOGICAL,
 }
 
 # ---------------------------------------------------------------------------
@@ -96,16 +123,53 @@ INDUST_NO_ECO_PIPELINE_KWARGS: dict = {
 # Factory
 # ---------------------------------------------------------------------------
 
+def indust_baseline_backlog(population: float = INDUST_REFERENCE_POPULATION) -> float:
+    """The superseded 100 B-hour backlog at `population` (scaled from its 65 M frame):
+    the baseline for the derived backlog.
+    """
+    return INDUST_DEFERRED_ECOLOGICAL * population / INDUST_REFERENCE_POPULATION
+
+
+def indust_frame() -> dict:
+    """
+    The archetype as a FRAME FILE body — the ONE source of the shipped
+    `indust_overbuilt` frame (`utils/frame_inputs.SHIPPED_FRAMES`; a test holds
+    the file to this function). Values come from the constants above, so the
+    file cannot drift from the scenario.
+    """
+    from hours_eoh.data import ECOLOGICAL_THRESHOLD, LAND_HECTARES_PER_CAPITA
+    pop = INDUST_REFERENCE_POPULATION
+    side = "below" if INDUST_ECOSYSTEM_HEALTH < ECOLOGICAL_THRESHOLD else "at or above"
+    return {
+        "name": "indust_overbuilt",
+        "note": ("CONSTRUCTED, not a measurement: an overbuilt industrial collective "
+                 f"— {INDUST_CAPITAL_MULTIPLIER:g}x the canonical capital per head, the "
+                 f"stock {INDUST_CAPITAL_AGE_RATIO:.0%} through its design life, ecosystem "
+                 f"health {INDUST_ECOSYSTEM_HEALTH} ({side} the spike threshold, "
+                 f"{ECOLOGICAL_THRESHOLD}), and its "
+                 "ecological work carried by its people rather than the GUF. A bound-"
+                 "testing frame for how the framework handles collapse, not an everyday "
+                 "collective. Its epsilon is declared, not read."),
+        "population": pop,
+        "epsilon": INDUST_EPSILON,
+        "capital_teh": INDUST_CAPITAL_PER_CAPITA * pop,
+        "capital_age_ratio": INDUST_CAPITAL_AGE_RATIO,
+        "ecosystem_health": INDUST_ECOSYSTEM_HEALTH,
+        "land_hectares": pop * LAND_HECTARES_PER_CAPITA,
+        "ecological_carried_by_people": INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE,
+    }
+
+
 def make_indust_no_eco_params(
-    population: float = 65_000_000,
-    epsilon:    float = 0.40,
+    population: float = INDUST_REFERENCE_POPULATION,
+    epsilon:    float = INDUST_EPSILON,
 ) -> EohParams:
     """
     Construct an EohParams instance calibrated to the industrial/no-ecology scenario.
 
-    Capital stock is scaled proportionally to population at
-    INDUST_CAPITAL_MULTIPLIER × the canonical per-capita baseline. All other
-    scenario constants are fixed above and documented in this module.
+    The capital stock scales with population at INDUST_CAPITAL_MULTIPLIER × the
+    canonical per-capita baseline. This module fixes and documents all other scenario
+    constants above.
 
     Note: INDUST_NO_ECO_PIPELINE_KWARGS must be passed separately when calling
     eoh_to_teh_pipeline() or total_eoh() — those parameters are not stored in
@@ -113,8 +177,8 @@ def make_indust_no_eco_params(
 
     Args:
         population: Civilization population. Default: 65M (medium country).
-        epsilon:    Automation level for context label. Does not alter physical-
-                    state parameters (those are set explicitly above).
+        epsilon:    Automation level for context label. Does not alter physical-state
+            parameters; the module sets those explicitly above.
 
     Returns:
         EohParams with industrial-overshoot calibration applied.

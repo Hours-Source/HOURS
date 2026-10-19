@@ -20,6 +20,9 @@ import math
 from typing import Any
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
+    CAPITAL_AGE_RATIO_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
     ECOLOGICAL_THRESHOLD,
 )
@@ -27,6 +30,7 @@ from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
+from hours_eoh.land.collective import per_parcel_fee
 
 _DEGRADED_THRESHOLD:    float = 2 / 3   # first insolvency after this fraction of periods → DEGRADED, not CRISIS
 _CONVERGENCE_TOLERANCE: float = 0.05    # relative surplus change below which fiscal trajectory is declared converged
@@ -38,11 +42,15 @@ _CONVERGENCE_TOLERANCE: float = 0.05    # relative surplus change below which fi
 
 def canonical_arc_trajectory(
     epsilon_start: float = 0.0,
-    epsilon_end: float = 0.99,
+    epsilon_end: float = EPSILON_ARC_MAX,
     n_periods: int = 20,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float | None = None,
+    land_hectares: float | None = None,
+    guf_parcel_count: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -59,6 +67,16 @@ def canonical_arc_trajectory(
         population:    Initial population.
         trust_balance: Initial Trust fund balance (TEH).
         capital_stock_teh: Initial capital stock (TEH).
+        age_fractions: The population's age mix, held as state for the run
+            (`make_economy_state`); None → the shipped mix (2026-10-14).
+        capital_age_ratio: The stock's age over its service life at the start;
+            None → `make_economy_state`'s default (2026-10-14).
+        land_hectares: The collective's land, fixed for the run (2026-10-14);
+            None → resolved once from the starting population.
+        guf_parcel_count: The land's parcels, fixed with the land. The
+            engine charges the fee's measured per-parcel half on them at each
+            period's ε, capped at what the wage can pay (2026-10-19). None → no
+            land fee, as before.
         **sim_kwargs:  Additional kwargs forwarded to run_simulation() /
                        simulate_period() (e.g., ecological_degradation_rate).
 
@@ -82,8 +100,14 @@ def canonical_arc_trajectory(
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
+        age_fractions=age_fractions,
+        capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
+                           else capital_age_ratio),
+        land_hectares=land_hectares,
     )
 
+    if guf_parcel_count is not None:
+        sim_kwargs["guf_assessed"] = per_parcel_fee(guf_parcel_count)
     raw = run_simulation(
         initial_state,
         n_periods=n_periods,
@@ -93,7 +117,9 @@ def canonical_arc_trajectory(
 
     summary_table = []
     for i, result in enumerate(raw["period_results"]):
-        bp = basket_price(result["epsilon"])
+        # The floor is read at the OBSERVED ε (2026-09-30), which the period
+        # result carries; the capability index is reported beside it.
+        bp = basket_price(result["epsilon_observable"])
         summary_table.append({
             "period":           result["period"],
             "epsilon":          result["epsilon"],
@@ -163,9 +189,13 @@ def trust_depletion_stress(
     epsilon: float = 0.40,
     n_periods: int = 30,
     stressor_profile: dict | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float | None = None,
+    land_hectares: float | None = None,
+    guf_parcel_count: float | None = None,
 ) -> dict:
     """
     Run a multi-stressor simulation and report when/whether the Trust breaks.
@@ -185,9 +215,21 @@ def trust_depletion_stress(
         epsilon:          Starting automation level [0.0, 0.99].
         n_periods:        Number of periods to simulate.
         stressor_profile: Dict of simulate_period() overrides. None → defaults.
+            The land fee goes beside the profile (`guf_parcel_count`), so the
+            reported profile holds no function.
         population:       Initial population.
         trust_balance:    Initial Trust balance (TEH).
         capital_stock_teh: Initial capital stock.
+        age_fractions: The population's age mix, held as state for the run
+            (`make_economy_state`); None → the shipped mix (2026-10-14).
+        capital_age_ratio: The stock's age over its service life at the start;
+            None → `make_economy_state`'s default (2026-10-14).
+        land_hectares: The collective's land, fixed for the run (2026-10-14);
+            None → resolved once from the starting population.
+        guf_parcel_count: The land's parcels, fixed with the land. The
+            engine charges the fee's measured per-parcel half on them at each
+            period's ε, capped at what the wage can pay (2026-10-19). None → no
+            land fee, as before.
 
     Returns:
         dict: {
@@ -213,9 +255,17 @@ def trust_depletion_stress(
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
+        age_fractions=age_fractions,
+        capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
+                           else capital_age_ratio),
+        land_hectares=land_hectares,
     )
 
-    raw = run_simulation(initial_state, n_periods=n_periods, **profile)
+    # The fee goes beside the profile, not into it: the profile is reported.
+    raw = run_simulation(initial_state, n_periods=n_periods,
+                         guf_assessed=(per_parcel_fee(guf_parcel_count)
+                                       if guf_parcel_count is not None else None),
+                         **profile)
 
     trust_values = [r["trust_end"] for r in raw["period_results"]]
     trust_floor  = min(trust_values) if trust_values else trust_balance
@@ -274,9 +324,13 @@ def automation_transition_trajectory(
     epsilon_start: float = 0.10,
     epsilon_delta: float = 0.05,
     n_periods: int = 15,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float | None = None,
+    land_hectares: float | None = None,
+    guf_parcel_count: float | None = None,
 ) -> dict:
     """
     Simulate a fixed-rate automation transition and track key economic indicators.
@@ -295,6 +349,16 @@ def automation_transition_trajectory(
         population:    Initial population.
         trust_balance: Initial Trust balance (TEH).
         capital_stock_teh: Initial capital stock.
+        age_fractions: The population's age mix, held as state for the run
+            (`make_economy_state`); None → the shipped mix (2026-10-14).
+        capital_age_ratio: The stock's age over its service life at the start;
+            None → `make_economy_state`'s default (2026-10-14).
+        land_hectares: The collective's land, fixed for the run (2026-10-14);
+            None → resolved once from the starting population.
+        guf_parcel_count: The land's parcels, fixed with the land. The
+            engine charges the fee's measured per-parcel half on them at each
+            period's ε, capped at what the wage can pay (2026-10-19). None → no
+            land fee, as before.
 
     Returns:
         dict: {
@@ -313,12 +377,18 @@ def automation_transition_trajectory(
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
+        age_fractions=age_fractions,
+        capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
+                           else capital_age_ratio),
+        land_hectares=land_hectares,
     )
 
     raw = run_simulation(
         initial_state,
         n_periods=n_periods,
         epsilon_delta=epsilon_delta,
+        guf_assessed=(per_parcel_fee(guf_parcel_count)
+                      if guf_parcel_count is not None else None),
     )
 
     trajectory = []
@@ -327,8 +397,9 @@ def automation_transition_trajectory(
 
     for result in raw["period_results"]:
         eps = result["epsilon"]
+        eps_floor = result["epsilon_observable"]   # the floor's ε (2026-09-30)
         floor_teh = result["fiscal"]["guarantee"]["total_cost_teh"]
-        pp = floor_purchasing_power(floor_teh, eps, floor_teh)
+        pp = floor_purchasing_power(floor_teh, eps_floor, floor_teh)
         surplus = result["fiscal"]["trust"]["surplus_deficit"]
 
         trajectory.append({
@@ -339,7 +410,7 @@ def automation_transition_trajectory(
             "labor_income":        result["labor_income"],
             "trust_surplus_deficit": surplus,
             "solvent":             result["solvent"],
-            "basket_price":        basket_price(eps),
+            "basket_price":        basket_price(eps_floor),
         })
 
         if (prev_surplus is not None and abs(prev_surplus) > 1e-6

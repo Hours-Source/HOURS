@@ -4,8 +4,8 @@ scenarios/care_curve — measured personal obligation by age vs the shipped weig
 REPORTING ONLY. Nothing here feeds `total_eoh`, `AGE_GROUPS`, or any fiscal
 path; `TestCareCurveChangesNothing` fails the moment that stops being true.
 Adopting these weights would move `w = Σ(fraction × eoh_weight)`, which
-multiplies `PERSONAL_EOH_BASE` through the whole model — the same blast radius
-as the 1,500 → 1,000 reprice, and the same requirement of an author decision.
+multiplies `PERSONAL_EOH_BASE` through the whole model. That is the same blast
+radius as the 1,500 → 1,000 reprice, and it needs an author decision too.
 
 WHAT IT MEASURES
 ----------------
@@ -15,24 +15,26 @@ the answer badly wrong:
 
     total(age) = self-maintenance(age) + care received from others(age)
 
-Care received alone says an infant generates ~25× a working-age adult, because
-it counts everything done FOR the infant and nothing an adult does for
-themselves. Self-maintenance alone says an infant generates nothing. Together
-they give ~2.6×, against a shipped 3.0.
+Care received alone says an infant generates ~58× a working-age adult
+(2026-10-18, `implied_weights()`). It counts everything done FOR the infant and
+nothing an adult does for themselves. Self-maintenance alone says an infant
+generates nothing. Together they give ~2.6×, against a shipped 3.0.
 
-Sleep is excluded from self-maintenance: personal EOH is the labour required to
+Self-maintenance leaves out sleep. Personal EOH is the labour required to
 resist entropy for a person, not the hours that person exists.
 
 WHAT IT CANNOT SETTLE
 ---------------------
-Two of the four bands are LOWER BOUNDS. ATUS surveys nobody under 15, so
-self-maintenance is unmeasured for infants and for most of the child band; those
-totals carry `complete=False` and can only rise.
+Two of the four bands are LOWER BOUNDS. ATUS surveys nobody under 15, so no
+survey measures self-maintenance for infants and for most of the child band.
+Those totals carry `complete=False` and can only rise.
 
-The elderly band is complete and reads 41% below the shipped 2.5 — but ATUS
-covers the HOUSEHOLD population only, and the institutionalised elderly are both
-excluded and the highest-care group there is. The gap is a finding about
-household-resident elderly, not about the elderly.
+The elderly band is complete. It read 41% below the shipped 2.5, and on
+2026-08-10 the shipped weight took the measurement (2.5 → 1.48); it now reads
+1.468 against 1.48 (`record/personal.md`). But ATUS covers the HOUSEHOLD
+population only. It excludes the institutionalised elderly, who are the
+highest-care group there is. So the measured weight describes household-resident
+elderly, not the elderly, and is a lower bound.
 
 Mission Statement: §"Humans as capital stock" — the EOH weight system
 distinguishes biological life stages, not economic productivity.
@@ -63,9 +65,9 @@ def bands() -> dict[str, tuple[int, int]]:
 def implied_weights() -> dict:
     """Measured band weights against the shipped ones.
 
-    Returns each band's self / care / total minutes per person-day, the implied
-    weight relative to the numeraire band, the shipped `eoh_weight`, and whether
-    the band's measurement is complete.
+    Returns, for each band: self / care / total minutes per person-day; the
+    implied weight relative to the numeraire band; the shipped `eoh_weight`;
+    and whether the band's measurement is complete.
     """
     measured = cd.band_relative_demand(bands(), NUMERAIRE_BAND, pooled_years())
     rows = []
@@ -99,10 +101,10 @@ def implied_weights() -> dict:
 def implied_w(rows: list[dict]) -> float | None:
     """Σ(fraction × implied weight) — what `w` would become, at shipped fractions.
 
-    Held at the SHIPPED population fractions on purpose. Changing the weights and
-    the fractions together would make the movement in `w` impossible to attribute
-    to either, and the fractions are an `instance` input a deploying institution
-    supplies anyway.
+    Held at the SHIPPED population fractions on purpose. A change to the
+    weights and the fractions together would make the movement in `w`
+    impossible to attribute to either. And the fractions are an `instance`
+    input that a deploying institution supplies anyway.
     """
     total = 0.0
     for row in rows:

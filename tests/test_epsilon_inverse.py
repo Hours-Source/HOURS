@@ -1,9 +1,7 @@
-"""
-Tests for the ε inverse (research/epsilon_inverse.py).
+"""Tests for the ε inverse (research/epsilon_inverse.py).
 
-The property that matters: ε is never set, only derived. These pin the
-round-trip, the arc coverage a sweep needs, and the non-uniqueness that an
-ε-indexed sweep would otherwise hide.
+ε is never set, only derived. These tests pin the round trip, the arc coverage a sweep
+needs, and the non-uniqueness that an ε-indexed sweep would hide.
 """
 
 from __future__ import annotations
@@ -29,8 +27,9 @@ from hours_eoh.research.epsilon_inverse import (
 
 @pytest.mark.parametrize("target", [0.20, 0.40, 0.60, 0.90, 0.99])
 def test_round_trip_through_civilization_epsilon(target):
-    """The returned capital, fed back to core.civilization, must derive the ε
-    that was asked for. Nothing anywhere sets ε."""
+    """The returned capital, fed back to core.civilization, must derive the ε that was
+    asked for. Nothing sets ε.
+    """
     r = capital_for_epsilon(target)
     assert r["epsilon_achieved"] == pytest.approx(target, abs=1e-3)
     civ = {"population": 1_000_000.0, "capital": r["capital"]}
@@ -90,9 +89,10 @@ def test_same_epsilon_is_not_the_same_economy():
 
 
 def test_infrastructure_heavy_mix_needs_the_most_capital():
-    """It generates the most maintenance obligation per unit of EOH eliminated,
-    so it must buy more capital to reach the same ε — the feedback that makes the
-    inverse a solver rather than a formula."""
+    """This mix generates the most maintenance obligation per unit of EOH eliminated, so
+    it must buy more capital to reach the same ε. That feedback makes the inverse a
+    solver, not a formula.
+    """
     ref = capital_for_epsilon(0.40, REFERENCE_MIX)["total_capital_teh"]
     infra = capital_for_epsilon(0.40, INFRASTRUCTURE_HEAVY_MIX)["total_capital_teh"]
     compute = capital_for_epsilon(0.40, COMPUTE_HEAVY_MIX)["total_capital_teh"]

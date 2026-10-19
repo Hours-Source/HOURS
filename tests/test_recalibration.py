@@ -115,16 +115,11 @@ class TestPhiActual:
         assert all(b >= a - 1e-12 for a, b in zip(phis, phis[1:]))
 
     def test_capital_yield_is_the_gross_return_identity(self):
-        """CONTESTABILITY_CAPITAL_YIELD_RATE = 1/ν − δ, held against drift.
-
-        Bound by test rather than expression because both inputs are defined
-        BELOW it in data.py — a reference would be forward. Same treatment as
-        GUF_ECO_KAPPA_CARBON / CDR_LABOR_HOURS_PER_TONNE.
-
-        The repo shipped 0.10 against an identity giving 0.20 for the same
-        quantity, and nothing detected it: two of the three consumers are
-        SUPERSEDED by §8.9 and the third is research-tier and unpinned. This test
-        is the detector that was missing. It fails if EITHER side moves alone.
+        """CONTESTABILITY_CAPITAL_YIELD_RATE = 1/ν − δ, held against drift. A test binds
+        it, because data.py defines both inputs BELOW it, and an expression would be a
+        forward reference. The repo once shipped 0.10 against an identity giving 0.20,
+        and nothing detected it. The test fails if EITHER side moves alone
+        ([record](record/contestability.md#recalibration-test-history)).
         """
         from hours_eoh.data import (
             CONTESTABILITY_CAPITAL_YIELD_RATE,
@@ -138,31 +133,13 @@ class TestPhiActual:
         )
 
     def test_dilution_pays_MORE_than_target_despite_the_smaller_share(self):
-        """The doctrine trade-off, pinned by its SIGN — which has already flipped once.
-
-        §8.9b recorded the cost of no-forced-sales as a dividend "≈13% below the
-        purchase model". At the constants of 2026-08-15 the ordering is the other
-        way: dilution pays ≈13% ABOVE target at ε=0.99 (2,155 vs 1,906). Same
-        magnitude, inverted sign, and it holds from ε≈0.05 to the top of the arc.
-
-        The mechanism is not subtle once looked at. Target buys its share, so
-        acquisition consumes commons income before anything is distributed;
-        dilution's share attaches to NEW capital at commissioning and costs
-        nothing, so its whole income is distributable. Target ends with the
-        larger base (φ 0.987 vs 0.771) and the smaller payout.
-
-            dilution  income 2.155e9, reinvestment 0        → 2,154.6 / capita
-            target    income 2.758e9, reinvestment 8.517e8  → 1,906.4 / capita
-
-        Nothing pinned this. TestPhiActual pins the φ ordering, which never
-        moved, while the DIVIDEND ordering — the thing the doctrine argument
-        actually turns on — flipped silently when PERSONAL_EOH_BASE, the
-        knowledge re-anchor and AGE_GROUPS moved the machine-output base.
-
-        This test asserts the sign, not the levels: the levels are calibration
-        and will move again. If it fails, the doctrine claim in
-        notes/contestability-closure-proposal.md §8.9b needs rewriting, which is
-        the point.
+        """The doctrine trade-off, pinned by its SIGN, which has flipped once. On the
+        arc, dilution pays a larger dividend than target from ε≈0.05 to the top,
+        although target ends with the larger share φ. Target buys its share, so
+        acquisition spends commons income before distribution; dilution's share attaches
+        to NEW capital at no cost. The test asserts the sign, not the levels. If it
+        fails, §8.9b of notes/contestability-closure-proposal.md needs rewriting
+        ([record](record/contestability.md#recalibration-test-history)).
         """
         d = recalibrated_arc(phi_policy="dilution")
         t = recalibrated_arc(phi_policy="target")
@@ -333,24 +310,12 @@ class TestCommonsIncomeStatement:
         assert d_charter >= d_purchase
 
     def test_doctrine_dividend_no_longer_costs_anything_at_the_cap(self):
-        """
-        FINDING REVERSED BY BLOCK K-IV — the price of no forced sales is gone.
-
-        Previously the charter/dilution doctrine paid a visible price at the top
-        of the arc: ≈1,092 against the purchase model's ≈1,287, roughly 15%
-        less, and that gap was quoted as the honest cost of never forcing a
-        sale. It has closed and inverted — dilution now pays MORE at every ε,
-        including 2,162 vs 1,986 at ε = 0.99.
-
-        Mechanism: K-IV grew machine output (+70% at ε = 0.99), so more new
-        capital is commissioned each period. The commons' share attaches to NEW
-        capital under dilution, lifting its φ cap 0.66 → 0.754, while the
-        purchase model still spends commons income ACQUIRING capital, which is
-        deducted before the dividend.
-
-        Comms consequence: do not quote "the charter costs ~15% of the
-        dividend". At this calibration it costs nothing, and the argument for
-        the purchase model is now only that it reaches a higher φ.
+        """Block K-IV reversed this finding: the charter (dilution) now pays MORE than
+        the purchase model at ε = 0.99, where it once paid about 15% less. K-IV grew
+        machine output, so the economy commissions more new capital, and dilution's
+        share attaches to it. Do not quote "the charter costs ~15% of the dividend". At
+        this calibration the purchase model's only advantage is a higher φ
+        ([record](record/contestability.md#recalibration-test-history)).
         """
         d_charter = commons_income_statement(
             0.99, phi_policy="dilution")["dividend_per_capita"]
@@ -364,13 +329,14 @@ class TestCommonsIncomeStatement:
         # base narrows it without flipping it.
         # 1.050 → 1.074 after the knowledge re-anchor grew total EOH at high ε and
         # with it machine output. THE SIGN IS THE CLAIM and it is unchanged:
-        # dilution still pays MORE than the purchase model.
+        # dilution still pays MORE than the purchase model. Live 2026-10-17:
+        # 1.040 (record/contestability.md#recalibration-test-history).
         assert d_charter / d_purchase == pytest.approx(1.0332, abs=0.02)
         # Threshold follows the same base, and has been cut four times by
         # anchor moves rather than by any change to the doctrine: 2,162 at the
         # K-IV anchor, then 1,924, then 1,797, and 1,692 after the care floor
-        # was raised on 2026-09-03. What this guards is the purchase-model
-        # comparison above, not the level.
+        # was raised on 2026-09-03 (1,697.7 live, 2026-10-17). What this guards
+        # is the purchase-model comparison above, not the level.
         assert d_charter > 1_650.0
 
     def test_target_acquisition_infeasible_window_low_eps(self):
@@ -716,7 +682,10 @@ class TestRecalibratedArc:
         # MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
         # capital stock resolves along the canonical arc, so the infrastructure term
         # falls at low ε and every ratio computed against total EOH moves with it.
-        assert last["dividend_per_capita"] == pytest.approx(1631.7845, rel=1e-4)
+        # → 1641.4553 on 2026-10-04: the default stock age became the measured US one (0.50 → 0.591).
+        # → 1632.5464 on 2026-10-15: KNOWLEDGE_EOH_BASE re-derived net -1.96%, so total EOH at the top fell.
+        # → 1633.3021 on 2026-10-18: the automation floors followed their source.
+        assert last["dividend_per_capita"] == pytest.approx(1633.3021, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing
@@ -789,18 +758,18 @@ class TestRecalibratedArc:
 class TestFoundingLabourArm:
 
     def test_founding_hours_are_bound_to_the_personal_obligation(self):
-        """The rationale is a FRACTION of the base, so it must be computed from it."""
+        """The rationale is a FRACTION of the base, so the founding hours are computed
+        from it.
+        """
         assert RECAL_FOUNDING_LABOR_HOURS == pytest.approx(
             RECAL_FOUNDING_FRACTION * PERSONAL_EOH_BASE
         )
         assert RECAL_FOUNDING_LABOR_HOURS == pytest.approx(666.667, rel=1e-4)
 
     def test_a_founder_keeps_part_of_their_obligation(self):
-        """The substantive claim: two-thirds redirected, a third left to live on.
-
-        This is what the 1,000 literal violated — at the repriced base it left the
-        founder nothing, which is not a placeholder being imprecise but the stated
-        mechanism inverted.
+        """The substantive claim: two-thirds redirected, and a third left to live on.
+        The 1,000 literal left the founder nothing at the repriced base, which inverted
+        the stated mechanism.
         """
         assert 0.0 < RECAL_FOUNDING_FRACTION < 1.0
         residual = PERSONAL_EOH_BASE - RECAL_FOUNDING_LABOR_HOURS
@@ -814,7 +783,7 @@ class TestFoundingLabourArm:
         assert slow == pytest.approx(2.0 * fast)
 
     def test_the_revalue_lengthened_the_labor_arm_by_exactly_three_halves(self):
-        """1,000 → 666.67 h/yr is a 1.5x slowdown, and it is reported not hidden."""
+        """1,000 → 666.67 h/yr is a 1.5× slowdown, and the test reports it."""
         at_old = exit_financing(0.0, founding_labor_hours=1000.0)["t_labor_years"]
         at_new = exit_financing(0.0)["t_labor_years"]
         assert at_new == pytest.approx(1.5 * at_old)
@@ -822,11 +791,9 @@ class TestFoundingLabourArm:
         assert at_new == pytest.approx(2.70, rel=1e-3)
 
     def test_the_invariant_survives_the_revalue_at_every_arc_point(self):
-        """The point of measuring the blast radius: nothing breaks, with margin stated.
-
-        Worst labour-arm time across the arc is ~2.85 yr against a 5-yr horizon, so
-        the revalue consumes roughly half the headroom and leaves the three-channel
-        invariant intact.
+        """The revalue breaks nothing. The worst labour-arm time across the arc is about
+        2.85 yr against a 5-yr horizon. The three-channel invariant holds with about
+        half the headroom left.
         """
         worst = 0.0
         for i in range(100):
@@ -847,3 +814,70 @@ class TestFoundingLabourArm:
         assert channels.index("self") > max(
             i for i, c in enumerate(channels) if c == "underwritten"
         ) - len(channels)
+
+
+class TestFormationLevyBase:
+    """`formation_levy_rate` divides the gap by obligation HOURS read as TEH
+    (2026-09-30). The report gives the same gap against the MINT beside it, and the
+    applied `levy_rate` is unchanged. Which base the bridge is quoted on is the author's
+    call.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.05, 0.10, 0.20])
+    def test_the_mint_rate_is_the_gap_over_the_mint(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.research.recalibration import formation_levy_rate
+        r = formation_levy_rate(eps)
+        assert r["mint"] == eoh_to_teh_pipeline(eps)["teh_created"]
+        assert r["levy_rate_on_mint"] == pytest.approx(r["funding_gap"] / r["mint"], rel=1e-15)
+        assert r["levy_rate"] == pytest.approx(r["funding_gap"] / r["labor_output"], rel=1e-15)
+
+    def test_on_the_mint_the_bridge_is_large_at_subsistence(self):
+        """Direction, not level: the hours base makes the bridge look an order
+        of magnitude or more smaller than it is against what the ledger pays."""
+        from hours_eoh.research.recalibration import formation_levy_rate
+        r = formation_levy_rate(0.0)
+        assert r["levy_rate_on_mint"] > 10.0 * r["levy_rate"]
+
+    def test_the_sunset_is_later_than_the_old_docstring_said(self):
+        from hours_eoh.research.recalibration import formation_levy_rate
+        assert formation_levy_rate(0.20)["sunset"] is False
+        assert formation_levy_rate(0.30)["sunset"] is True
+
+
+class TestBridgeAdvance:
+    """The §8.9b gap as a zero-interest advance repaid from the commons' own
+    later surplus (2026-09-30) — the alternative to levying labour."""
+
+    def test_it_is_repaid_in_finite_time_from_the_commons_own_surplus(self):
+        from hours_eoh.research.recalibration import bridge_advance
+        r = bridge_advance()
+        assert r["advance"] > 0.0
+        assert r["repaid_years_after_sunset"] is not None
+        assert r["surplus_after_sunset"] > 10.0 * r["advance"]
+
+    def test_the_sunset_is_the_levy_function_s(self):
+        from hours_eoh.research.recalibration import bridge_advance, formation_levy_rate
+        e = bridge_advance()["sunset_epsilon"]
+        assert formation_levy_rate(e)["sunset"] is True
+        assert formation_levy_rate(round(e - 0.005, 3))["sunset"] is False
+
+    def test_the_advance_is_the_levy_function_s_gap_integrated(self):
+        """One gap, two readings — bound by test (mode 4)."""
+        from hours_eoh.data import RECAL_EPSILON_RATE_PER_YEAR as R
+        from hours_eoh.research.recalibration import bridge_advance, formation_levy_rate
+        r = bridge_advance()
+        step = 0.005
+        total = sum(formation_levy_rate(i * step)["funding_gap"] * step / R
+                    for i in range(int(round(r["sunset_epsilon"] / step))))
+        assert r["advance"] == pytest.approx(total, rel=1e-9)
+
+    def test_a_faster_arc_needs_a_larger_advance(self):
+        from hours_eoh.research.recalibration import bridge_advance
+        slow, fast = (bridge_advance(epsilon_rate_per_year=v)["advance"] for v in (0.01, 0.04))
+        assert fast > slow
+
+    def test_the_prior_work_share_is_frame_invariant(self):
+        from hours_eoh.research.recalibration import bridge_advance
+        ref = bridge_advance()["share_of_default_prior_work"]
+        assert bridge_advance(population=1.0e5)["share_of_default_prior_work"] == pytest.approx(ref, rel=1e-9)

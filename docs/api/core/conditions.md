@@ -43,9 +43,11 @@ print(result["passes"], result["reserve_fraction"], result["status"])
 
 Single-call all-conditions check at ε.
 
-### `domain_eoh_coverage(reserve_result, domain_eoh_demands, …)` → `dict`
+### `condition_iv_coverage(reserve_result, pipeline, demand="registered", …)` → `dict`
 
-Whether the certified workforce can actually cover each domain's EOH. Condition IV checks certified fractions, not capacity: a domain whose EOH has outgrown its certified workers passes Condition IV and is still in shortfall, and this is the check that sees it.
+Whether the people certified in each essential domain can carry its work — Condition IV in hours. Capacity is `certified × hours_per_certified_worker` (default `MEASURED_CAPACITY_H_YR`, the measured adult capacity), independent of ε. Demand is read off an `eoh_to_teh_pipeline` result — `"registered"` hours by default (the register is what the collective carries), or `"human"` — and mapped onto the seven essential domains by `eoh_generation.eoh_to_essential_domains`. A domain is covered or it is not; no threshold is chosen. Returns `per_domain`, `domains_short`, `all_covered`, `status`.
+
+`demand="personal"` reads only the registered PERSONAL hours — the survival tier: Condition IV is first about whether the agents' own needs have competent hands, and the rest can be rebuilt as the arc climbs (author, 2026-10-01). Hours no essential domain is certified for are reported as `unattributed_eoh`, never counted short. The bridge's personal column is derived from the obligation's components; the other three columns are the original judgement. At the Condition IV minimum healthcare is short over a band of the upper arc in both registered readings, because care — most of the personal obligation — has no essential domain of its own and is set against healthcare.
 
 ---
 
@@ -79,6 +81,16 @@ ledger and Trust accounts from one simulated period on the same frame. One input
 is declared rather than tracked — the certified share of the workforce, which
 nothing in the package measures (`--certified-fraction`) — and the command prints
 it as declared. For a real collective, pass your own ledger figures.
+
+**Condition IV is read twice.** `condition_iv` is the certified *fraction* per
+domain against the threshold. `condition_iv_hours` asks whether those people can
+carry the *hours* (`condition_iv_coverage`), in two tiers: a shortfall against
+the agents' own registered needs (`personal`) is RED and fails the condition; a
+shortfall only against everything the collective registers (`registered`) is
+YELLOW. A reserve can pass the fraction and fail the hours: at the CLI's
+declared 0.18 it does over a band of the upper arc, in care. Pass `pipeline=`
+(an `eoh_to_teh_pipeline` result) to read both at your own state; without it the
+dashboard computes one from the fiscal arguments.
 
 !!! important "The dashboard is the constitution's test bench"
     Green means every check it runs passes on the accounts it was given — not that the system works. A yellow or red reading is reported, never tuned away. See [Design Principle 8](../../theory/design_principles.md#8-the-code-is-the-constitutions-test-bench).

@@ -1,34 +1,30 @@
-"""
-Every figure the anchor comparison page rests on, emitted from the functions.
+"""Every figure the anchor comparison page rests on, emitted from the functions.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-WHY THIS EXISTS. The anchor comparison page (`docs/theory/anchor_comparison.md`)
-states results computed elsewhere. Restating a derived figure in prose is failure
-mode 13 — the drift this repo has caught more often than any other — and on this
-page it was not hypothetical: the verification-cost figures were written on
-2026-09-08 and were wrong by 2026-09-10, twice over.
+WHY THIS EXISTS. The anchor comparison page (`docs/theory/anchor_comparison.md`) states
+results computed elsewhere. A derived figure restated in prose drifts (failure mode 13,
+the drift this repo catches most often), and on this page it happened: the
+verification-cost figures written on 2026-09-08 were wrong by 2026-09-10, twice over.
 
-**SO THE PAGE NOW QUOTES SHAPES, AND THIS MODULE HOLDS THE NUMBERS.** Where a
-figure is calibration, the page describes its shape and names the function; this
-emitter is where the current value lives, keyed, with the sentence it supports.
-Where a figure is STRUCTURAL — a designed zero, an exact unit elasticity, a
-verdict string, the set of anchors holding all three properties — the page may
-state it, and `tests/test_anchor_page_figures.py` reads the published page and
-checks the statement against this dict.
+**SO THE PAGE QUOTES SHAPES, AND THIS MODULE HOLDS THE NUMBERS.** Where a figure is
+calibration, the page describes its shape and names the function; this emitter holds the
+current value, keyed, with the sentence it supports. Where a figure is STRUCTURAL (a
+designed zero, an exact unit elasticity, a verdict string, the set of anchors that hold
+all three properties), the page may state it. `tests/test_anchor_page_figures.py` reads
+the published page and checks the statement against this dict.
 
-History: until 2026-09-12 the page lived in gitignored `notes/` and could not be
-gated at all. It moved to `docs/` on publication, which is what made the page
-checks possible.
+History: until 2026-09-12 the page lived in gitignored `notes/`, where no gate could
+reach it. Its move to `docs/` on publication made the page checks possible.
 
   - `python3 utils/anchor_page_figures.py` prints the current values;
   - `--markdown` emits them as a table beside the sentence each supports.
 
-**REPORTING ONLY.** Nothing here changes a shipped number; it re-presents what
-the scenario and research layers already compute. Every entry names the call, so
-a reader can run it rather than trust this file.
+**REPORTING ONLY.** Nothing here changes a shipped number; it re-presents what the
+scenario and research layers compute. Every entry names its call, so a reader can run it
+instead of trusting this file.
 
-Layer: utils/ — imports freely, imported by nothing.
+Layer: utils/. It imports freely, and nothing imports it.
 """
 
 from __future__ import annotations
@@ -162,7 +158,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
     # Supply is endogenous to the population — the second instrument
     "instrument_verdict": (
         lambda: instrument_comparison()["verdict"],
-        "the labour and capital routes to epsilon are adjacent, not overlapping",
+        "the labour and capital routes to epsilon overlap at the default cell",
     ),
     # ε is the share of obligation still dependent on human agency — the ceiling
     "observable_epsilon_at_top_capability": (

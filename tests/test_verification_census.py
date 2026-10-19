@@ -1,22 +1,18 @@
-"""
-The verification-cost census — `reference/verification.py`.
+"""The verification-cost census: `reference/verification.py`.
 
-WHAT IS ACTUALLY AT STAKE. The anchor comparison concedes that gold and
-fixed-supply protocols need no measurement apparatus, and names verification
-cost as the term that decides whether this framework is cheaper to audit than
-they are. That term is absent from all four EOH domains while
-`core/multipliers.assess_tier` REQUIRES the apparatus and books nothing for it.
-This census is the first half of pricing it.
+WHAT IS AT STAKE. The anchor comparison concedes that gold and fixed-supply protocols
+need no measurement apparatus, and names verification cost as the term that decides
+whether this framework is cheaper to audit. That term is absent from all four EOH
+domains, while `core/multipliers.assess_tier` REQUIRES the apparatus and books nothing
+for it. This census is the first half of pricing it.
 
-WHAT THESE TESTS ARE FOR, and it is not the total. The number is a bound and
-will move. What must not move without someone noticing is the DISCIPLINE around
-it: that the occupational judgement is isolated and reasoned, that the exclusions
-are named rather than filtered, that the set is disjoint from the servicing
-census by construction rather than by inspection, and that the two error
-directions are never netted into a single flattering figure.
+WHAT THESE TESTS GUARD is the DISCIPLINE, not the total, which is a bound and will move.
+The occupational judgement is isolated and reasoned, and the exclusions are named, not
+filtered. The set is disjoint from the servicing census by construction. The two error
+directions are never netted into one flattering figure.
 
-REPORTING ONLY. Nothing imports this module and no shipped number moves; the
-last test pins that.
+REPORTING ONLY. Nothing imports this module and no shipped number moves; the last test
+pins that.
 """
 
 from __future__ import annotations
@@ -33,12 +29,9 @@ ALL_ATTRIBUTED = tuple(V.VERIFICATION_ATTRIBUTIONS) + tuple(V.BROAD_SCOPE_ADDITI
 
 
 class TestDisjointFromServicingByConstruction:
-    """
-    THE DOUBLE-APPLICATION GUARD (recurring failure mode 11). Servicing charges
-    the land holder for building inspection and title search through GUF. If
-    either appeared here too, the same hours would be billed twice — and the
-    defect would be invisible in each census alone, which is exactly the shape
-    that makes mode 11 expensive.
+    """THE DOUBLE-APPLICATION GUARD (mode 11). Servicing charges the land holder for
+    building inspection and title search through GUF. If either appeared here too, the
+    same hours would be billed twice, and neither census alone would show it.
     """
 
     def test_the_two_censuses_share_no_occupation(self):
@@ -112,8 +105,9 @@ class TestTheJudgementIsIsolatedAndReasoned:
         )
 
     def test_measurement_is_the_one_that_does_not_follow_the_register(self):
-        """The distinction that keeps the term honest: the world must be
-        measured whether or not anyone registers it."""
+        """The world must be measured whether or not anyone registers it; that keeps the
+        term honest.
+        """
         assert "NOT scale with the register" in V.SCALING_BASIS["measurement"]
 
 
@@ -131,11 +125,9 @@ class TestTheBoundsAreBoundsAndNotAnEstimate:
             assert V.verification_workers(scope)["missing_from_registry"] == []
 
     def test_there_is_no_weight_to_tune_anywhere(self):
-        """
-        THE POINT OF THE TWO-SCOPE DESIGN. A weighted middle would put a number
-        nothing measures in front of the answer it decides — `132011` alone is
-        1.65M and dominates any total it enters. Both scopes are measured
-        headcounts, so there is no coefficient to fit to a desired result.
+        """Both scopes are measured headcounts, so no coefficient exists to fit to a
+        desired result. A weighted middle would put an unmeasured number in front of the
+        answer; SOC `132011` alone is large enough to dominate any total it enters.
         """
         numeric_tables = {
             name: obj for name, obj in vars(V).items()
@@ -216,19 +208,11 @@ class TestItStatesItsOwnGaps:
         assert "re-review" in joined and "appeal rate" in joined
 
     def test_the_registrant_side_is_declared_as_structurally_unreachable(self):
-        """
-        THE GAP THAT MADE §7's FALSIFIER AN ANSWER AT HALF SCOPE.
-
-        Both scopes are apparatus-side — the people whose JOB is to verify.
-        The hour a registrant spends documenting their own fulfilment is
-        nobody's occupation, so no occupational census reaches it at any
-        breadth. That is not a shortfall of THIS census; it is a property of
-        the instrument, and the one measured analogue runs an order of
-        magnitude above the administering agency.
-
-        A census that did not say so would read as a bound on the cost when it
-        is a bound on the apparatus — the shape of the floor's scope artefact
-        (F-041), one subsystem over.
+        """Both scopes are apparatus-side: the people whose JOB is to verify. A
+        registrant's hour documenting their own fulfilment is nobody's occupation, so no
+        occupational census reaches it. The census must say so; otherwise it reads as a
+        bound on the cost when it bounds only the apparatus (F-041). The one measured
+        analogue runs an order of magnitude above the administering agency.
         """
         joined = " ".join(V.what_this_cannot_settle()) + " " + " ".join(
             V.direction_of_error()[k] for k in ("under", "scope")
@@ -245,10 +229,9 @@ class TestItStatesItsOwnGaps:
 
 
 class TestItChangesNothing:
-    """
-    REPORTING ONLY, pinned. Phase 3 — whether this term enters `total_eoh` — is
-    a theory change that moves every ratio computed against the obligation, and
-    it is not taken here.
+    """REPORTING ONLY, pinned. Whether this term enters `total_eoh` (Phase 3) is a
+    theory change that moves every ratio against the obligation, and this module does
+    not make it.
     """
 
     def test_only_the_scenario_layer_reads_the_census(self):

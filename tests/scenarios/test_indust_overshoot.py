@@ -61,13 +61,27 @@ class TestIndustOvershootBaseline:
         result = indust_overshoot_baseline(population=1_000_000, epsilon=0.40)
         assert result["outcome"] in VALID_OUTCOMES
 
-    def test_outcome_never_manageable_at_indust_params(self):
+    def test_the_backlog_is_derived_and_carried_by_people(self):
         """
-        At full industrial-overshoot parameters (65M pop, ε=0.40), the
-        EOH burden and ecological deficit should always produce STRESSED or CRITICAL.
+        REPLACED 2026-10-04 (author: derive the backlog, carry it as labour).
+        This pinned "never MANAGEABLE at the industrial parameters", which held
+        only because the 100 B-hour backlog entered as ONE year's demand
+        (1,538 h/head, above the labour supply). Derived from the health
+        deficit it is ~0.1 h/head and the archetype reads MANAGEABLE (record:
+        fulfilment.md#overbuilt-frame). Pinned now: the flow is
+        `deficit_obligation`'s, it reaches the ecological domain, and the
+        baseline is reported, never applied.
         """
-        result = indust_overshoot_baseline(population=65_000_000, epsilon=0.40)
-        assert result["outcome"] in {"STRESSED", "CRITICAL"}
+        from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+        from hours_eoh.scenarios.restoration_cost import deficit_obligation
+        pop = 65_000_000
+        result = indust_overshoot_baseline(population=pop, epsilon=0.40)
+        derived = deficit_obligation(pop * LAND_HECTARES_PER_CAPITA, 1.0 - INDUST_ECOSYSTEM_HEALTH)
+        assert result["restoration_eoh"] == derived > 0.0
+        assert result["eoh_by_domain"]["ecological"] >= derived
+        assert result["ecological_carried_by"] == "people"
+        assert result["baseline_backlog_eoh"] == INDUST_DEFERRED_ECOLOGICAL
+        assert result["eoh_by_domain"]["ecological"] < result["baseline_backlog_eoh"]  # not applied
 
     def test_recommendation_is_string(self):
         result = indust_overshoot_baseline(population=1_000_000, epsilon=0.40)

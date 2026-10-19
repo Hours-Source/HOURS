@@ -1,12 +1,16 @@
 """
 Can ATUS measure the personal automation floors? Measured, and the answer is no.
 
-WHAT A FLOOR IS. `PERSONAL_AUTOMATION_FLOORS` holds, per personal-EOH component,
-the fraction of the obligation that stays human-carried however high automation
-goes. Only `care` has an entry, and that entry is a charter DECISION bound to
-`CARE_AUTOMATION_FLOOR` (tag `normative`) rather than a measurement. Nutrition,
-shelter and health carry none — and an absent floor is treated by the model as
-0.0, i.e. fully automatable, which is an assumption nobody has checked.
+WHAT A FLOOR IS. `PERSONAL_AUTOMATION_FLOORS` holds, per personal-EOH component, the
+fraction of the obligation that stays human-carried however high automation goes. When
+this module was written, only `care` had an entry: a charter DECISION in
+`CARE_AUTOMATION_FLOOR` (tag `normative`), not a measurement. The model treats an absent
+floor as 0.0, fully automatable, an assumption nobody had checked. Since 2026-09-03
+(author decisions) care and nutrition both carry `anchored_processing_estimate`'s upper
+bound on the FR1966 anchor, tagged `placeholder` and bound to it by test (0.2808 when
+adopted, 0.2799 since 2026-10-18). Care was raised to match it on the ordering bound.
+Shelter and health still carry none
+([record](record/personal.md#nutrition-floor-adopted)).
 
 WHY THIS MODULE EXISTS. That constant's `resolves_by` asks for "a time-use split
 of each component's activities into those whose value depends on a HUMAN
@@ -14,12 +18,11 @@ performing them". This module runs the closest thing the repo's data can supply
 — the six-digit ATUS series over 2003-2025 — and reports what it can and cannot
 settle. **REPORTING ONLY. It produces no floor value, and a test enforces that.**
 
-THE INSTRUMENT, AND THE ASYMMETRY THAT MAKES IT READABLE. Over the window,
-household capital deepened. Two forces push observed UNPAID hours down:
-automation, and marketisation (hiring a cleaner, eating out, paid childcare —
-ATUS counts unpaid time only). They cannot be separated in this data. But they
-point the SAME WAY, and that asymmetry is what makes the series informative in
-one direction only:
+THE INSTRUMENT, AND THE ASYMMETRY THAT MAKES IT READABLE. Over the window, household
+capital deepened. Two forces push observed UNPAID hours down: automation, and
+marketisation (hiring a cleaner, eating out, paid childcare — ATUS counts unpaid time
+only). This data cannot separate them. But they point the SAME WAY, and that asymmetry
+is what makes the series informative in one direction only:
 
   - hours ROSE   -> neither force took them. Evidence FOR a non-zero floor.
   - hours FELL   -> automation or marketisation, indistinguishable. Uninformative.
@@ -128,12 +131,11 @@ def beyond_shrinkage(change: float, household_size_change: float) -> bool:
     """
     Does a per-person decline exceed what household shrinkage already explains?
 
-    Extracted so the rule is testable on its own. On the shipped data no probe
-    falls between the household-size change and zero, so the two candidate
-    rules — "fell at all" and "fell faster than households" — agree on every
-    observed value, and a test written only against the shipped probes cannot
-    tell them apart. That is a threshold which cannot fire, so the boundary is
-    exercised directly instead.
+    Extracted so the rule is testable on its own. On the shipped data no probe falls
+    between the household-size change and zero, so the two candidate rules — "fell at
+    all" and "fell faster than households" — agree on every observed value, and a test
+    written only against the shipped probes cannot tell them apart. That is a threshold
+    which cannot fire, so the tests drive the boundary directly instead.
     """
     return change < household_size_change
 
@@ -197,8 +199,8 @@ def floor_direction() -> dict[str, dict]:
     """
     Per unfloored component: does the series support a non-zero floor?
 
-    Only a RISE supports one. A fall is jointly explained by automation and
-    marketisation and supports nothing in either direction.
+    Only a RISE supports one. Automation and marketisation jointly explain a fall, so a
+    fall supports nothing in either direction.
     """
     out = {}
     for component in MEASURABLE:
@@ -235,11 +237,10 @@ def atus_window_opens() -> int:
     """
     The first year the ATUS series can see.
 
-    DERIVED from the extract rather than declared as a constant: restating 2003
-    here would be a second account of a fact the data already carries, and it
-    would silently stop being true if the extract ever reached further back.
-    The MTUS series is split at this year to ask where the household-labour
-    decline actually happened.
+    DERIVED from the extract rather than declared as a constant: restating 2003 here
+    would be a second account of a fact the data already carries, and it would silently
+    stop being true if the extract ever reached further back. The MTUS series splits at
+    this year, to ask where the household-labour decline actually happened.
     """
     return min(_years())
 
@@ -321,11 +322,11 @@ def aggregate_floor_bound(country: str = "US") -> dict:
     """
     What the long series bounds, and in which direction.
 
-    `persisting_share` is the fraction of the earliest measured level still
-    being worked at the end. It is an UPPER bound on the aggregate floor, and
-    the direction is the whole point: the baseline is 1965, which already had
-    washing machines and refrigerators, so the true unautomated level is HIGHER
-    than the baseline and the floor measured against it is LOWER than this.
+    `persisting_share` is the fraction of the earliest measured level that people still
+    work at the end. It is an UPPER bound on the aggregate floor, and the direction is
+    the whole point: the baseline is 1965, which already had washing machines and
+    refrigerators, so the true unautomated level is HIGHER than the baseline and the
+    floor measured against it is LOWER than this.
 
     It is an AGGREGATE — `ACT_UNDOM` is nutrition and shelter together — so it
     constrains no single component. What it does refute is a floor of 0.0 for
@@ -497,16 +498,17 @@ def care_floor_corroboration() -> dict:
     """
     Childcare against nutrition, over the same spans and the same instrument.
 
-    `CARE_AUTOMATION_FLOOR` is `normative` — a charter commitment that some
-    fraction of care is relational and cannot be automated at any level. No
-    dataset was ever cited for it. This does not measure the floor, but it does
-    ask whether the series behaves the way a high floor would predict, using a
-    component measured the same way as a contrast.
+    `CARE_AUTOMATION_FLOOR` was `normative` when this was written: a charter commitment
+    that some fraction of care is relational and no automation level can take it. Since
+    2026-09-03 it is a `placeholder` at the ordering bound (`care_floor_is_too_low`). No
+    dataset was ever cited for it. This does not measure the floor, but it does ask
+    whether the series behaves the way a high floor would predict, using a component
+    measured the same way as a contrast.
 
-    The marketisation confound runs the RIGHT way here, which is unusual. Paid
-    daycare and residential care move care OUT of unpaid time, so observed
-    unpaid childcare should fall even if nothing were automated. It does not
-    fall. That makes flatness harder to explain away, not easier.
+    The marketisation confound runs the RIGHT way here, which is unusual. Paid daycare
+    and residential care move care OUT of unpaid time, so observed unpaid childcare
+    should fall even with no automation at all. It does not fall. That makes flatness
+    harder to explain away, not easier.
     """
     child = component_long_series("childcare", "US")
     nutrition = component_long_series("nutrition", "US")
@@ -541,17 +543,17 @@ def validate_code_mapping() -> dict[str, dict]:
     """
     Check the MTUS→component mapping against ATUS on the years both cover.
 
-    The identification strategy: US samples are in both surveys, so the same
-    population-year is coded twice, independently. If a set of MTUS codes is
-    the component it claims to be, its level must track the ATUS family across
-    every overlapping year — not once, which any coincidence supplies.
+    The identification strategy: US samples are in both surveys, so two independent
+    codings exist for the same population-year. If a set of MTUS codes is the component
+    it claims to be, its level must track the ATUS family across every overlapping year
+    — not once, which any coincidence supplies.
 
-    THE SIGN OF THE RESIDUAL IS NOT PREDICTED, and an earlier version of this
-    docstring wrongly claimed it was. MTUS here is ages 18-69 and ATUS is 15+:
-    excluding teenagers pushes the MTUS figure UP, and excluding the over-69s —
-    retired, at home, doing more housework — pushes it DOWN. Both operate and
-    neither obviously dominates, so only the MAGNITUDE is evidence. Nutrition
-    reads 1.015 and shelter 0.976; both are small, and that is the claim.
+    NOTHING PREDICTS THE SIGN OF THE RESIDUAL, and an earlier version of this docstring
+    wrongly claimed it did. MTUS here is ages 18-69 and ATUS is 15+: excluding teenagers
+    pushes the MTUS figure UP, and excluding the over-69s — retired, at home, doing more
+    housework — pushes it DOWN. Both operate and neither obviously dominates, so only
+    the MAGNITUDE is evidence. Nutrition reads 1.015 and shelter 0.976; both are small,
+    and that is the claim.
     """
     years = [y for y in _years() if f"US{y}" in mtus.codes_by_sample()]
     out: dict[str, dict] = {}
@@ -622,15 +624,14 @@ def component_floor_bounds(country: str = "US") -> dict[str, dict]:
     """
     Per-component UPPER bounds on the automation floor.
 
-    The bound is the lowest level ever observed, as a share of the earliest.
-    It is an UPPER bound twice over, and both directions are the same way:
-    the baseline year already carried household automation, and marketisation
-    removes unpaid hours that automation did not. So the true floor is below
-    this, and a floor of 0.0 — what an absent entry means to the model — is not
-    what the data shows.
+    The bound is the lowest level ever observed, as a share of the earliest. It is an
+    UPPER bound twice over, and both directions are the same way: the baseline year
+    already carried household automation, and marketisation removes unpaid hours that
+    automation did not. So the true floor is below this. Still, the data does not show a
+    floor of 0.0, which is what an absent entry means to the model.
 
-    It is still not a floor VALUE. A minimum that was reached and then left is
-    a level the series visited, not one it cannot pass.
+    It is still not a floor VALUE. A minimum the series reached and then left is a level
+    it visited, not one it cannot pass.
     """
     out = {}
     for component in COMPONENT_CODES_MTUS:
@@ -666,15 +667,15 @@ def replication(component: str = "nutrition") -> dict:
     Does the US result hold in other countries? Each within-country series is
     an independent capital gradient.
 
-    WHY THIS IS THE STRONG FORM. `cross_country()` showed the cross-SECTION is
-    not a capital gradient — comparing rich against poor at a point in time
-    measures convention and institutions too. A within-country series does not
-    have that problem: the institutions are held roughly fixed and capital
-    moves. Seven of them, run separately, is seven tests rather than one.
+    WHY THIS IS THE STRONG FORM. `cross_country()` showed the cross-SECTION is not a
+    capital gradient — comparing rich against poor at a point in time measures
+    convention and institutions too. A within-country series does not have that problem:
+    the institutions stay roughly fixed while capital moves. Seven of them, run
+    separately, is seven tests rather than one.
 
-    THE COUNT IS REPORTED HONESTLY. Countries with a declared institutional
-    break are counted in the denominator and flagged, not removed. A
-    replication rate computed after dropping the disagreements is not one.
+    THE FUNCTION REPORTS THE COUNT HONESTLY. Countries with a declared institutional
+    break stay in the denominator, flagged, not removed. A replication rate computed
+    after dropping the disagreements is not one.
 
     Worked example (nutrition, minutes per day, ages 18-69):
 
@@ -745,12 +746,11 @@ def developed_convergence(component: str = "nutrition") -> dict:
     unpaid cooking may be a convergence in how much cooking is bought rather
     than in an irreducible core.
 
-    THAT LIMIT IS NOW PARTLY ADDRESSED, AND ONLY PARTLY.
-    `market_substitution_check()` runs the substitution test on the one country
-    with the resolution for it: US preparation rose 33.8% over 2003-2025 while
-    food bought ready to eat FELL 12.9% and groceries rose 13.7%, with eating
-    flat. Food moved back into the home, so the recent rise is not the market
-    unwinding into the measurement.
+    `market_substitution_check` NOW PARTLY ADDRESSES THAT LIMIT, AND ONLY PARTLY.
+    `market_substitution_check()` runs the substitution test on the one country with the
+    resolution for it: US preparation rose 33.8% over 2003-2025 while food bought ready
+    to eat FELL 12.9% and groceries rose 13.7%, with eating flat. Food moved back into
+    the home, so the recent rise is not the market unwinding into the measurement.
 
     What it does not reach is the part this claim rests on. ATUS opens in 2003,
     so the 1965-2005 FALL — where the converged level actually came from — is
@@ -958,9 +958,8 @@ def anchored_processing_estimate() -> dict:
     mills, electricity and shops — so true unassisted processing exceeds all of
     them and the true floor is below all of these.
 
-    The tightest bound comes from the LARGEST anchor, which is the opposite of
-    the usual intuition: more unassisted processing means a bigger denominator
-    and a smaller floor.
+    The tightest bound comes from the LARGEST anchor, against the usual intuition. More
+    unassisted processing means a bigger denominator and a smaller floor.
     """
     from hours_eoh.scenarios.food_conservation import conservation_test
 
@@ -1011,19 +1010,19 @@ def nutrition_floor_estimate() -> dict:
     two buckets and leaves the total untouched, so marketisation cannot move
     this number at all. That is the whole reason it is worth computing.
 
-    THE BENCHMARK IS MEASURED, NOT ASSUMED. The unassisted counterfactual for
+    THE BENCHMARK IS A MEASUREMENT, NOT AN ASSUMPTION. The unassisted counterfactual for
     PRODUCTION is the LSMS smallholder figure the repo already carries — 330.9
-    h/person-yr, rainfed, unassisted stratum, seven countries. Against it, US
-    production retains **1.55%**: automation took essentially all of it.
+    h/person-yr, rainfed, unassisted stratum, seven countries. Against it, US production
+    retains **1.55%**: automation took essentially all of it.
 
-    SERVICE IS EXCLUDED (author decision, 2026-09-03), and the reason is
-    structural rather than a preference. **A floor is a lower bound, and service
-    has no upper one.** There is no cap on how elaborately a meal can be
-    prepared and presented; any number of methods can absorb any number of
-    hours, and what those hours command is a market price. An unbounded quantity
-    cannot be a floor — it is discovery ABOVE the floor, which is exactly the
-    split `core.prices.floor_price` draws between the guaranteed level and the
-    `market_premium` above it. Service belongs on the premium side.
+    THE ESTIMATE EXCLUDES SERVICE (author decision, 2026-09-03), for a structural
+    reason, not a preference. **A floor is a lower bound, and service has no upper
+    one.** There is no cap on how elaborately a meal can be prepared and presented; any
+    number of methods can absorb any number of hours, and what those hours command is a
+    market price. An unbounded quantity cannot be a floor — it is discovery ABOVE the
+    floor, which is exactly the split `core.prices.floor_price` draws between the
+    guaranteed level and the `market_premium` above it. Service belongs on the premium
+    side.
 
     The measurement agrees with the argument: the unassisted benchmark carries
     ZERO service, so US service hours are an activity that did not previously
@@ -1035,23 +1034,24 @@ def nutrition_floor_estimate() -> dict:
     the superseded reading so the 14-point difference the decision resolves
     stays visible, on the pattern the Ψ policies and `uniform` set.
 
-    THE LOAD-BEARING ASSUMPTION, AND IT ERRS HIGH. The unassisted PROCESSING
-    term is not measured, so this sets it equal to current US processing. But
-    `reference.personal_basket` already names both the gap and its size:
-    processing is "threshing, winnowing, pounding, milling, drying, storage,
-    fuel collection, water for cooking, and cooking itself... **in hand-powered
-    systems processing plausibly exceeds production labour**". Unassisted
-    production is 330.9 h/person-yr and this assumption uses 220.5, so the
-    denominator is almost certainly too small and **the estimate is an UPPER
-    bound**. `processing_sensitivity()` prices it: at processing equal to
-    production the floor is 0.341, at 1.5x it is 0.273, at 2x it is 0.227.
+    THE LOAD-BEARING ASSUMPTION, AND IT ERRS HIGH. Nobody has measured the unassisted
+    PROCESSING term, so this sets it equal to current US processing. But
+    `reference.personal_basket` already names both the gap and its size: processing is
+    "threshing, winnowing, pounding, milling, drying, storage, fuel collection, water
+    for cooking, and cooking itself... **in hand-powered systems processing plausibly
+    exceeds production labour**". Unassisted production is 330.9 h/person-yr and this
+    assumption uses 220.5, so the denominator is almost certainly too small and **the
+    estimate is an UPPER bound**. `processing_sensitivity()` prices it: at processing
+    equal to production the floor is 0.341, at 1.5x it is 0.273, at 2x it is 0.227.
 
-    So the honest reading is **0.409 as a ceiling, with the plausible range
-    running down toward 0.23-0.34**, and the LSMS field below is what would
-    replace the assumption with a measurement.
+    So the honest reading is **0.409 as a ceiling**, with the plausible range running
+    down to the anchored 0.280–0.309 (`anchored_processing_estimate`, 2026-10-18). The
+    LSMS field below is what would replace the assumption with a measurement.
 
-    **THIS IS A BEST GUESS, NOT A MEASUREMENT, AND IT IS NOT ADOPTED.**
-    `PERSONAL_AUTOMATION_FLOORS` still carries no nutrition entry.
+    **THIS IS A BEST GUESS, NOT A MEASUREMENT.** The author did not adopt it as written.
+    Since 2026-09-03 (author decision), `PERSONAL_AUTOMATION_FLOORS` carries a nutrition
+    entry from `anchored_processing_estimate`, not this estimate, and this function
+    reports `is_adopted` ([record](record/personal.md#nutrition-floor-adopted)).
     """
     from hours_eoh.scenarios.food_conservation import conservation_test
 
@@ -1129,8 +1129,8 @@ def shelter_construction_fails(
     only_samples: tuple[str, ...] | None = None,
 ) -> dict:
     """
-    Why the nutrition construction does NOT transfer to shelter. A NEGATIVE
-    RESULT, recorded so it is not attempted twice.
+    Why the nutrition construction does NOT transfer to shelter. A NEGATIVE RESULT,
+    recorded so nobody attempts it twice.
 
     THE PREDICTED BLOCKER WAS THE NUMERATOR, AND IT IS NOT THE PROBLEM. Food had
     clean SOC blocks — agriculture, food processing, food prep and serving — all
@@ -1140,10 +1140,10 @@ def shelter_construction_fails(
     already excludes as creation rather than upkeep) with household repair. So
     the household share of every candidate occupation is unknown.
 
-    It turns out not to matter. Paid shelter labour is small against unpaid:
-    sweeping the assumed household share from 5% to 100% — a 20x range — moves
-    the floor only 0.577 to 0.682, because unpaid shelter is 265 h/person-yr and
-    the entire candidate pool at 100% is 52.
+    It turns out not to matter. Paid shelter labour is small against unpaid. A sweep of
+    the assumed household share from 5% to 100% (a 20x range) moves the floor by only
+    about 0.10. Unpaid shelter is 265 h/person-yr, and the entire candidate pool at 100%
+    is 52.
 
     THE DENOMINATOR IS WHAT FAILS. Nutrition had ONE measured benchmark: the
     LSMS unassisted stratum, defined by what it lacks — no improved seed, no
@@ -1205,7 +1205,8 @@ def shelter_construction_fails(
         "numerator_is_the_blocker": False,
         "denominator_is_the_blocker": True,
         "verdict": (
-            f"the household share barely matters — sweeping it 5%-100% moves the "
+            f"the household share barely matters — sweeping it "
+            f"{min(share_sweep):.0%}-{max(share_sweep):.0%} moves the "
             f"floor only {max(share_sweep.values()) - min(share_sweep.values()):.3f} "
             f"— but the benchmark spans {hi_b / lo_b:.2f}x and yields floors from "
             f"{min(floors.values()):.3f} to {max(floors.values()):.3f}, the upper "
@@ -1249,30 +1250,31 @@ def care_floor_is_too_low() -> dict:
     person 15+ against paid per total capita, a 1.205x understatement of the
     paid side. Per person 15+ is the basis available for both years.
 
-    THE AGE STRUCTURE IS A REAL CONFOUND AND IS NOT CONTROLLED. The 15+
-    population aged over the span (mean 43.6 to 46.7), and older populations do
-    less childcare, so part of the unpaid decline is demography rather than
-    either marketisation or automation. That works AGAINST reading the decline
-    as automation, which is the direction this finding already argues.
+    THE AGE STRUCTURE IS A REAL CONFOUND AND IS NOT CONTROLLED. The 15+ population aged
+    over the span (mean 43.6 to 46.7), and older populations do less childcare, so part
+    of the unpaid decline is demography rather than either marketisation or automation.
+    That works AGAINST reading the decline as automation, which is the direction this
+    finding already argues.
 
-    THAT COMPARISON IS BOUNDED, NOT CLOSED. The registry is one vintage, so
-    2003 paid employment is unknown and the direction of the TOTAL cannot be
-    stated. What it does establish is that the paid term is large enough to
-    account for the observed unpaid decline several times over.
+    THE FUNCTION BOUNDS THAT COMPARISON; IT DOES NOT CLOSE IT. The registry is one
+    vintage, so 2003 paid employment is unknown, and nobody can state the direction of
+    the TOTAL. What it does establish is that the paid term is large enough to account
+    for the observed unpaid decline several times over.
 
-    WHAT THIS DOES AND DOES NOT DO. It does NOT measure care's floor — no
-    unassisted benchmark exists for care, and low-capital frames do LESS
-    childcare than the US, so the nutrition construction runs backwards here.
-    What it gives is an INTERNAL-CONSISTENCY bound: the framework already says
-    care is the LEAST abatable component (0.25, 84.4% of the residual) and that
-    relational care "cannot be automated at any epsilon", while nutrition — the
-    MOST abatable at 0.85 — now carries a MEASURED floor of 0.2808. A floor of
-    0.15 on care puts the least-automatable component below the most-automatable
-    one. On the framework's own ordering, care's floor should be at least
-    nutrition's.
+    WHAT THIS DOES AND DOES NOT DO. It does NOT measure care's floor — no unassisted
+    benchmark exists for care, and low-capital frames do LESS childcare than the US, so
+    the nutrition construction runs backwards here. What it gives is an
+    INTERNAL-CONSISTENCY bound: the framework already says care is the LEAST abatable
+    component (0.25, 84.4% of the residual) and that relational care "cannot be
+    automated at any epsilon", while nutrition, the MOST abatable at 0.85, carries a
+    MEASURED floor (0.2808 then, 0.2799 since 2026-10-18). A floor of 0.15 on care put
+    the least-automatable component below the most-automatable one. On the framework's
+    own ordering, care's floor should be at least nutrition's, and on 2026-09-03 the
+    author raised it to that bound
+    ([record](record/personal.md#care-raised-to-ordering-bound)).
 
-    **REPORTING ONLY.** `CARE_AUTOMATION_FLOOR` is untouched, and the bound
-    below is a consistency result rather than a measurement of care.
+    **REPORTING ONLY.** This function changes no constant. The bound below is a
+    consistency result, not a measurement of care.
     """
     from hours_eoh.scenarios.food_conservation import (
         hours_per_worker_year, load_registry,

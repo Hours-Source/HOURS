@@ -36,14 +36,24 @@ US2024_BROAD_HUMAN_PC = 1042.2
 class TestTheDefaultReadingIsUnchanged:
     """The repair is additive. A caller who ignores it sees the same numbers."""
 
+    # Re-pinned 2026-10-04: the default stock age became the measured US one
+    # (0.50 → 0.591), so the obligation the hours are divided by grew. The
+    # measured hours (human_per_capita) did not move.
+    # Re-pinned again 2026-10-04: the shipped hours convert to per head at the
+    # survey year's Census adult share (0.8277), not the ATUS 15+ count over a
+    # fixed 335M (0.8298) — the series trap, closed. Human hours per head fell
+    # 0.27%; the obligation moved with the fixed point.
+    # Re-pinned 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share): the obligation moved; the hours did not.
+    # Re-pinned 2026-10-18: the automation floors followed their live source and
+    # KNOWLEDGE_EOH_BASE re-anchored +0.170%; the obligation moved, the hours did not.
     def test_the_shipped_epsilons_are_bit_identical(self):
-        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.40689963045285293)
-        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.21380613330205045)
+        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.4109906443241671)
+        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.2181002175572131)
 
     def test_the_shipped_intermediates_are_bit_identical(self):
         core = LE.labour_epsilon("core")
-        assert repr(core["human_per_capita"]) == repr(911.3211693717458)
-        assert repr(core["total_obligation_per_capita"]) == repr(1536.537854575224)
+        assert repr(core["human_per_capita"]) == repr(908.9767878732426)
+        assert repr(core["total_obligation_per_capita"]) == repr(1543.2297961214508)
 
     def test_supplying_no_state_equals_supplying_an_empty_one(self):
         assert (LE.labour_epsilon("core", obligation_state={})["epsilon"]
@@ -51,8 +61,16 @@ class TestTheDefaultReadingIsUnchanged:
 
     def test_the_comparison_verdict_has_not_moved(self):
         c = LE.instrument_comparison()
-        assert c["verdict"] == "ADJACENT"
-        assert repr(c["gap"]) == repr(0.04568693284802028)
+        # OVERLAP since 2026-10-04: the capital arm reads its BEA ages and its
+        # condition on BLS's age-efficiency curve (ADJACENT before; DIVERGENT
+        # with the ages alone).
+        assert c["verdict"] == "OVERLAP"
+        # Re-pinned 2026-10-03: 0.04568693284802028 → 0.045610935473373415 when
+        # the default capital rates stopped being rounded copies of
+        # `conversion_band()` (15.94 → 15.9423…). The verdict, the grid's 18
+        # cells and the 8 inside the labour band are unchanged.
+        # → 0.0 on 2026-10-04: the intervals meet.
+        assert c["gap"] == 0.0
 
     def test_the_report_still_builds_its_verdict_string(self):
         r = LE.labour_epsilon_report()

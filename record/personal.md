@@ -4,19 +4,16 @@
 (Blocks I–III, P-I), the ATUS and MTUS ingests, the care and nutrition automation
 floors, measured capacity, the work-year reference.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
 
-Verified against `hours_eoh/data.py`, not recalled. Ungated; check the
-constant before quoting it.
+Verified against `hours_eoh/data.py`, not recalled. Ungated; check first.
 
 - **The standards split.** `PERSONAL_EOH_SURVIVAL` 600, `PERSONAL_EOH_SUFFICIENCY`
   1500 (may exceed supply — that gap is why collectives form), `PERSONAL_EOH_BASE`
   1000 — [block-i-standards-split](#block-i-standards-split).
-- **`PERSONAL_AUTOMATION_FLOORS` = `{care: 0.2808, nutrition: 0.2808}`** — care
+- **`PERSONAL_AUTOMATION_FLOORS` = `{care: 0.2799, nutrition: 0.2799}`** — care
   `errs: LOW` (ordering bound), nutrition `errs: HIGH`. **Shelter and health carry
   no floor, an ADMISSION and not a zero**: every further floor lowers the
   observable-ε ceiling, so the shipped figure errs HIGH and a test pins it.
@@ -28,8 +25,8 @@ constant before quoting it.
   `AGE_WEIGHT_INFANT` 3.0, checked and deliberately NOT moved —
   [child-weight-measured](#child-weight-measured).
 - **The floor prices THREE of seven components**, 899.2 h/yr, coverage **0.759**
-  — production `one_frame`, processing and care `bound`. Unreachable is EXCLUDED,
-  not costed at zero, and carries its reason. Standards are compared SCOPED, not
+  — production `one_frame`, processing and care `bound`. Unreachable is EXCLUDED
+  with its reason, not costed at zero. Standards are compared SCOPED, not
   against the whole floor. The extraction wedge is still **not identified**.
 - **~~ε=0 over-determined~~ — CLOSED 2026-09-04/08.** Ratio **0.94**, **43 of
   50** frames clear against 17, on three readings none of them physical. **All
@@ -38,6 +35,8 @@ constant before quoting it.
 
 ## Open
 
+- **Elderly weight from the ATUS bin? Capacity weights from MTUS?** *(person)* [ATUS](#eighty-cell-binned) · [MTUS](#capacity-weights-measured)
+- **Is the 15.5% threshold enough for care?** *(person)* [verification.md](verification.md#care-domain)
 - **Sphere treats temperature and SHELTER CAPACITY as ONE factor; the basket sums
   them as two** *(gap)* — the cited source contradicts the form it is cited into.
   The adjustment is ZERO at the shipped SSA frame, so the number is right and the
@@ -56,7 +55,7 @@ constant before quoting it.
   contains** *(caveat)* — **none unblocks by collecting more**; the baseline is a
   development erased. [vanished-baseline](#vanished-baseline).
 - **The frailty socket has no intake** *(person)* — the contract ships, no
-  default; nothing supplies it. ~An eighth of care. *Settles by:* ADL
+  default; nothing supplies it. ~A ninth of care. *Settles by:* ADL
   prevalence by age + LTC continuance. [care-keys-split](#care-keys-split).
 - **~~Capacity band 18-69 vs 18-64~~ — SETTLED 2026-09-04** *(person)*; the
   objection stands — [entry](#band-alignment-adopted).
@@ -68,9 +67,9 @@ constant before quoting it.
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
 - **`PERSONAL_EOH_COMPONENTS` shares** *(gap)* (confidence 25) — desk terms; ATUS
-  reads care at 25.7% against 62.1%, but observed ≠ obligation. *Settles by:*
-  HETUS/MTUS across development levels — one acquisition settling the shares,
-  the abatabilities, K_half and the infant band together.
+  reads care at 25.7% against 62.1%, but observed ≠ obligation. **The MTUS route
+  is REFUTED, not pending** — [entry](#acquisition-does-not-settle-the-shares).
+  *Settles by:* a survey coding PAID AND UNPAID care at the declared frame.
 - **Type-specific abatement** *(gap)* — which capital abates which component.
 - **Adopting abatement as the DEFAULT generation path** *(person)* — all three
   blockers are measured and struck in their own entries. What REMAINS: the pace
@@ -85,14 +84,88 @@ Filed here on primary subject; each also bears on another area.
 
 | Entry | Also | Why |
 |---|---|---|
-| [component-shares-measured](#component-shares-measured) | [fulfilment](fulfilment.md) | Measures the share Phase 2's per-component automation headline is weighted by — 10.22× becomes 4.82× at the observed care share |
-| [knowledge-split](#knowledge-split) | [fulfilment](fulfilment.md) | `knowledge_eoh_breakdown()` splits civilisational from apparatus knowledge; filed here because it lands inside the Block I–III sequence |
-| [capacity-measured](#capacity-measured) | [verification](verification.md) | Found a third work-year convention as a bare literal and a comparison that passed by luck on a mismatched labour frame |
+| [component-shares-measured](#component-shares-measured) | [fulfilment](fulfilment.md) | Weights Phase 2's per-component headline: 10.22× becomes 4.82× at the observed care share |
+| [knowledge-split](#knowledge-split) | [fulfilment](fulfilment.md) | `knowledge_eoh_breakdown()` splits civilisational from apparatus knowledge; filed here as part of Blocks I–III |
+| [capacity-measured](#capacity-measured) | [verification](verification.md) | Found a third work-year literal, and a comparison that passed by luck on a mismatched frame |
 | [child-weight-measured](#child-weight-measured) | [provenance](provenance.md) | Established the `confidence: 0–100` practice on placeholders, and re-anchored `KNOWLEDGE_EOH_BASE` |
 
 ---
 
 ## History
+<a id="floors-follow-their-source"></a>
+
+**THE NUTRITION AND CARE FLOORS FOLLOW THEIR LIVE SOURCE: 0.2808 → 0.2799** (2026-10-18, author: "for the constant drift follow from the live computes"). `NUTRITION_AUTOMATION_FLOOR`'s tag block says `automation_floors.anchored_processing_estimate()` computes it live; on 2026-10-18 that function returned 0.27992 (`tightest_bound`, FR1966 anchor) while the constant held 0.2808, 0.3% above its own stated source, with every test green. Nothing bound the constant to the function (failure mode 4). Found while rewriting `automation_floors`' docstrings to 80% STE ([ste-docstrings](verification.md#ste-docstrings)); what moved the function since adoption was not traced.
+- **BOTH FLOORS MOVED.** Care was raised to nutrition's value on the ordering bound ([care-raised-to-ordering-bound](#care-raised-to-ordering-bound)), so `CARE_AUTOMATION_FLOOR` follows too. Both now read 0.2799, the constants' four decimals.
+- **AND THE KNOWLEDGE ANCHOR, BECAUSE IT IS SOLVED WITH THEM.** `KNOWLEDGE_EOH_BASE`'s fixed point runs over `total_eoh`, which reads the floors: its thirteenth re-anchor, +0.170%, ε* 0.508651 → 0.508262, 291,930,848.76 → 292,426,958.88, reproduced at the first iteration.
+- **WHAT MOVED (LIVE).** `eoh_to_teh_pipeline` total EOH +0.001% / +0.010% / +0.055% at ε 0 / 0.40 / 0.99; `teh_created` at ε 0.40 −0.023% (343,198,422 → 343,120,643); `component_shares.phase_2_sensitivity(0.99)` 18.2547 → 18.1994 at the desk, 8.1426 → 8.1197 observed. Fourteen tests in nine files re-pinned with them (the shipped-totals pins in `test_frame` and `test_land_tenure`, the pipeline defaults, the knowledge arc and constant, the labour-ε intermediates, the recalibration anchor, the phase-2 factors), each annotated where it sits; the gitignored CLI notes re-recorded 60 figures, all within 0.30%.
+- **NOW BOUND BY TEST.** `test_automation_floors.py::TestTheCareFloorLooksTooLow::test_the_floors_follow_their_live_source` holds nutrition to `anchored_processing_estimate()` at four decimals and care to the consistency bound; verified by putting 0.2808 back, which fails it. `test_knowledge_base.py`'s registry check now reads ε* from the fixed point instead of a typed literal.
+
+<a id="food-conservation-test-history"></a>
+
+**THE HISTORY THAT `tests/scenarios/test_food_conservation.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 6; [ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were re-read from the functions on 2026-10-17.
+- **Stale since the literal was derived (LIVE).** Three docstrings still quoted the retired `320.0`. The single totals read "395 vs 320": `conservation_test(2025)` gives 393.17 against 330.92. Production read "320 → 5.1" and "~62× below": 331 → 5.1, a ratio of 0.0153 (65×). The share of national employment needed to close the production gap read "~34%": 35.8% (`uncounted_headroom`, solved for the LSMS figure).
+- **The population round trip (2026-08-31).** `hours_per_worker_year` took `total_population`, converted the 15+ hours down to a per-capita figure with it, and multiplied the same population back in. The answer was 1,874.4284 at every population, so a caller reframing to another country got the same number and believed they had reframed it: the frame-seam shape, found a seventh time. `tests/test_parameter_wiring` found it.
+- **The per-capita series trap.** A fixed `total_population` across 22 years divided by a constant while the 15+ population grew 23%. That alone turned the measured −26% provisioning decline into −8%.
+- **The literal (2026-08-28).** `LSMS_CROP_PRODUCTION_HOURS` was the bare literal `320.0`, declared in the scenario module, with no tag, no source and no coverage figure. It was a THIRD number for a quantity `reference/personal_basket` already measures: its docstring cited both routes (331 kcal-chain, 306 observed-labour) and stated neither, nor their midpoint (318.46). Moving it 320.0 → 330.9233 (+3.3%) failed ZERO of 3,244 tests: mode 1 on a headline finding.
+
+<a id="measured-capacity-test-history"></a>
+
+**THE HISTORY THAT `tests/test_measured_capacity.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were read from `feasibility_check`, `measured_capacity_frames`, `capacity_band_alignment` and `stationary_band` on 2026-10-17; the rest are dated, quoted as the docstrings stated them.
+- **The class was renamed and its assertion reversed.** `TestTheFindingDidNotSurviveTheBandCorrection` was `TestTheFindingSurvivesTheCorrection` and asserted fewer than half the frames clearing at ε=0, US2024 among those that did not. The band alignment ([band-alignment-adopted](#band-alignment-adopted)) moved the count 17/50 → 43/50 (dated) and flipped US2024 to clearing. **LIVE: 45/50 frames clear**; the docstring still said 43/50.
+- **The retrodiction went with it.** The model used to say a society working 1965 hours meets its personal obligation unaided and one working 2024 hours does not. That was the framework's sharpest empirical claim about modern time use, and the file's own module docstring had warned that "a fix that made the finding vanish would be the more suspicious outcome".
+- **A second one-sided loosening, 2026-09-09.** The capital-path decision (reading (e)) holds no apparatus at ε=0, so the infrastructure term leaves the subsistence demand. Under the pre-adoption share (a=0.60) the count went 17/50 → 39/50 and US2024 cleared too. **LIVE: 39 under a=0.60; US2024 reads 0.9773 there (0.8988 at the shipped share), US1965 0.8052 (0.7405).** The comparison is no longer runnable from the file: it needs the capital path as well as the band, and only the band was a parameter.
+- **The ε=0 ratio, three states.** Under H_REF it was 1.1525 (dated); measured capacity took it to ~1.026 and the band alignment to ~0.942. **LIVE: 1.0026 at H_REF, 0.9708 for capacity alone at a=0.60, 0.8928 shipped.** So "only the second correction closed it" is history: capacity alone clears today.
+- **The sufficiency band's floor.** 0.491 under the stale 2000.0 literal, 0.382 under the measured median, 0.374 after the per-component default, 0.309 band-aligned, 0.290 after the capital path, 0.382 when arc_stability took the per-component split, 0.384 when the stock age was measured. **LIVE: 0.383.** The test's comments keep the sequence.
+- **The capacity band.** `MEASURED_CAPACITY_H_YR` is measured over 18-69 while the working-age band is 18-64. **LIVE: the 65-69 gap is 5.83 points of adult share; the shipped share leaves 0.61 points** (0.6524 used against 0.6585 band-aligned). The class docstring still said "AND IT IS DELIBERATELY NOT FIXED" and quoted the pre-adoption 1.0245 → 0.9338 ([capacity-band-mismatch](#capacity-band-mismatch)), while its own last test asserted the adoption; it now states the adopted state.
+
+<a id="personal-floor-test-history"></a>
+
+**THE HISTORY THAT `tests/test_personal_floor.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here or to the entries named below ([ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were read from `floor_vs_constants` on 2026-10-17.
+- **The coverage figure was stale in five docstrings.** They said the floor prices "one component of seven" at "6.9% coverage", and that care, "62.1% of the basket by share", is unpriced. Care was priced as a declared lower bound on 2026-09-09 ([care-priced-as-a-bound](#care-priced-as-a-bound)), which moved coverage tenfold. **LIVE: 3 of 7 components, 75.9% of the share; the gap to `PERSONAL_EOH_BASE` per capita is 453.6 h; the unpriced 24.1% must deliver 1.59× the hours per unit share the priced part did.** The verdict text is computed, and the code comments beside each assertion already held the moves.
+- **The base's band.** `TestTheBaseDeclaresItsClimate` said 1,000 is CHOSEN "at the top of a 427–1092 band". The band moved to **482–1147** with the capital-path decision (data.py), so 1,000 now sits inside it, not at the top.
+- **The climate argument, in full.** `PERSONAL_EOH_BASE` was a single global float while its only priced component, nutrition production, is measured in rainfed tropical and sub-tropical Sub-Saharan Africa and "does not transfer without restratification by agro-ecological zone". The check was stratified and the checked was global. The earlier reading that costing thermal would break the global scalar had the wrong culprit: nutrition already had. See [thermal-merged-base-framed](#thermal-merged-base-framed).
+- **The thermal merge.** A village of 100 and a city of a million in one climate both face 2,500 degree-days, so degree-days is not a per-person quantity. As an intensity on shelter's quantity, insulation (shelter capital) and heating (thermal flow) can trade off; two additive lines could only add one point from each curve.
+- **Water.** `test_the_place_properties_are_named_and_set_the_indexing_grain` asserted `== {"shelter"}` until water became a second place property on 2026-09-09; two collectives in one climate, one beside a spring and one 3 km away, share a climate and not a floor ([water-is-site-indexed](#water-is-site-indexed)). The round-trip miss is at [water-declared-not-acquired](#water-declared-not-acquired).
+- **A stale test name, renamed.** `test_only_nutrition_production_is_priced` asserts three priced components (nutrition production, nutrition processing, care); it is now `test_only_the_measured_components_are_priced` (author, 2026-10-17: "fix the stale names"). Its assert message said the 453.6 gap is "quoted … in this test's docstring"; it now points here.
+
+<a id="care-demand-test-history"></a>
+
+**THE HISTORY THAT `tests/test_care_demand.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were read from `care_curve.implied_weights` and `care_demand.personal_profile` on 2026-10-17.
+- **Care alone overstates the infant (LIVE).** On care received alone an infant reads as **56.4** working-age adults; the docstring said ~25. The composed ratio is 2.99. The test asserts > 15 and < 4, so it held while the prose drifted.
+- **The child weight moved, and two docstrings did not.** `TestOnlyTheElderlyWeightWasAdopted` said "exactly one weight moved, and the other three did not" and quoted child "against shipped 1.5". `AGE_WEIGHT_CHILD` took the MTUS measurement on 2026-09-01 (1.5 → 1.82, [child-weight-measured](#child-weight-measured)). **LIVE: infant 2.55 against shipped 3.0, child 1.35 (ATUS only) against 1.82, elderly 1.468 against 1.48.** The class is renamed `TestTheAgeWeightRevaluations` (author, 2026-10-17: "fix the stale names").
+- **The 2026-08-10 decision.** Elderly 2.5 → 1.48 from this measurement (the test's docstring called the constant "the rounded measurement"; read with the 80 cell binned it is 1.4680 → 1.47 and re-adoption is pending, [eighty-cell-binned](#eighty-cell-binned)); infant and child held because their bands contain ages ATUS does not survey, so their totals are lower bounds that can only rise, and adopting a lower bound as a point estimate would revise them DOWN on a measurement missing a term. `AGE_GROUPS` was split the same day: one `placeholder` tag had covered a chosen partition, jurisdiction data, a numeraire and two grades of measurement.
+- **The infant check (2026-09-01).** 92% of MTUS infant-band diaries are ages 3-5, and an infant's maintenance is the caregiver's work, already counted as care received, so extrapolating to 0-2 would double count. Ages 3-5 applied to the band gives 3.21; 0-2 at ~0 gives 2.85.
+- **The top-code artefacts.** Before the 85 cell matched its denominator it read 932 min per person-day, over 15 hours for an average. ATUS: "TEAGE_EC is topcoded to 85. All those age 80 through 84 have TEAGE_EC = 80." (2024 ATUS Interview Data Dictionary); see [eighty-cell-binned](#eighty-cell-binned).
+
+<a id="feasibility-test-history"></a>
+
+**THE HISTORY THAT THE FEASIBILITY TEST DOCSTRINGS CARRIED, MOVED HERE** (2026-10-16, author: "use (b) create record and link to"). `tests/scenarios/test_feasibility.py` docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)). Figures read from the functions on 2026-10-16.
+- **The subsistence sweep.** Every clearing case sits at the top of the capacity band (supply 1,430 and 1,560 h/capita). Today two cases clear, best ratio 0.8722, worst 2.061. The count went 0 → 1 → 2 → 1 → 2 on five changes, none to the subsistence question: none at `PERSONAL_EOH_BASE` 1500; one at 1000 (ratio 0.99, at 2,600 h/yr and a 0.60 adult share); none after the `KNOWLEDGE_EOH_BASE` change (1.0019); two after the 2026-08-10 elderly revalue (best 0.889); one after the MTUS child weight; two after the 2026-09-09 capital-path decision, which put zero capital at ε=0 and moved the infrastructure requirement out of subsistence demand. The central reading at the time of the 08-10 entry was 1,387 demand against 1,000 supply, ratio 1.39.
+- **The generous corner.** At 2,600 h/yr per adult (7.1 hours every day, no rest days) and the most favourable adult share, subsistence CLEARS at ratio 0.9515. It failed at 1.0073 before 2026-09-09; the 2026-08-10 softening had made it clear, and the MTUS child weight (2026-09-01, [child-weight-measured](#child-weight-measured)) withdrew it. Flipped twice on moves under 5%, so it is not a verdict.
+- **The tolerance.** `feasible_epsilon(tol=)` went inert on the shipped defaults on 2026-09-04: ε=0 became feasible, so the bisection returns at once. The wiring ratchet caught it. The parameter is live and its branch unreached (corpus F-016), so the test runs it where the search runs, rather than loosening a ratchet at its bound.
+- **The documented figures.** `w` stood as 1.475 in five places in `feasibility.py` when the live value was 1.3528, one inside a worked derivation. The drift came from the AGE_WEIGHT_CHILD revalue elsewhere. `data.py` restated the band as 390–1006 and went stale the same way.
+- **The band.** `implied_base_ceiling` rises linearly with the adult share: 943.9 at a=0.55, 1,030.2 at 0.60, 1,120.7 at the shipped 0.652411, 1,202.9 at 0.70 (read 2026-10-16). The class docstring quoted 888 / 975 / 1,065 / 1,147 and a band of 427–1092, both stale; the live band is 482–1147, a factor of 2.38, which `data.py`'s `# band:` line states and a test pins. Before the band alignment the ceiling was 974.7 against a shipped 1,000, which the one-sided check would have failed; nothing asserted it then. `PERSONAL_EOH_BASE` has elasticity 0.95 on total EOH at ε=0 (a 1% perturbation through `total_eoh` on the canonical ε=0 state; `data.py` records 0.94). `personal_statutory_floor`, at the 6.9% coverage [ceiling-check-and-band](#ceiling-check-and-band) records (not re-read here: it needs a basket), would settle the point inside the band.
+- **Verification at the entry point.** `reference/verification.py` and `scenarios/verification_cost.py` measured the register's own labour, and `feasibility_check` could not see it until 2026-09-11. The default 0.0 keeps the earlier behaviour; whether the term enters the obligation is Phase 3.
+
+<a id="eighty-cell-binned"></a>
+
+**ATUS CODES AGES 80–84 AS 80, AND THE 80 CELL WAS DIVIDED BY THE AGE-80 POPULATION — THE ELDERLY WEIGHT WAS ADOPTED FROM THE DEFECT** (2026-10-02, found while giving two unreferenced accessors their first test). `reference/care_demand.atus_age`, `ATUS_BINNED_FROM_AGE`; `elderly_per_capita`, `curve_knots`, `band_relative_demand`. Tests: `tests/test_care_demand.py::TestTheEightyCellIsAFiveYearBin` (8).
+- **THE SOURCE, READ, NOT INFERRED (mode 8).** "TEAGE_EC is topcoded to 85. All those age 80 through 84 have TEAGE_EC = 80. Those age 85 or above have TEAGE_EC = 85." — ATUS 2024 Interview Data Dictionary; TEAGE reads the same. The data agreed before the codebook was opened: no recipient aged 81–84 in any of the 15 survey years. The module already folded 85+ for exactly this reason ("several times the length of a day") and missed the bin one below.
+- **WHAT MOVED** (snapshot before/after, every downstream output): per-capita eldercare at 80 **255.4 → 59.1 min/day**; `curve_knots` at 82 read 0.0, now the bin's 32.2; `personal_profile` total at 80 358.1 → 251.3; the route disagreement **7.13× → 5.46×**; `care_curve.elderly_routes` 9.13× → 6.93×; the implied elderly weight **1.4824 → 1.4680**, and the elderly care share 0.128292 → 0.120525.
+- **AND A THIRD FORM, IN THE BAND AVERAGE.** `band_relative_demand` read `profile.get(min(age, top))`: ages 81–84 found no cell (the profile holds codes 80 and 85) and were DROPPED from the elderly band — **6.09M people**. With them, the corrected weight is 1.4680 rather than the 1.4605 the first fix alone gave.
+- **NOT RE-ADOPTED.** `AGE_WEIGHT_ELDERLY` (1.48, `measured`) and `AGE_CARE_SHARE_ELDERLY` were adopted from the defective reading and agreed with it to 0.17%. Applying the corrected values was measured: total EOH −0.15 to −0.25% along the arc, the mint about the same, care's short band 0.74–0.81 → 0.75–0.81, stationarity and ε=0 feasibility unchanged — but **27 tests in 13 files** pin the old figures, including the knowledge-base fixed point reproducing its shipped constant. That re-anchoring chain is the author's. Both binding tests now pin BOTH sides (shipped and corrected), so either moving alone still fails.
+- **PROSE CORRECTED**: three `data.py` notes quoting the 7.1×/7.13× disagreement; two others quoting 7.13× are the knowledge constant's ε_ref sensitivity — a different quantity — and stand.
+
+<a id="acquisition-does-not-settle-the-shares"></a>
+
+**THE ACQUISITION HAPPENED AND IT DOES NOT SETTLE THE SHARES — THE POINTER IS REFUTED, NOT PENDING** (2026-09-22). `PERSONAL_EOH_COMPONENTS` carried *"HETUS/MTUS across development levels — one acquisition settling the shares, the abatabilities, K_half and the infant band together."* The panel is now read, verified and shipped, and following the pointer refutes it three ways. **No shipped number moves.** Corpus F-048.
+- **IT REACHES 24.14% OF THE OBLIGATION BY DESK WEIGHT.** `COMPONENT_CODES_MTUS` admits nutrition (0.1379, ratio 1.0147) and shelter (0.1034, 0.9757). Care — **0.6207, the share Phase 2's headline is weighted by** — has no admitted code set: childcare alone runs 0.827 of ATUS care, the residual being adult and elder care. Health (0.1379) has no counterpart at all. **Unreachable: 0.7586.**
+- **THE CROSS-SECTION IS NOT A CAPITAL GRADIENT, AND THE REPO HAD ALREADY MEASURED THAT.** `automation_floors.cross_country()` returns `is_a_capital_gradient: False` and its docstring says *"this module does not rank samples by development"* — the exact ranking the pointer asked for. Korea reads the LOWEST unpaid domestic time of any country despite being high-income; Bulgaria ROSE 38.6% across its transition. The refutation sat in a sibling module for the whole time the pointer stood.
+- **AND THE LOW-CAPITAL SIDE IS ONE COUNTRY.** `codes_by_sample()` carries 46 samples over 8 countries, **28 of them US**; 44 carry all five identified codes. ZA2000/ZA2010 ship a 45-code instrument **missing code 19** ("Set table, wash/put away dishes"), so South Africa has no nutrition figure, leaving Bulgaria (n=2). Whether ZA's code 18 absorbs 19 is not knowable from the file — and the repo's usual *"a category nobody reported is zero, not missing"* is WRONG here, because the instrument was coarser, not the activity absent.
+- **WHAT THE IDENTIFIED HALF DOES SAY, and it neither refutes nor supports.** n/(n+s): desk **0.5714**, ATUS 2025 **0.4948**, per-country means **0.408 (AT) – 0.594 (KR)**, sample range 0.3600–0.6051, n/s spread **2.72×**. The desk sits at the TAIL, with only Korea above it. Low-capital 0.4792 against high 0.4571 and the within-group ranges do NOT separate — reproducing what `shelter_frame_check()` already found. **The pooled 0.4581 must not be quoted as "MTUS says": 28 of 44 samples are US.**
+- **THE FOUR COMPONENTS DO NOT EXHAUST OBSERVED TIME.** `observed_shares()` reports `excluded_share_of_all` = **0.2992** — nearly a third of ATUS time that plausibly serves the obligation sits outside all four, disposed of by EXCLUSION rather than subtraction, including `0209` household management (*"overhead across all four, no basis to split it"*) and `0805` personal care services. So a residual-by-subtraction route would not recover care and health; it would recover care, health and whatever else the exclusions hold.
+- **A POINTER THE GATE CANNOT SEE.** The per-component `resolves_by` lines live INSIDE the dict literal, so `utils/provenance.py` never reads them: the CSV's only pointer for this constant is the block-level *"per-component pointers are on each line below"*, delegating to text nothing checks. Named in the tag block rather than repaired by copying, which would be failure mode 4.
+
 <a id="mtus-frame-read-gap-is-definitional"></a>
 
 **THE PUBLISHED MTUS FRAME WAS READ IN FULL, AND IT SETTLES WHY CARE AND HEALTH CANNOT COME FROM IT** (2026-09-21, author-directed). All 69 activity labels now ship in `reference/mtus_time_use.ACTIVITY_LABELS`, with `tests/test_mtus_time_use.py`. No shipped number moves.
@@ -246,8 +319,16 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 42 entries, newest first | |
+| 52 entries, newest first | |
 |---|---|
+| [floors-follow-their-source](#floors-follow-their-source) | THE NUTRITION AND CARE FLOORS FOLLOW THEIR LIVE SOURCE: 0.2808 → 0.2799 |
+| [food-conservation-test-history](#food-conservation-test-history) | THE HISTORY THAT `tests/scenarios/test_food_conservation.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [measured-capacity-test-history](#measured-capacity-test-history) | THE HISTORY THAT `tests/test_measured_capacity.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [personal-floor-test-history](#personal-floor-test-history) | THE HISTORY THAT `tests/test_personal_floor.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [care-demand-test-history](#care-demand-test-history) | THE HISTORY THAT `tests/test_care_demand.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [feasibility-test-history](#feasibility-test-history) | THE HISTORY THAT THE FEASIBILITY TEST DOCSTRINGS CARRIED, MOVED HERE |
+| [eighty-cell-binned](#eighty-cell-binned) | ATUS CODES AGES 80–84 AS 80, AND THE 80 CELL WAS DIVIDED BY THE AGE-80 POPULATION — THE ELDERLY… |
+| [acquisition-does-not-settle-the-shares](#acquisition-does-not-settle-the-shares) | THE ACQUISITION HAPPENED AND IT DOES NOT SETTLE THE SHARES — THE POINTER IS REFUTED, NOT PENDING |
 | [mtus-frame-read-gap-is-definitional](#mtus-frame-read-gap-is-definitional) | THE PUBLISHED MTUS FRAME WAS READ IN FULL, AND IT SETTLES WHY CARE AND HEALTH CANNOT COME FROM… |
 | [elderly-epsilon-factor-deleted](#elderly-epsilon-factor-deleted) | `ELDERLY_EOH_EPSILON_FACTOR` DELETED — RETIRED 2026-09-04, REMOVED 2026-09-16 |
 | [water-declared-not-acquired](#water-declared-not-acquired) | WATER RESOLVES BY DECLARATION PLUS A BOUND, AND THE UNREACHABLE DATA WAS NEVER THE WAY THROUGH |
@@ -264,7 +345,9 @@ Filed here on primary subject; each also bears on another area.
 | [band-alignment-adopted](#band-alignment-adopted) | THE SUPPLY BAND IS ALIGNED TO THE CAPACITY BAND — AND IT COST THE RETRODICTION |
 | [capacity-band-mismatch](#capacity-band-mismatch) | THE CAPACITY IS MEASURED ON A WIDER BAND THAN THE SUPPLY SHARE SELECTS — AND FIXING IT ALONE WO… |
 | [improved-not-settled](#improved-not-settled) | THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT… |
+| [capacity-weights-measured](#capacity-weights-measured) | THE CAPACITY WEIGHTS MEASURED ON THE CAPACITY'S OWN INSTRUMENT — AND NOT ADOPTED |
 | [circularity-check-atus-cannot-resolve-b](#circularity-check-atus-cannot-resolve-b) | THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EAR… |
+| [feasibility-per-component](#feasibility-per-component) | FEASIBILITY READS THE ADOPTED AUTOMATION RESPONSE — THE VERDICT HOLDS, THE MARGINS DID NOT |
 | [shelter-frame-check-mtus](#shelter-frame-check-mtus) | THE FRAME CHECK: MTUS RESOLVES SHELTER INTO TWO BLOCKS, NOT THREE CODES — AND THE LABEL-FREE RE… |
 | [shelter-decomposed](#shelter-decomposed) | THE SHELTER COMPONENT DECOMPOSED, AND ITS QUANTITY DOES NOT MATCH ITS DELIVERY |
 | [water-form-and-shelter-boundary](#water-form-and-shelter-boundary) | WATER IS A FORM QUESTION, NOT AN ACQUISITION; SHELTER IS A CROSS-DOMAIN BOUNDARY |
@@ -292,6 +375,14 @@ Filed here on primary subject; each also bears on another area.
 | [atus-ingest-findings](#atus-ingest-findings) | FINDINGS FROM THE ATUS INGEST — belong to other parts of the model |
 
 <!-- /record-index -->
+<a id="capacity-weights-measured"></a>
+
+**THE CAPACITY WEIGHTS MEASURED ON THE CAPACITY'S OWN INSTRUMENT — AND NOT ADOPTED** (2026-10-08, author-directed). `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asked for paid work + unpaid domestic work + childcare by age band, "the same three fields `measured_capacity` counts", and said the shipped extract could not supply it. `utils/mtus_capacity_age_ingest.py` cuts the same file, weight and three columns by single year of age (`mtus_capacity_by_age.csv`, 50 samples, 3,228 sample-ages); `mtus_time_use.capacity_in_band` reproduces `measured_capacity` over 18-69 for every sample, so it is the same instrument and not a neighbouring one. `feasibility.measured_capacity_weights()` weights each group's parts by census population: inside the 18-69 window 1.0 (as `AGE_CAPACITY_WEIGHT_ELDERLY` already does), surveyed ages outside it at their measured ratio to c, unsurveyed ages 0.
+
+- **US2024 on the latest census:** over-69s supply **0.489** of c (1,809 diaries; MTUS top-codes at 80) and 15-17s **0.264** (153 diaries); under-15s are unsurveyed. Child weight **0.070** (shipped 0), elderly **0.647** (shipped 0.308), adult share **0.733** against **0.659** — supply **+11.3%**. At ε=0 the feasibility ratio moves 0.885 → 0.795; both feasible.
+- **NOT ADOPTED, for the reason the band alignment gave.** 85% of the over-69 hours are unpaid domestic work (159.1 of 186.5 min/day on US2024; paid work 26.7, childcare 0.7) — what the demand side counts, with `AGE_WEIGHT_ELDERLY` a documented lower bound. Taking the supply side alone is the asymmetric fix that flatters. The measurement settles the supply side's question; it does not settle the adoption.
+- Gate: `tests/scenarios/test_feasibility.py::TestMeasuredCapacityWeights` — the extract reproduces `measured_capacity` for all 50 samples, and each group is its parts weighted by population (broken by zeroing the measured ratio: it fails).
+
 <a id="circularity-check-atus-cannot-resolve-b"></a>
 
 **THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EARLIER RECOMMENDATION** (2026-08-06, promoted from session memory 2026-09-03). Verbatim, with one bullet since overtaken — see the note beneath.
@@ -309,6 +400,15 @@ Filed here on primary subject; each also bears on another area.
 
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/personal.md#<slug>`.
+
+<a id="feasibility-per-component"></a>
+
+**FEASIBILITY READS THE ADOPTED AUTOMATION RESPONSE — THE VERDICT HOLDS, THE MARGINS DID NOT** (2026-10-01, author: "rebuild feasibility on per_component"). `scenarios/feasibility.feasibility_check(automation_response=)`, `feasible_epsilon(automation_response=)`, `capacity_weighted_adult_share(age_fractions=)`. Tests: `tests/scenarios/test_feasibility.py::TestDemandIsThePipelinesSplit` (12), the crossover and verification-bound pins re-measured.
+- **ONE ACCOUNT NOW.** Demand was `(1 − ε)·[w·B + R]` — the `uniform` response, retired as the default at Phase 2. It now reads the core's `human_eoh_per_domain`, and equals the pipeline's `human_eoh` to 1e-9 under BOTH responses. The ceiling inverts as `B ≤ (L − R_h)/(w·h_p)`, `h_p` the human share of personal EOH — exact, pinned by evaluating the check AT the ceiling; `uniform` reproduces every earlier figure.
+- **WHAT MOVED** (1M, called 2026-10-01). Demand/supply at ε = 0.40 / 0.90 / 0.99: 0.603 / 0.141 / 0.015 → **0.679 / 0.312 / 0.203** — feasible everywhere still. The base ceiling at 0.99: 111,910 → **5,066**: care keeps a human floor, so some base is infeasible at every ε. `feasible_epsilon` for a labour-poor population: **0.671 → 0.827** at 900 h/adult·yr, 0.517 → 0.669 at 1,200, 0.328 → 0.440 at (2,000 h, share 0.5). Water's clearing distance at 0.40: 1,430 → 1,158 m.
+- **WHAT DID NOT.** Everything at ε = 0, where nothing is automated and the responses agree — so `over_determination_report` and the 2026-09-04 closure are untouched. `demographic_margin` reads the gross obligation and does not move with ε at all; its docstring said the margin "widens with ε" and quoted 2.13 pp, both false (it returns 7.324 pp at every ε) — corrected, pinned flat. `capacity_weighted_adult_share`'s "0.60 exactly" predated the elderly capacity weight (the function returns 0.652411).
+- **A VERDICT THAT CHANGED SIDES.** Verification's ratio bound "took over at the top" only because `uniform` collapsed demand toward zero. At the shipped capacity CLEARING now binds across the whole arc, in every scope and basis; the ratio bound binds in **4 of the 50 measured frames**, the labour-richest (≥ 2,816 h/adult·yr), from ε ≈ 0.85–0.94. Pinned both ways.
+- **The bisection premise holds**: demand/supply falls monotonically on a 100-point grid at three capacities. Three mutations, each caught.
 
 <a id="shelter-frame-check-mtus"></a>
 
