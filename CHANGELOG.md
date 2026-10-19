@@ -52,6 +52,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   retirement and health premiums taken before tax, the child tax credit's
   phase-out, link values clamped, and no outside requests.
 - A link back to the Browser Tools page at the top of both explorers.
+- The hourglass logo, gold, in the docs site's header (now navy, #274068) and
+  as its favicon (a 64 px PNG, which every browser shows).
 - The family explorer's image carries the site's hourglass logo and the page
   address. A share bar posts to X, Bluesky, Facebook, LinkedIn and Reddit
   through plain links, plus the browser's own share and copy-image where they

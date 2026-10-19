@@ -25,15 +25,19 @@ hooks:
 
 theme:
   name: material
+  # The hourglass, gold (its fill is set in the file). The family explorer draws
+  # the same paths on its image: utils/explorers/family_hours/build.py.
+  logo: images/hourglass.svg
+  favicon: images/hourglass.png
   palette:
     - scheme: default
-      primary: teal
+      primary: custom
       accent: cyan
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: teal
+      primary: custom
       accent: cyan
       toggle:
         icon: material/brightness-4
@@ -129,3 +133,7 @@ nav:
 
   - Changelog: changelog.md
   - Contributing: contributing.md
+
+# The navy header behind the gold logo (primary: custom above).
+extra_css:
+  - stylesheets/brand.css
