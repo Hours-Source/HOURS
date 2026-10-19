@@ -428,6 +428,18 @@ class TestBandsAndDrawdown:
         assert held["labour_short_epsilons"] == [0.50]
         assert held["labour_short_years"] == held["points"] == 20
 
+    def test_drawdown_moves_epsilon_as_the_period_engine_does(self, monkeypatch):
+        """The drawdown reads the same ε each year as `canonical_arc_trajectory`: the start
+        is the baseline, and each year advances before its flow. Fails if the first flow
+        sits at the start again. See record/verification.md#ste-docstrings."""
+        from hours_eoh.scenarios.long_run import canonical_arc_trajectory
+        seen: list[float] = []
+        real = mod.stationarity_at
+        monkeypatch.setattr(mod, "stationarity_at", lambda e, **k: seen.append(e) or real(e, **k))
+        drawdown(3, 0.0, 0.99)
+        arc = [round(r["epsilon"], 2) for r in canonical_arc_trajectory(n_periods=3)["summary_table"]]
+        assert seen == arc
+
     def test_drawdown_refuses_a_zero_length_arc(self):
         with pytest.raises(ValueError):
             drawdown(0)

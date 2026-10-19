@@ -514,9 +514,11 @@ def drawdown(
     parcels `stationarity_report` defaults to.
 
     THE PATH IS A SCENARIO CHOICE. ε moves linearly from `epsilon_start` to
-    `epsilon_end` over `years`, one flow a year: year 0 at `epsilon_start`,
-    year `years − 1` at `epsilon_end` (2026-10-18; before, a path of N years
-    applied N + 1 flows). Nobody knows how fast a real economy advances, so
+    `epsilon_end` over `years`, one flow a year, as the period engine moves it
+    (`simulate_period`): `epsilon_start` is the baseline state, and each year
+    advances ε by (end − start) / years before its flow, so the last year
+    sits at `epsilon_end` (2026-10-18; before, a path of N years applied
+    N + 1 flows, the first at the baseline). Nobody knows how fast a real economy advances, so
     `years` has no default. Setting `epsilon_start == epsilon_end` holds the economy at
     one point, which is the stand-still question over time.
 
@@ -551,7 +553,7 @@ def drawdown(
     labour_short: list[float] = []
     short_years = 0
     for y in range(years):
-        e = epsilon_start + (epsilon_end - epsilon_start) * (y / (years - 1) if years > 1 else 0.0)
+        e = epsilon_start + (epsilon_end - epsilon_start) * (y + 1) / years
         key = round(e, 2)
         if key not in cache:
             cache[key] = stationarity_at(key, **kw)
