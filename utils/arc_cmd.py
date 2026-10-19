@@ -24,7 +24,29 @@ from utils.formatters import table, fmt_float, fmt_pct, fmt_eps, bold
 from hours_eoh.core.fiscal import resolve_trust_balance
 
 
+def knowledge_ref_figures() -> tuple[float, float, float, float]:
+    """The frozen base's ε_ref (the fixed point) and the ε_ref band's spread, live."""
+    from hours_eoh.scenarios.knowledge_base import (
+        DEFAULT_EPSILON_REF_BAND, epsilon_ref_fixed_point, knowledge_base_band)
+    from hours_eoh.scenarios.personal_floor import paid_labour_anchor
+    star = epsilon_ref_fixed_point(paid_labour_anchor())["epsilon_fixed_point"]
+    spread = knowledge_base_band()["epsilon_ref_spread"]
+    return star, spread, DEFAULT_EPSILON_REF_BAND[0], DEFAULT_EPSILON_REF_BAND[-1]
+
+
+def knowledge_ref_help() -> tuple[str, str]:
+    """The same figures as help text. A missing data file degrades the help, not the parser."""
+    try:
+        star, spread, lo, hi = knowledge_ref_figures()
+    except (OSError, KeyError, ValueError):
+        return ("ε_ref (see epsilon_ref_fixed_point)",
+                "the spread knowledge_base_band() reports")
+    return f"ε_ref = {star:.3f}", f"{spread:.2f}x across [{lo}, {hi}]"
+
+
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
+    from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
+    star_text, spread_text = knowledge_ref_help()
     p = sub.add_parser("arc", help="Sweep the epsilon arc and display system metrics")
     p.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
@@ -44,13 +66,14 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     p.add_argument("--thermal-obligation", type=float, default=0.0, metavar="EOH",
                    help="Annual planetary radiative-capacity obligation (h/yr) to "
                         "carry as the fourth ecological term. Default 0.0 (off). "
-                        "~1.79e6 for 1M people at ε=0.40 per research/thermal_solvency")
+                        f"~{REFERENCE_THERMAL_FLOW_EOH:.3g} for 1M people at ε=0.40 "
+                        "per research/thermal_solvency")
     p.add_argument("--knowledge-epsilon-ref", type=float, default=None,
                    dest="knowledge_epsilon_ref", metavar="EPS",
                    help="Re-derive KNOWLEDGE_EOH_BASE at this reference "
-                        "automation level instead of the frozen ε_ref = 0.40, "
-                        "and run the arc with it. THE DOMINANT UNCERTAINTY in "
-                        "the knowledge domain: 7.13x across [0.2, 0.6]. "
+                        "automation level instead of the frozen base's fixed "
+                        f"point {star_text}, and run the arc with it. THE "
+                        f"DOMINANT UNCERTAINTY in the knowledge domain: {spread_text}. "
                         "See the knowledge-base closure note §4")
     p.set_defaults(func=run)
 
@@ -134,8 +157,8 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
 
     The denominator check: ε = machine_EOH / total_EOH, so whichever domain dominates
     total EOH effectively sets ε. Before Block K-IV (2026-08-08) personal ran 87–96%
-    across the whole arc. Since K-IV it falls across the arc (99.4% at ε 0 to 57.7% at
-    0.99 on 2026-10-17), so the defect is PARTLY closed. Personal still dominates the
+    across the whole arc. Since K-IV it falls across the arc (the footer prints the
+    shares at both ends), so the defect is PARTLY closed. Personal still dominates the
     low arc, where knowledge has no apparatus to attach to, and the ecological domain is
     empty under the Phase 4e/4f partition.
     """
@@ -157,18 +180,19 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     print(table(headers, rows))
     print()
     print(bold("Domain balance: "), end="")
-    print("personal EOH runs ~99% at ε=0 falling to ~46% at ε=0.99. Block K-IV "
-          "put knowledge on\nits measured O*NET/BLS footing, which closed one of "
-          "the two small domains — knowledge is\nnow CO-EQUAL with personal at "
-          "the top of the arc (~46% each).\n\n"
-          "The ECOLOGICAL domain is 464x SMALLER than this table used to show, and "
-          "the correction\nis the finding. Until 2026-08-17 the default paired "
-          "ECOLOGICAL_BASE_RATE — the obligation\nfor the WHOLE contiguous US — "
-          "with a population of 1,000,000, so the column was\nflattered by the "
-          "ratio between them. The area is now resolved FROM the population, and "
-          "the\ndomain reads ~0.001 h/person·yr. The defect did not shrink when "
-          "the frame was declared:\nit was being MASKED by the frame, and it is "
-          "the last of the four domains still open.\n"
+    lo, hi = rows_data[0], rows_data[-1]
+
+    def share(r: dict, key: str) -> float:
+        return r[key] / (r["total_eoh"] or 1.0)
+
+    eco_max = max(r["eco_eoh"] for r in rows_data) / population
+    print(f"personal EOH runs {share(lo, 'personal_eoh'):.1%} of the total at "
+          f"ε={lo['epsilon']:.2f} and {share(hi, 'personal_eoh'):.1%} at "
+          f"ε={hi['epsilon']:.2f}; knowledge rises from {share(lo, 'knowledge_eoh'):.1%} "
+          f"to {share(hi, 'knowledge_eoh'):.1%}.\n"
+          f"The ecological domain reads at most {eco_max:.3g} h/person·yr on this arc: "
+          "Phases 4e/4f moved both\nrecurring terms to GUF, and the domain carries "
+          "supplied stocks only.\n"
           "See docs/parameter_provenance.md §'Domain balance — the denominator problem'.")
 
 
@@ -218,10 +242,11 @@ def run(args: argparse.Namespace) -> None:
     print(table(headers, rows))
     if eps_ref is not None and knowledge_base is not None:
         print()
+        star, spread, band_lo, band_hi = knowledge_ref_figures()
         print(f"KNOWLEDGE_EOH_BASE re-derived at ε_ref = {eps_ref:.2f}: "
-              f"{knowledge_base:.4e} (frozen default is ε_ref = 0.40). "
-              f"This is the arc's dominant knowledge-domain lever — 7.13× "
-              f"across ε_ref ∈ [0.2, 0.6].")
+              f"{knowledge_base:.4e} (the frozen base sits at its fixed point, "
+              f"ε_ref = {star:.3f}). This is the arc's dominant knowledge-domain "
+              f"lever — {spread:.2f}× across ε_ref ∈ [{band_lo}, {band_hi}].")
     if getattr(args, "thermal_obligation", 0.0) > 0.0:
         print()
         print(f"Carrying a thermal obligation of "

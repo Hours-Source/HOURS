@@ -77,7 +77,7 @@ class TestCareRegistrationDelay:
 
     def test_teh_deficit_non_negative(self):
         result = care_registration_delay(epsilon=0.60, delay_epsilon=0.15)
-        assert result["teh_deficit_per_worker"] >= 0.0
+        assert result["care_teh_deficit_per_care_hour"] >= 0.0
 
     def test_outcome_is_valid(self):
         for delay in (0.0, 0.10, 0.30):

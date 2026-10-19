@@ -10,6 +10,7 @@ import pytest
 
 import hours_eoh.scenarios.stationarity as mod
 from hours_eoh.land.collective import make_rural_collective, make_urban_collective
+from hours_eoh.core.fiscal import resolve_trust_balance
 from hours_eoh.scenarios.stationarity import (
     d3_consumption,
     drawdown,
@@ -136,11 +137,23 @@ class TestTheTrustOwesOnlyTheGuarantee:
                                guf_parcels=URBAN, guf_cap="payable")["teh"]["stationary"] is True
 
     def test_the_inheritance_changes_how_long_not_whether(self):
-        a = stationarity_at(0.99, guarantee="v2")["teh"]
+        a = stationarity_at(0.99, guarantee="v2", trust_start=0.0)["teh"]
         b = stationarity_at(0.99, guarantee="v2", trust_start=1.0e9)["teh"]
         assert a["stationary"] == b["stationary"] is False
         assert a["years_covered"] == 0.0
         assert b["years_covered"] == pytest.approx(1.0e9 / b["shortfall"], rel=1e-12)
+
+    def test_the_default_trust_is_the_frames_and_the_drawdown_agrees(self):
+        """Unstated, both functions start from the frame's Trust, scaled to the population.
+        Fails if either default returns to an empty Trust, or the drawdown's failing year
+        disagrees with `years_covered`. See record/verification.md#ste-docstrings."""
+        one, two = (stationarity_at(0.99, guarantee="v2", population=p)["teh"]
+                    for p in (1.0e6, 2.0e6))
+        assert one["trust_start"] == resolve_trust_balance(None, 1.0e6) > 0.0
+        assert two["trust_start"] == pytest.approx(2.0 * one["trust_start"], rel=1e-12)
+        held = drawdown(50, 0.99, 0.99, guarantee="v2", population=1.0e6)
+        assert held["trust_start"] == one["trust_start"]
+        assert held["fails_in_year"] == math.floor(one["years_covered"])
 
 
 class TestTheLandFeeFrameAndCap:
@@ -404,8 +417,16 @@ class TestBandsAndDrawdown:
         # point where something is owed, so holding is not by construction.
         held = drawdown(50, 0.40, 0.40, guarantee="v1", need_fraction=0.05, guf_parcels=URBAN)
         assert held["fails_in_year"] is None and held["trust_end"] > 0.0
-        fails = drawdown(50, 0.99, 0.99, guarantee="v2")
+        fails = drawdown(50, 0.99, 0.99, guarantee="v2", trust_start=0.0)
         assert fails["fails_in_year"] == 0 and fails["trust_end"] < 0.0
+
+    def test_drawdown_counts_labour_short_years_not_distinct_epsilons(self):
+        """A path held at one ε counts every yearly point that fails, not one ε.
+        Fails if the count reads the de-duplicated ε list. See
+        record/verification.md#ste-docstrings."""
+        held = drawdown(20, 0.50, 0.50, adult_capacity_h_yr=300.0)
+        assert held["labour_short_epsilons"] == [0.50]
+        assert held["labour_short_years"] == held["points"] == 20
 
     def test_drawdown_refuses_a_zero_length_arc(self):
         with pytest.raises(ValueError):

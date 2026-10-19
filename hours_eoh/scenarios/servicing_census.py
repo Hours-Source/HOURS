@@ -165,13 +165,16 @@ def realized_vs_measured(epsilon: float = 0.40) -> dict:
         })
 
     by = {r["archetype"]: r for r in rows}
+    rural = make_rural_collective(1_000)
+    farm_share = sum(p["use_category"].startswith("agricultural")
+                     for p in rural) / len(rural)
     return {
         "epsilon": epsilon,
         "rows":    rows,
         "verdict": (
             f"THE ×100 IS NOT UNIFORMLY WRONG. "
             f"THE RURAL COMPARISON IS WITHDRAWN (2026-08-18) and is no longer "
-            f"quoted as a finding: the rural archetype is 70% agricultural by "
+            f"quoted as a finding: the rural archetype is {farm_share:.0%} agricultural by "
             f"parcel, and cropland and pasture sit in no serviced land class AND "
             f"are unpriced by the stewardship census, so BOTH halves of its "
             f"target are missing. Phase 2 compared it against an average taken "

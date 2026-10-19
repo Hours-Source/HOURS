@@ -134,6 +134,7 @@ from hours_eoh.reference.land_stewardship import (
     derive_allocations,
     hours_per_acre,
     load_land_use,
+    land_hectares_by_class,
     load_stewardship_employment,
     parks_split,
     total_land_hectares,
@@ -407,7 +408,7 @@ def _verdict(
         f"scope={scope}: measured stewardship intensity is {measured:.3f} h/ha·yr "
         f"over the {floor['coverage'] * 100:.1f}% of US land area that has a "
         f"costed path, against the anchor's implied {anchor_intensity:.3f} — "
-        f"a factor of {ratio:.2f}× {direction}. Reaching a 1% ecological share "
+        f"a factor of {ratio:.2f}× {direction}. Reaching a {one_pc['target_share']:.0%} ecological share "
         f"needs {one_pc['required_hours_per_hectare_year']:.1f} h/ha·yr. "
         f"{len(floor['unpriced'])} land classes covering "
         f"{sum(u['area_hectares'] for u in floor['unpriced']) / 1e6:.1f} Mha are "
@@ -621,7 +622,8 @@ def field_capacity_report() -> dict:
             f"on working forest — so a treated acre is tended comparably or "
             f"somewhat harder. The route yields the RIGHT QUANTITY in the RIGHT "
             f"UNITS from physics alone, which four earlier instruments did not. "
-            f"It still cannot price the 152.7 Mha, because hours per hectare of "
+            f"It still cannot price the "
+            f"{land_hectares_by_class()['Total cropland'] / 1e6:.1f} Mha of cropland, because hours per hectare of "
             f"TREATED land is not hours per hectare of cropland and the adoption "
             f"fraction is unknown — but that unknown is now BOUNDED: adoption "
             f"cannot exceed 1, so the class contributes at most "

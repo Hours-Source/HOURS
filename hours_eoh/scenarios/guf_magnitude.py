@@ -303,14 +303,15 @@ def target_vs_realised(
     archetype is 70% agricultural by parcel. Cropland and pasture are in no serviced
     land class, and the stewardship census does not price them, so BOTH halves of the
     target are missing. Phase 2 compared rural against the `core` average, taken over
-    urban land and rural highway corridor. This function reproduces that 1.12× as
+    urban land and rural highway corridor; it read 1.12× then, and 1.28× at ε=0.40 on
+    the fee as shipped (2026-10-18). This function returns that comparison as
     `phase_2_comparison` and flags it; it does not repeat it as a finding.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
     if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
-        raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
+        raise ValueError(f"epsilon must be in [0.0, {EPSILON_ARC_MAX}], got {epsilon}")
 
     by_class = {
         r["land_use"]: r
@@ -347,6 +348,9 @@ def target_vs_realised(
                 ),
             })
         else:
+            farm_share = sum(p["use_category"].startswith("agricultural")
+                             for p in parcels) / len(parcels)
+            phase_2 = realised / census("core")["hours_per_hectare_year"]
             rows.append({
                 "archetype":         name,
                 "hectares":          hectares,
@@ -356,15 +360,15 @@ def target_vs_realised(
                 "stewardship_h_per_ha": None,
                 "ratio":             None,
                 "like_for_like":     False,
-                "phase_2_comparison": realised / census("core")["hours_per_hectare_year"],
+                "phase_2_comparison": phase_2,
                 "note": (
-                    "NO TARGET. The rural archetype is 70% agricultural by parcel; "
-                    "cropland and pasture receive no measured servicing (they are in "
-                    "no serviced land class) and are unpriced by the stewardship "
-                    "census. Both halves are missing, so the 1.12× Phase 2 reported "
-                    "was the fee against an average over urban land and rural highway "
-                    "corridor — a different land class. Reported as "
-                    "`phase_2_comparison`, not as a ratio."
+                    f"NO TARGET. The rural archetype is {farm_share:.0%} agricultural "
+                    "by parcel; cropland and pasture receive no measured servicing "
+                    "(they are in no serviced land class) and are unpriced by the "
+                    "stewardship census. Both halves are missing, so Phase 2's "
+                    f"comparison, {phase_2:.2f}× here, is the fee against an average "
+                    "over urban land and rural highway corridor — a different land "
+                    "class. Reported as `phase_2_comparison`, not as a ratio."
                 ),
             })
 
@@ -375,12 +379,13 @@ def target_vs_realised(
         "rows":        rows,
         "urban_ratio": urban_row["ratio"],
         "verdict": (
-            f"At ε={epsilon:g} the urban archetype realises "
+            f"At ε={epsilon:.3g} the urban archetype realises "
             f"{urban_row['realised_h_per_ha']:,.1f} h/ha·yr against a recurring "
             f"target of {urban_target:,.2f} — servicing {urban_servicing:,.2f} plus "
             f"stewardship {(urban_stewardship or 0.0):,.2f} — a factor of "
-            f"{urban_row['ratio']:,.1f}×. Adding the stewardship half moves Phase 2's "
-            f"18.1× to {urban_row['ratio']:,.1f}×: the direction of the finding is "
+            f"{urban_row['ratio']:,.1f}×. Adding the stewardship half moves the "
+            f"servicing-only {urban_row['realised_h_per_ha'] / urban_servicing:,.1f}× "
+            f"to {urban_row['ratio']:,.1f}×: the direction of the finding is "
             f"unchanged and the target is now the one the Phase 4 partition actually "
             f"defines. The rural comparison is withdrawn — see its note."
         ),
@@ -484,7 +489,7 @@ def conservation_credit_check(
         ValueError: if epsilon is outside [0.0, 0.99].
     """
     if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
-        raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
+        raise ValueError(f"epsilon must be in [0.0, {EPSILON_ARC_MAX}], got {epsilon}")
 
     rows = [
         r for r in recurring_target_by_class("core", stewardship_scope)
@@ -725,7 +730,7 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
     if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
-        raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
+        raise ValueError(f"epsilon must be in [0.0, {EPSILON_ARC_MAX}], got {epsilon}")
 
     parcels = make_urban_collective(10_000)
     hectares = sum(p["area_slu"] for p in parcels) * SLU_HECTARES
@@ -870,7 +875,7 @@ def psi_double_application(epsilon: float = 0.99) -> dict:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
     if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
-        raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
+        raise ValueError(f"epsilon must be in [0.0, {EPSILON_ARC_MAX}], got {epsilon}")
 
     arc = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99)
     rows = [

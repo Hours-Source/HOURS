@@ -58,7 +58,7 @@ Models a crisis where `deferred_fraction` of infrastructure EOH is deferred per 
 
 ### `care_registration_delay(epsilon, …)` → `dict`
 
-Lag in care EOH being admitted to the collective ledger. Models a policy failure where care labor is not registered promptly, creating under-investment in human capital.
+Lag in care EOH being admitted to the collective ledger. Models a policy failure where care labor is not registered promptly. It reports the share gap and the TEH per human care hour that the lag withholds; the effect on human capital is not modelled.
 
 ---
 

@@ -475,7 +475,8 @@ def registrant_scope_sensitivity(
             "The multiple is transferred from US federal tax compliance, the "
             "only case where the registrant side has been measured. That case "
             "is adversarial and money-denominated; a HOURS register is neither. "
-            "The comparison in matching units (workers against workers) is ~40x; "
+            "The comparison in matching units (workers against workers) is "
+            f"~{_tax_multiple():.0f}x; "
             "the quoted 23-26x compares hours to a money budget and does not "
             "transfer. The source figure carries a 7.7x methodology revision in "
             "its own history, so this output spans an order of magnitude before "
@@ -742,6 +743,11 @@ def _diary_hours_per_capita() -> float:
     years = [y.year for y in survey_years()]
     return sum(hours_per_person_15plus(y, (ATUS_CIVIC_OBLIGATION_CODE,))
                for y in years) / len(years)
+
+
+def _tax_multiple() -> float:
+    """The tax analogue's matched-units multiple, as `registrant_analogues` returns it."""
+    return float(registrant_analogues()["compliance_estimate"]["implied_multiple"])
 
 
 def registrant_analogues(scope: str = "core") -> dict:
@@ -1262,7 +1268,8 @@ def verification_report(scope: str = "core", **state: Any) -> dict:
             "it. At any registrant multiple of "
             f"{crossing_multiple:.1f}x or more this scope crosses — and the "
             "only measured registrant multiple, from an adversarial "
-            "money-denominated case carrying its own 7.7x revision, is ~40x. "
+            "money-denominated case carrying its own 7.7x revision, is "
+            f"~{_tax_multiple():.0f}x. "
             "Call `registrant_scope_sensitivity(multiple)`; it takes the "
             "multiple as required input because nothing here measures it."
         ) if crossing_multiple is not None else None,

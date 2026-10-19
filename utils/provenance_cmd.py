@@ -220,7 +220,7 @@ def _shadow(args: argparse.Namespace) -> None:
     print()
     print(bold("The denominator"))
     print(f"  data.py, tagged and gated      : {tagged}/{total}  "
-          f"{green('100.0%')}")
+          f"{green(f'{tagged / total:.1%}')}")
     print(f"  shadow constants, untagged     : {len(free)}")
     print(f"  {'coverage over both':<31}: {tagged}/{wider}  "
           f"{red(f'{tagged / wider:.1%}') if tagged / wider < 0.9 else ''}")

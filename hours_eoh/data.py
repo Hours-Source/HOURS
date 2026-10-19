@@ -3637,9 +3637,12 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   the CURRENT WORLD's prior work is assumed to amount to per head — an estimate
 #   of a real stock, NOT a hard number and NOT a per-head grant. A collective
 #   founded at subsistence brings 0.0, and a joiner may bring nothing; both are
-#   honoured as zero. `scenarios/stationarity` already defaults `trust_start`
-#   to 0.0, and CAPITAL_STOCK_DEFAULT says the same of capital ("Callers passing
-#   it at low ε are asserting capital the arc says is not there").
+#   honoured as zero when passed. `scenarios/stationarity` defaulted
+#   `trust_start` to 0.0 until 2026-10-18; it now resolves the frame's Trust
+#   when none is stated (author: the empty default was an artefact), and 0.0
+#   passed is a new collective with no prior. CAPITAL_STOCK_DEFAULT says the
+#   same of capital ("Callers passing it at low ε are asserting capital the
+#   arc says is not there").
 #   NOTHING IS MINTED BY ARRIVING. Prior work already exists, so bringing it is a
 #   TRANSFER — which is why this doctrine leaves the one-mint-path gate,
 #   Condition III and trust_management's all-transfers property untouched. An

@@ -24,7 +24,7 @@ constant must be back-derived at a stated reference automation level::
     base_rate = flow_measured(ε_ref) / [ kbs(ε_ref) · cpu(ε_ref) · d ]
 
 and the result falls steeply in ε_ref: across ε_ref ∈ [0.2, 0.6] the answer moves
-**7.13×**, against a 1.20× spread from the per-capita conversion. **The epoch
+**7.13×**, against a 1.22× spread from the per-capita conversion. **The epoch
 anchoring is the uncertainty, not the measurement.** That asymmetry is the single
 most important output of this module, which is why `knowledge_base_band()` exists
 and why K-IV ships a band rather than a point. Precedent:
@@ -356,7 +356,7 @@ def knowledge_base_band(
     The band over ε_ref and per-capita route — the honest shipped form.
 
     THE HEADLINE FINDING lives in the two spread numbers this returns:
-    `epsilon_ref_spread` ≈ 7.13 against `route_spread` ≈ 1.20. The measurement is well
+    `epsilon_ref_spread` ≈ 7.13 against `route_spread` ≈ 1.22. The measurement is well
     determined; the epoch it anchors to is not. Any single-value quote of
     `KNOWLEDGE_EOH_BASE` from this route is quoting the anchoring assumption, not the
     data. Both spreads are decay-invariant.

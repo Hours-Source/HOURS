@@ -446,7 +446,8 @@ def collective_snapshot(
             f"{hectares:,.1f} ha at ε={epsilon:.2f}. The pipeline's ecological "
             f"obligation is passed to the fiscal layer by value, so the two "
             f"cannot resolve the frame differently — the failure that read "
-            f"92.8× in the implementation guide's own example. "
+            f"92.8× in the implementation guide's own example until 2026-08-21 "
+            f"(record/contestability.md#frame-seam-closed-exchange-layer). "
             + (
                 f"Labour was SUPPLIED and BOUND, so the mint is what was served; "
                 f"{float(pipeline['deferred_total']):,.0f} h/yr of obligation "

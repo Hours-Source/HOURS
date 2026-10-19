@@ -414,7 +414,8 @@ class TestTheRegistrantScopeSensitivityIsNotAnEstimate:
     def test_it_never_claims_to_be_measured(self):
         r = VC.registrant_scope_sensitivity(40.0)
         assert r["is_measured"] is False
-        for token in ("adversarial", "7.7x", "40x"):
+        tax = VC.registrant_analogues()["compliance_estimate"]["implied_multiple"]
+        for token in ("adversarial", "7.7x", f"{tax:.0f}x"):
             assert token in r["judgement"], (
                 f"{token!r} dropped from the declared judgement; the caveats "
                 "are what stop this being read as a measurement"

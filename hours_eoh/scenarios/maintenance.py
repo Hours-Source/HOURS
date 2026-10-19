@@ -329,8 +329,8 @@ def care_registration_delay(
 
     If the collective fails to formalize care work (institutional lag, policy
     failure), the actual care share is behind schedule. The impact: fewer TEH
-    created from care labor, and the human capital pipeline builds capacity
-    more slowly.
+    created from care labor. The effect on the human capital pipeline is not
+    modelled here.
 
     Args:
         epsilon: Actual automation level.
@@ -348,10 +348,10 @@ def care_registration_delay(
           "actual_care_share":              float,
           "expected_care_share":            float,
           "lag_fraction":                   float,   (1 - actual/expected)
-          "care_teh_per_worker_actual":     float,
-          "care_teh_per_worker_expected":   float,
-          "teh_deficit_per_worker":         float,
-          "pipeline_degradation":           float,
+          "care_teh_per_care_hour_actual":   float,   TEH per human care hour
+          "care_teh_per_care_hour_expected": float,   (multiplier × care share)
+          "care_teh_deficit_per_care_hour":  float,
+          "care_share_gap":                  float,   expected − actual, share points
           "outcome":                        str,
           "recommendation":                 str,
         }
@@ -365,17 +365,16 @@ def care_registration_delay(
 
     lag_fraction = 1.0 - (actual_care / max(expected_care, 1e-10))
 
-    teh_per_worker_expected = mean_multiplier * expected_care
-    teh_per_worker_actual   = mean_multiplier * actual_care
-    teh_deficit             = teh_per_worker_expected - teh_per_worker_actual
+    # TEH minted per hour of human care work: the multiplier × the share of
+    # those hours the register admits. Not a per-worker figure (2026-10-18).
+    teh_per_care_hour_expected = mean_multiplier * expected_care
+    teh_per_care_hour_actual   = mean_multiplier * actual_care
+    teh_deficit                = teh_per_care_hour_expected - teh_per_care_hour_actual
 
-    # Central difference, clamped to the arc (2026-10-01): at ε=0 this read the
-    # register at ε = −0.01, outside every curve's domain — tolerated by the
-    # care curve alone, and exposed when the read moved to `register_shares`.
-    _lo, _hi = max(0.0, epsilon - 0.01), min(1.0, epsilon + 0.01)
-    care_slope_at_eps = (register_shares(_hi)["care"]
-                         - register_shares(_lo)["care"]) / (_hi - _lo)
-    pipeline_degradation = lag_fraction * care_slope_at_eps * delay_epsilon
+    # The gap in share points. It replaces `pipeline_degradation` (2026-10-18),
+    # which was lag_fraction × a linear estimate of this same gap: the gap
+    # counted twice, with no physical reading.
+    share_gap = expected_care - actual_care
 
     if lag_fraction < 0.10:
         outcome = "STABLE"
@@ -384,12 +383,16 @@ def care_registration_delay(
     else:
         outcome = "CRISIS"
 
+    # The lag applied, after the clamp at ε=0 (2026-10-18). The old text gave a
+    # horizon of ε + 0.10 that nothing derived, and it ran past the arc at ε=0.99.
     rec = (
-        f"Care admission at ε={epsilon:.2f} is lagging by {delay_epsilon:.2f} ε-units. "
+        f"The care register reads ε={delayed_eps:.2f} against the capability's "
+        f"ε={epsilon:.2f}, a lag of {epsilon - delayed_eps:.2f} ε-units. "
         f"Actual share: {actual_care:.3f} vs expected: {expected_care:.3f} "
         f"({lag_fraction:.1%} lag). "
-        f"Pipeline degradation: {pipeline_degradation:.3f}. "
-        f"Accelerate care formalization to close the gap before ε={epsilon + 0.10:.2f}."
+        f"Share gap: {share_gap:.3f}. "
+        + ("The lag is inside the STABLE band." if outcome == "STABLE" else
+           "Accelerate care formalization to close the gap.")
     )
 
     return {
@@ -399,10 +402,10 @@ def care_registration_delay(
         "actual_care_share":            actual_care,
         "expected_care_share":          expected_care,
         "lag_fraction":                 lag_fraction,
-        "care_teh_per_worker_actual":   teh_per_worker_actual,
-        "care_teh_per_worker_expected": teh_per_worker_expected,
-        "teh_deficit_per_worker":       teh_deficit,
-        "pipeline_degradation":         pipeline_degradation,
+        "care_teh_per_care_hour_actual":   teh_per_care_hour_actual,
+        "care_teh_per_care_hour_expected": teh_per_care_hour_expected,
+        "care_teh_deficit_per_care_hour":  teh_deficit,
+        "care_share_gap":                  share_gap,
         "outcome":                      outcome,
         "recommendation":               rec,
     }

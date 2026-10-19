@@ -204,7 +204,7 @@ _READS: dict[str, frozenset[str]] = {
     # stationarity prices the land fee, so it reads the land's parcels too.
     "stationarity": frozenset({"population", "capital_teh", "adult_capacity_h_yr",
                                "adult_share", "age_fractions", "capital_age_ratio",
-                               "parcel_count", "epsilon"}),
+                               "parcel_count", "trust_balance", "epsilon"}),
     "ecological_floor": frozenset({"population", "hectares_per_capita", "epsilon"}),
     # Where the work goes, as hours of capacity (2026-10-07): the compass's
     # inputs plus the frame's own adult share, which sets the capacity.
@@ -227,7 +227,7 @@ _READS: dict[str, frozenset[str]] = {
     # reads the land's parcels as stationarity does.
     "stationarity_drawdown": frozenset({"population", "capital_teh", "capital_age_ratio",
                                         "adult_capacity_h_yr", "adult_share",
-                                        "age_fractions", "parcel_count"}),
+                                        "age_fractions", "parcel_count", "trust_balance"}),
     **{n: frozenset({"population", "epsilon"}) for n in ("care_delay", "verification_band")},
     # ε ONLY: their land is a PARCEL inventory or configuration (the urban
     # archetype; one parcel for guf_integration), and pairing it with a
@@ -350,7 +350,7 @@ _SCENARIOS: dict[str, str] = {
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, the fee's measured per-parcel half over the frame's private parcels, the area part NOT SUPPLIED (a lower bound), as stationarity prices it  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
-    "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon, --frame, --frame-file]",
+    "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and how far the ecological share spreads across frames; REPORTING ONLY  [--epsilon, --frame, --frame-file]",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita, --frame, --frame-file]",
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
@@ -561,12 +561,14 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             f"(thermal_load; default: {REFERENCE_THERMAL_FLOW_EOH:,.0f} "
                             f"— the ε=0.40 reference for 1M people)")
 
+    from utils.arc_cmd import knowledge_ref_help
+    _, ref_spread_text = knowledge_ref_help()
     run_p.add_argument("--epsilon-ref", type=float, default=0.40,
                        dest="epsilon_ref", metavar="EPS",
                        help="Reference automation level the measured O*NET "
                             "workforce is anchored at (knowledge_base; default: "
-                            "0.40). THE DOMINANT UNCERTAINTY — 7.13x across "
-                            "[0.2, 0.6]; the band is reported regardless")
+                            f"0.40). THE DOMINANT UNCERTAINTY — {ref_spread_text}; "
+                            "the band is reported regardless")
 
     run_p.add_argument("--observed-hours", type=float, default=None,
                        dest="observed_hours", metavar="H",
@@ -648,15 +650,15 @@ def _run(args: argparse.Namespace) -> None:
         if args.fmt != "json":
             out = sys.stderr if args.fmt == "csv" else sys.stdout
             acc = result.get("outcomes_across_capital")
-            print_inputs(result["inputs"], eps,
+            print_inputs({**result["inputs"], **result.get("path_inputs", {})}, eps,
                          ends=None if acr is None else "  ".join(f"ε {e}: {o}" for e, o in acr.items()),
                          frame=result.get("frame"), file=out,
                          capital_ends=None if not acc else
                          "  ".join(f"{r} $/TEH: {o}" for r, o in acc.items()))
             print(file=out)
         result = {k: v for k, v in result.items()
-                  if k not in ("inputs", "epsilon_reading", "outcomes_across_epsilon",
-                               "outcomes_across_capital")}
+                  if k not in ("inputs", "path_inputs", "epsilon_reading",
+                               "outcomes_across_epsilon", "outcomes_across_capital")}
 
     # Trajectory scenarios: show the inner list as the primary table
     display = result
@@ -707,7 +709,7 @@ def _run(args: argparse.Namespace) -> None:
             print(textwrap.fill(v, width=100, initial_indent="  ", subsequent_indent="  "))
         return
 
-    print(display)
+    print(_rounded(display))
 
 
 def _readable(v: object) -> str:
@@ -718,6 +720,11 @@ def _readable(v: object) -> str:
         if math.isinf(v) or math.isnan(v):
             return str(v)
         return f"{v:,.0f}" if abs(v) >= 1e4 else f"{v:.4g}"
+    if isinstance(v, (tuple, list)) and v and all(
+            isinstance(x, (int, float)) or x is None for x in v):
+        # A span or a short series: each number rounded like a cell of its own.
+        inner = ", ".join(_readable(x) for x in v)
+        return f"({inner})" if isinstance(v, tuple) else f"[{inner}]"
     if isinstance(v, dict) and v and all(isinstance(x, float) for x in v.values()):
         return "{" + ", ".join(f"{k}: {_readable(x)}" for k, x in v.items()) + "}"
     if isinstance(v, dict) and any(isinstance(x, (dict, list)) for x in v.values()):
@@ -727,7 +734,31 @@ def _readable(v: object) -> str:
     if isinstance(v, dict) and v and all(isinstance(x, tuple) for x in v.values()):
         return "{" + ", ".join(f"{k}: " + " → ".join(_readable(y) for y in x)
                                for k, x in v.items()) + "}"
-    return str(v)
+    return str(_rounded(v))
+
+
+class _Rounded(float):
+    """A float that prints rounded inside a nested structure. Large values are not
+    comma-grouped there, because a comma in a list or dict repr reads as a separator."""
+
+    def __repr__(self) -> str:
+        v = float(self)
+        if math.isinf(v) or math.isnan(v):
+            return str(v)
+        return f"{v:.0f}" if abs(v) >= 1e4 else f"{v:.4g}"
+
+
+def _rounded(v: object) -> object:
+    """`v` with every float inside it rounded for display (lists, tuples, dicts)."""
+    if isinstance(v, float) and not isinstance(v, bool):
+        return _Rounded(v)
+    if isinstance(v, dict):
+        return {k: _rounded(x) for k, x in v.items()}
+    if type(v) is list:
+        return [_rounded(x) for x in v]
+    if type(v) is tuple:
+        return tuple(_rounded(x) for x in v)
+    return v
 
 
 def _print_scalar_summary(result: dict) -> None:
@@ -1013,6 +1044,10 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             # frame's. The pipeline-keyword functions call it `age_distribution`.
             fs["age_distribution" if name in ("registered_work", "mint_reach")
                else "age_fractions"] = v["age_fractions"]
+        if name in ("stationarity", "stationarity_drawdown"):
+            # The frame's Trust (2026-10-18, author): both started empty, an
+            # artefact of a default for a new collective with no prior.
+            fs["trust_start"] = None if v["trust_derived"] else v["trust_balance"]
         if name == "guf_magnitude":
             fs["land_hectares"] = v["land_m2"] / M2_PER_HECTARE
             fs["land_use_fractions"] = v["land_use_fractions"]
@@ -1304,6 +1339,18 @@ def _frame_run(args: argparse.Namespace) -> dict:
                          if d in rows and not (swept and d == "epsilon"))
     result["inputs"] = {k: r for k, r in rows.items()
                         if k in shown or (k == "epsilon" and not swept)}
+    if args.name == "stationarity_drawdown":
+        # The path's own input, labelled (2026-10-18): `drawdown` gives
+        # `years` no default, and the table printed it as if it were a result.
+        # Not a frame input, so it sits apart from `inputs`.
+        result.pop("trust_start", None)
+        result.pop("trust_start_source", None)
+        result["path_inputs"] = {}
+        result["path_inputs"]["years"] = {
+            "value": result["years"], "derived_from": [],
+            **({"kind": "supplied", "source": "--periods"} if args.periods is not None else
+               {"kind": "default", "source": "_PERIODS_DEFAULT — the path's pace is a "
+                                             "scenario choice; drawdown() has no default"})}
     result["frame"] = v["frame"]
     return result
 
@@ -1754,10 +1801,15 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         years = args.periods if args.periods is not None else _PERIODS_DEFAULT
         r = drawdown(years, epsilon_start=args.epsilon_start, epsilon_end=args.epsilon_end,
                      population=population, **frame_state, **_levy_kw(args))
-        dd: dict = {k: v for k, v in r.items() if k != "labour_short_epsilons"}
+        dd: dict = {k: v for k, v in r.items()
+                    if k not in ("labour_short_epsilons", "labour_short_years", "points")}
         short = r["labour_short_epsilons"]
-        dd["labour_short_at"] = (f"{len(short)} of {years} years, ε {min(short):.3f}–{max(short):.3f}"
-                                 if short else "never")
+        # Years counted from the path, not from its distinct ε (2026-10-18):
+        # a path held at one ε read "1 of 20 years" while all 21 points failed.
+        dd["labour_short_at"] = (
+            f"{r['labour_short_years']} of {r['points']} yearly points, at "
+            f"{len(short)} distinct ε from {min(short):.3f} to {max(short):.3f}"
+            if short else "never")
         return dd
 
     if name == "reserve_plan":
@@ -1813,6 +1865,11 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
                        ("land fee unpaid", "guf_unpaid"),
                        ("guarantee owed", "guarantee_owed")):
             sr[f"here | {k}"] = here[key]
+        # The Trust it starts from, and how long it covers a shortfall
+        # (2026-10-18): the frame's Trust, as the drawdown starts from.
+        sr["here | trust_start"] = here["trust_start"]
+        sr["here | years covered"] = (here["years_covered"] if here["years_covered"] is not None
+                                      else "not drawn: inflow covers the guarantee")
         for side in ("labour", "teh", "both", "teh_without_fee"):
             b = rep["bands"][side]
             sr[f"band | {side}"] = (f"[{b['lower']:.2f}, {b['upper']:.2f}]"
@@ -2139,6 +2196,7 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             "rho_passive":   riv["passive"]["rho"],
             "cost_of_four_active": riv["active"]["cost_of_four"],
         }
+        eld = next(r for r in weights["rows"] if r["band"] == "elderly")
         for row in weights["rows"]:
             band = row["band"]
             cc_out[f"{band}_self_min_day"] = row["self_minutes_per_day"]
@@ -2165,8 +2223,8 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         cc_out["note"] = (
             "REPORTING ONLY. Infant and child totals are LOWER bounds — ATUS "
             "surveys nobody under 15, so their self-maintenance is unmeasured. "
-            "The elderly band is complete and reads ~41% under the shipped 2.5, "
-            "but ATUS covers the household population only and excludes the "
+            f"The elderly band is complete and reads {eld['implied_weight']:.3f} "
+            f"against the shipped {eld['shipped_weight']:.2f}, but ATUS covers the household population only and excludes the "
             "institutionalised elderly, who need the most care."
         )
         return cc_out

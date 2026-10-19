@@ -205,9 +205,10 @@ def _determinacy(args: argparse.Namespace) -> None:
         print(formatters.table(["boundary", "GMST", "land TXx"],
               [["unbudgeted below", f"{z['unbudgeted_below_k']:.3f}", f"{z['unbudgeted_below_txx_k']:.3f}"],
                ["budgeted above", f"{z['budgeted_above_k']:.3f}", f"{z['budgeted_above_txx_k']:.3f}"]]))
+        widening = determinacy_map(dt)["vs_single_axis"]["widening_factor"]
         print(formatters.yellow(
-            "\n  Holds λ fixed at an unassessed value and overstates the determinate zone "
-            "~3x.\n  Use the default (two-axis) map."))
+            "\n  Holds λ fixed at an unassessed value: carrying λ widens the indeterminate "
+            f"band {widening:.1f}x.\n  Use the default (two-axis) map."))
         return
 
     band = (args.lambda_lo, args.lambda_hi) if args.lambda_lo and args.lambda_hi else None
@@ -390,9 +391,18 @@ def _lambda(args: argparse.Namespace) -> None:
                      "—" if r["vs_shipped"] is None else f"{r['vs_shipped']}x", note])
     print(formatters.bold(f"\nBudget sensitivity at ΔT_max = {args.delta_t} K\n"))
     print(formatters.table(["λ candidate", "λ", "frame", "budget TW", "vs shipped", ""], body))
+    likely = [r["budget_tw"] for r in rows
+              if "likely" in r["label"] and "very" not in r["label"]
+              or "best estimate" in r["label"]]
+    shipped = next(r["budget_tw"] for r in rows if r["label"] == "shipped default")
+    lo, hi = min(likely), max(likely)
+    span = (f" ({hi / shipped:.1f}x the shipped case)" if shipped > 0.0 else
+            " (the shipped case is UNBUDGETED)")
+    close = (" λ uncertainty ALONE can close the budget — separately from the forcing band."
+             if lo == 0.0 < hi else "")
     print("\n" + formatters.dim(
-        "  Across AR6's own likely ECS range the budget runs from ZERO to ~11x the shipped\n"
-        "  case. λ uncertainty ALONE can close the budget — separately from the forcing band."))
+        f"  Across AR6's own likely ECS range the budget runs from {lo:,.1f} to {hi:,.1f} TW"
+        f"{span}.{close}"))
 
 
 # ---------------------------------------------------------------------- parser

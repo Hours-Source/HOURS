@@ -166,7 +166,14 @@ def _show(args: argparse.Namespace) -> None:
     print("  " + "-" * 68)
     for k, v in items:
         tag = dim("[overridden]") if k in overrides else ""
-        print(f"  {k:<40} {str(v):>18}  {tag}")
+        print(f"  {k:<40} {_shown(v):>18}  {tag}")
+
+
+def _shown(v: Any) -> str:
+    """A value as `show` prints it: floats to 6 significant figures, large ones grouped."""
+    if isinstance(v, float) and not isinstance(v, bool):
+        return f"{v:,.0f}" if abs(v) >= 1e6 else f"{v:.6g}"
+    return str(v)
 
 
 def _set(args: argparse.Namespace) -> None:

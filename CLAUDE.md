@@ -183,7 +183,7 @@ hours_eoh/
     servicing_census.py census, shipped_vs_measured, realized_vs_measured — the SERVICING census
                        against the GUF_USE_* ×100 fit; REPORTING ONLY
     frame.py           frame_for, at_frame, frame_check, frame_report — the population/land/CAPITAL
-                       pairing; REPORTING ONLY, and the 464x the undeclared default flatters eco share
+                       pairing, and how far the eco share spreads across frames; REPORTING ONLY
     ecological_floor.py  domain_balance_report — the ecological anchor INVERTED: what intensity a given share demands
     land_stewardship.py  census_report, agency_report, field_capacity_report, frame_report, scope_comparison
                        — the anchor's resolves_by RUN: the forward question, US, 38.1% covered
@@ -732,7 +732,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,234 tests passing (1 skipped), mypy clean on 110 source files** (verified
+**6,236 tests passing (1 skipped), mypy clean on 110 source files** (verified
 2026-10-18). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **125** of 143<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

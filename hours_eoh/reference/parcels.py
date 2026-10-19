@@ -108,7 +108,8 @@ US_HOUSING_UNITS_2020 = 140_498_736
 #:
 #: Coverage is 47.6%, and that is NOT the binding problem — it is bounded and
 #: could be reasoned about. Populated values sum to **52,780,834,579 units**,
-#: 364× the US housing stock, and the largest single parcel claims
+#: 376× the US housing stock (364× here and in the verdict until 2026-10-18,
+#: a slip: these two counts never gave it), and the largest single parcel claims
 #: **612,196,539 units** — nearly twice the US population, on one parcel.
 #:
 #: THE TABLE IS THE FINDING. Each row is (cap, rows above it, units summed
@@ -119,8 +120,8 @@ US_HOUSING_UNITS_2020 = 140_498_736
 #: stale claims have started:
 #:
 #:     cap 1,000  →  0.9× the housing stock   ← plausible, and that is the trap
-#:     cap 10,000 →  1.9×
-#:     no cap     →  364×
+#:     cap 10,000 →  2.0×
+#:     no cap     →  376×
 #:
 #: A cap of 1,000 produces an answer close to the truth. **Choosing it because
 #: it produces that answer is fitting to a target**, which is the failure this
@@ -449,9 +450,11 @@ def service_point_denominator_verdict() -> dict[str, float | str | bool]:
     lo, hi = min(ratios), max(ratios)
     imputed = (NUMUNITS_WELL_POPULATED_UNITS / NUMUNITS_WELL_POPULATED_BUILT
                * NUMUNITS_BUILT_PARCELS_RETAINED)
+    coverage = 0.476
+    cap_1000 = next(u for cap, _, u in NUMUNITS_CAP_SENSITIVITY if cap == 1_000)
     return {
         "buildable":          False,
-        "coverage":           0.476,
+        "coverage":           coverage,
         "ratio_span":         hi / lo,
         "ratio_min":          lo,
         "ratio_max":          hi,
@@ -468,14 +471,16 @@ def service_point_denominator_verdict() -> dict[str, float | str | bool]:
         "imputed_ratio":      imputed / US_HOUSING_UNITS_2020,
         "imputable":          False,
         "verdict": (
-            f"P_service is NOT buildable from `numunits`. Coverage is 47.6% and "
+            f"P_service is NOT buildable from `numunits`. Coverage is {coverage:.1%} and "
             f"that is not the binding problem; the field carries OTHER COLUMNS "
             f"— land area, building area, a broadcast constant — pasted in one "
-            f"county at a time, summing to 364× the US housing stock "
+            f"county at a time, summing to "
+            f"{NUMUNITS_NATIONAL_TOTAL / US_HOUSING_UNITS_2020:.0f}× the US housing stock "
             f"with one parcel claiming 612 million units. The national total "
             f"moves across a {hi / lo:.0f}× range depending on an exclusion cap "
             f"that nothing justifies, and the cap giving a plausible answer "
-            f"(1,000 → 0.9×) would be chosen BECAUSE it is plausible, which is "
+            f"(1,000 → {cap_1000 / US_HOUSING_UNITS_2020:.1f}×) would be chosen "
+            f"BECAUSE it is plausible, which is "
             f"fitting. A further "
             f"{NUMUNITS_MISSING_ON_BUILT_PARCELS / NUMUNITS_BUILT_PARCELS:.1%} "
             f"of parcels that HAVE a structure carry no unit count at all. "

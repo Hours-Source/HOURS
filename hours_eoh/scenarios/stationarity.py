@@ -80,6 +80,7 @@ from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_sto
 from hours_eoh.core.fiscal import (
     aggregate_care_stipend_from_demographics,
     assessed_levy_rate,
+    resolve_trust_balance,
     stewardship_allocation,
     sufficiency_guarantee,
     trust_management,
@@ -200,7 +201,7 @@ def stationarity_at(
     guf_parcels: list[dict] | None = None,
     guf_parcel_count: float | None = None,
     guf_cap: float | str | None = "payable",
-    trust_start: float = 0.0,
+    trust_start: float | None = None,
     capital_age_ratio: float | None = None,
     adult_share: float | None = None,
     age_fractions: dict[str, float] | None = None,
@@ -251,8 +252,10 @@ def stationarity_at(
             assessed fee. The rest is `teh["guf_unpaid"]`, reported and never
             counted as inflow. An UPPER bound on collection: only private
             holders pay, and the ceiling is the whole collective's.
-        trust_start: The inheritance, TEH. Default 0.0 — a collective starting
-            from subsistence has none.
+        trust_start: The inheritance, TEH. None resolves the frame's Trust
+            (`resolve_trust_balance`), and `trust_start_source` says so. Pass
+            0.0 for a new collective with no prior inheritance. Until 2026-10-18
+            the default was 0.0, so a frame's Trust never reached this function.
         capital_age_ratio: The stock's age over its service life — it sets the
             infrastructure upkeep, so the human hours and the mint. None reads
             `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
@@ -363,6 +366,9 @@ def stationarity_at(
                               age_fractions)
     inflow = levy + guf
     deficit = max(0.0, owed - inflow)
+    trust_source = ("supplied" if trust_start is not None else
+                    "resolved: TRUST_BASE_TEH per head × population (resolve_trust_balance)")
+    trust_start = resolve_trust_balance(trust_start, population)
 
     # `capital_age_ratio` is INERT in this call: with `infra_eoh_override`
     # supplied the allocation never recomputes infrastructure EOH. The age
@@ -394,6 +400,7 @@ def stationarity_at(
         "shortfall":            deficit,
         "shortfall_share":      deficit / owed if owed > 0.0 else 0.0,
         "trust_start":          trust_start,
+        "trust_start_source":   trust_source,
         "years_covered":        (trust_start / deficit) if deficit > 0.0 else None,
         # Stewardship and care requirement: paid at the mint, owed by no one
         # else. `fiscal_snapshot` reports the same quantity under this key.
@@ -507,7 +514,9 @@ def drawdown(
     parcels `stationarity_report` defaults to.
 
     THE PATH IS A SCENARIO CHOICE. ε moves linearly from `epsilon_start` to
-    `epsilon_end` over `years`. Nobody knows how fast a real economy advances, so
+    `epsilon_end` over `years`, one flow a year: year 0 at `epsilon_start`,
+    year `years − 1` at `epsilon_end` (2026-10-18; before, a path of N years
+    applied N + 1 flows). Nobody knows how fast a real economy advances, so
     `years` has no default. Setting `epsilon_start == epsilon_end` holds the economy at
     one point, which is the stand-still question over time.
 
@@ -516,8 +525,10 @@ def drawdown(
 
     Returns:
         dict with `fails_in_year` (None if it holds), `fails_at_epsilon`,
-        `trust_min`, `trust_min_epsilon`, `trust_end`, and
-        `labour_short_epsilons` — the ε on the path where the labour side fails.
+        `trust_start`, `trust_min`, `trust_min_epsilon`, `trust_end`,
+        `labour_short_epsilons` — the distinct grid ε where the labour side
+        fails — and `labour_short_years` of `points`, the yearly points on the
+        path where it fails. A path held at one ε has one such ε and many years.
     """
     if years < 1:
         raise ValueError(f"years must be >= 1, got {years}")
@@ -528,14 +539,19 @@ def drawdown(
     # fee, so its Trust ran on the levy alone while stationarity's ran on both.
     if "guf_parcels" not in kw:
         kw = {**kw, "guf_parcels": make_urban_collective()}
-    trust = float(kw.get("trust_start", 0.0))
+    # The frame's Trust unless the caller states one, as `stationarity_at`
+    # resolves it (2026-10-18, author: the empty Trust was an artefact).
+    trust = resolve_trust_balance(kw.get("trust_start"),
+                                  kw.get("population", REFERENCE_FRAME_POPULATION))
+    trust_start = trust
     cache: dict[float, dict] = {}
     fail_year: int | None = None
     fail_eps: float | None = None
     t_min, e_min = trust, epsilon_start
     labour_short: list[float] = []
-    for y in range(years + 1):
-        e = epsilon_start + (epsilon_end - epsilon_start) * y / years
+    short_years = 0
+    for y in range(years):
+        e = epsilon_start + (epsilon_end - epsilon_start) * (y / (years - 1) if years > 1 else 0.0)
         key = round(e, 2)
         if key not in cache:
             cache[key] = stationarity_at(key, **kw)
@@ -552,18 +568,25 @@ def drawdown(
             t_min, e_min = trust, e
         if trust < 0.0 and fail_year is None:
             fail_year, fail_eps = y, e
-        if not row["labour"]["stationary"] and key not in labour_short:
-            labour_short.append(key)
+        if not row["labour"]["stationary"]:
+            short_years += 1
+            if key not in labour_short:
+                labour_short.append(key)
     return {
         "years":                 years,
         "epsilon_start":         epsilon_start,
         "epsilon_end":           epsilon_end,
         "fails_in_year":         fail_year,
         "fails_at_epsilon":      fail_eps,
+        "trust_start":           trust_start,
+        "trust_start_source":    ("supplied" if kw.get("trust_start") is not None
+                                  else "resolved: the frame's Trust (resolve_trust_balance)"),
         "trust_min":             t_min,
         "trust_min_epsilon":     e_min,
         "trust_end":             trust,
         "labour_short_epsilons": labour_short,
+        "labour_short_years":    short_years,
+        "points":                years,
     }
 
 

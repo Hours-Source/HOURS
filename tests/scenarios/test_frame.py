@@ -95,8 +95,8 @@ class TestDeclaringTheFrameMakesTheShareInVARIANT:
     """
     The result worth keeping. Once population and land travel together, the
     ecological share stops depending on the frame — because ecological and
-    personal then scale by the same factor. The 424x spread in the shipped
-    table is entirely the UNDECLARED pairing, not a real range.
+    personal then scale by the same factor. The 424x spread the shipped table
+    showed before Phase 4b was the UNDECLARED pairing, not a real range.
     """
 
     def test_share_is_frame_invariant_across_declared_frames(self):

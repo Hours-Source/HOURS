@@ -273,7 +273,7 @@ def frame_report(epsilon: float = 0.40) -> dict:
         "anchor_hours":  ECOLOGICAL_BASE_RATE,
         "verdict": (
             f"the ecological share spans {spread:,.2f}x across frames computed "
-            f"from IDENTICAL constants at ε={epsilon}; land per person spans "
+            f"from IDENTICAL constants at ε={epsilon:.3g}; land per person spans "
             f"{min(land):.3g}–{max(land):.3g} ha. The ecological obligation is "
             f"keyed to area while every other domain scales with population, so "
             f"a frame's share follows its land per person. Declaring the frame "

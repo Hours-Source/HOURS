@@ -1205,7 +1205,8 @@ def shelter_construction_fails(
         "numerator_is_the_blocker": False,
         "denominator_is_the_blocker": True,
         "verdict": (
-            f"the household share barely matters — sweeping it 5%-100% moves the "
+            f"the household share barely matters — sweeping it "
+            f"{min(share_sweep):.0%}-{max(share_sweep):.0%} moves the "
             f"floor only {max(share_sweep.values()) - min(share_sweep.values()):.3f} "
             f"— but the benchmark spans {hi_b / lo_b:.2f}x and yields floors from "
             f"{min(floors.values()):.3f} to {max(floors.values()):.3f}, the upper "
