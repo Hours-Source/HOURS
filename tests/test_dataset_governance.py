@@ -54,6 +54,38 @@ _NEGATION = re.compile(
 #:
 #: `outcome` must be one of: CONSISTENT | CONTRADICTED | NO_CONSTANT_DEPENDS
 REVIEWED: dict[str, dict] = {
+    "family_costs.json::about": {
+        "fingerprint": "d40198afde77",
+        "constants": ["H_REF"],
+        "outcome": "CONSISTENT",
+        "note": (
+            "says none of the file is computed by hours_eoh and the market layer is not modelled. True: the only constant the explorer reads is H_REF, the work-year convention, used as the yearly-pay-to-hourly divisor, not as a market value."
+        ),
+    },
+    "family_costs.json::defaults.rent.note": {
+        "fingerprint": "03f2be053198",
+        "constants": [],
+        "outcome": "NO_CONSTANT_DEPENDS",
+        "note": "data.py holds no market price, wage or tax constant; nothing in the framework reads this file except the family hours explorer's builder.",
+    },
+    "family_costs.json::defaults.food.note": {
+        "fingerprint": "03f2be053198",
+        "constants": [],
+        "outcome": "NO_CONSTANT_DEPENDS",
+        "note": "data.py holds no market price, wage or tax constant; nothing in the framework reads this file except the family hours explorer's builder.",
+    },
+    "family_costs.json::tax.source": {
+        "fingerprint": "c02766c7ffd1",
+        "constants": [],
+        "outcome": "NO_CONSTANT_DEPENDS",
+        "note": "data.py holds no market price, wage or tax constant; nothing in the framework reads this file except the family hours explorer's builder.",
+    },
+    "family_costs.json::eitc.source": {
+        "fingerprint": "f5ae2bc710d8",
+        "constants": [],
+        "outcome": "NO_CONSTANT_DEPENDS",
+        "note": "data.py holds no market price, wage or tax constant; nothing in the framework reads this file except the family hours explorer's builder.",
+    },
     "climate_feedback.json::historical.window_spread": {
         "fingerprint": "cb1666b31568",
         "constants": [],

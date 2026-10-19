@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How Many Hours Does a Family Cost?</title>
+<style>
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#18212C; --muted:#5A6676; --line:#CDD5DF;
+  --accent:#1F4FB8; --ok:#DDF1E4; --okInk:#1D6B3E; --warn:#FBE7A1; --warnInk:#7A5A00;
+  --bad:#F6CFCB; --badInk:#9B2116; --bar:#C7D2E0;
+  --c1:#1F4FB8; --c2:#7B4FC4; --c3:#2E8B6E; --c4:#C2762B; --c5:#B5487A; --c6:#6E7F96; --c7:#3A9BB5; --c8:#8A6D3B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121821; --panel:#1B2330; --ink:#E6ECF3; --muted:#9AA7B8; --line:#2E3A4B;
+    --accent:#7FA6FF; --ok:#173826; --okInk:#8FE0AE; --warn:#3D3210; --warnInk:#F5D46A;
+    --bad:#45201C; --badInk:#FF9C90; --bar:#2B3647;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121821; --panel:#1B2330; --ink:#E6ECF3; --muted:#9AA7B8; --line:#2E3A4B;
+  --accent:#7FA6FF; --ok:#173826; --okInk:#8FE0AE; --warn:#3D3210; --warnInk:#F5D46A;
+  --bad:#45201C; --badInk:#FF9C90; --bar:#2B3647;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+details *,input,select,button,textarea{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 48px}
+h1{font-size:clamp(1.9rem,4.4vw,3.1rem);line-height:1.08;font-weight:800;letter-spacing:-0.02em;margin:0 0 10px;max-width:22ch}
+.lede{color:var(--muted);max-width:62ch;margin:0 0 24px}
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;margin-bottom:22px}
+.verdict{font-size:clamp(1.25rem,2.6vw,1.75rem);font-weight:600;line-height:1.3;margin:0 0 14px;max-width:46ch}
+.verdict b{font-weight:800}
+.badge{display:inline-block;font-weight:600;font-size:.9rem;padding:3px 10px;border-radius:999px;margin-right:6px}
+.s-ok{background:var(--ok);color:var(--okInk)} .s-warn{background:var(--warn);color:var(--warnInk)} .s-bad{background:var(--bad);color:var(--badInk)}
+.week{margin-top:16px}
+.track{position:relative;height:44px;background:var(--bar);border-radius:6px;overflow:hidden}
+.seg{position:absolute;top:0;bottom:0}
+.mark{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed var(--ink)}
+.marks{position:relative;height:38px;font-size:.78rem;color:var(--muted)}
+.marks span{position:absolute;transform:translateX(-50%);white-space:nowrap;top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.82rem;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+.grid>main{min-width:0}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.panel h2{font-size:1.05rem;margin:0 0 12px;font-weight:700}
+.field{margin-bottom:16px}
+.field label,.flabel{display:block;font-weight:600;font-size:.92rem;margin-bottom:6px}
+.hint{font-size:.8rem;color:var(--muted);margin-top:4px}
+.wagebox{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--accent)}
+input[type=number],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:100%}
+.wagebox input[type=number]{width:96px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+button{font:inherit;cursor:pointer;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button:hover{border-color:var(--accent)}
+button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.seg-ctl{display:flex;gap:6px}
+.seg-ctl button{flex:1}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 12px;align-items:end}
+.two .field{margin-bottom:12px;min-width:0}
+.two input,.two select{min-width:0;max-width:100%}
+aside.panel{min-width:0;overflow:hidden}
+.two .field label{font-size:.84rem;line-height:1.25;margin-bottom:5px}
+.field.full{grid-column:1/-1}
+.inrow{display:flex;gap:8px}
+.inrow input{flex:1;min-width:0}
+.inrow select{width:auto;flex:none}
+details .hint{margin-bottom:10px}
+.check span{line-height:1.35}
+details{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+summary{cursor:pointer;font-weight:600;margin-bottom:10px}
+.tablewrap{overflow-x:auto;margin-bottom:8px}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.82rem;color:var(--muted);font-weight:600}
+tfoot td{font-weight:800;border-bottom:none}
+td.cell-ok{background:var(--ok);color:var(--okInk)} td.cell-warn{background:var(--warn);color:var(--warnInk)} td.cell-bad{background:var(--bad);color:var(--badInk)}
+td input[type=number]{width:84px;text-align:right;padding:4px 6px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px}
+.note{font-size:.85rem;color:var(--muted);margin:6px 0 18px;max-width:72ch}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.share{flex:1;min-width:200px;font-size:.8rem}
+.sources{font-size:.85rem;color:var(--muted);margin-top:26px}
+.sources h2{font-size:1rem;color:var(--ink)}
+.sources ul{padding-left:18px}
+.sources a{color:var(--accent)}
+.frame{font-size:.9rem;color:var(--muted);border-left:3px solid var(--accent);padding:4px 0 4px 12px;margin:0 0 22px;max-width:72ch}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:.92rem;margin-bottom:12px}
+.check input{margin-top:4px;accent-color:var(--accent)}
+tr.unpaid td{color:var(--muted);font-style:italic}
+.balance{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:4px 0 10px}
+.balance button{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.start{max-width:760px;margin:6vh auto 0}
+.start h1{max-width:18ch}
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+@media (max-width:640px){.paths{grid-template-columns:1fr}}
+.path{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;line-height:1.4}
+.path strong{display:block;font-size:1.15rem;margin-bottom:6px}
+.path span{color:var(--muted);font-size:.92rem}
+.path:hover{border-color:var(--accent)}
+.guide{max-width:640px;margin:6vh auto 0}
+.guide .panel{padding:24px}
+.gstep{color:var(--muted);font-size:.88rem;margin:0 0 6px}
+.gq{font-size:clamp(1.4rem,3vw,1.9rem);font-weight:800;line-height:1.15;margin:0 0 18px}
+.choices{display:grid;gap:10px}
+.choice{text-align:left;padding:14px 16px;font-weight:600}
+.gnav{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;align-items:center}
+.gnav .spacer{flex:1}
+button.primary,#gNext{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+.linkbtn{background:none;border:none;color:var(--accent);padding:6px 4px;text-decoration:underline}
+.topbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.restored{font-size:.88rem;color:var(--muted)}
+.heroact{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.pastebox{margin-top:16px}
+.pastebox input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;flex:1;min-width:0}
+.minibar{margin-top:12px}
+.track.sm{height:22px}
+.key{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;font-size:.85rem}
+.heroact .key{margin:0 0 0 auto;justify-content:flex-end}
+#fed{min-width:660px}
+#fed th{white-space:normal;vertical-align:bottom;line-height:1.25}
+#fed th,#fed td{padding:8px 6px}
+#fed td input{width:68px}
+#fed small{display:block;font-size:.76rem;font-weight:500}
+#fed small.cap{color:var(--muted)}
+#fed tfoot td:first-child{white-space:normal;min-width:130px}
+.hero{position:relative}
+.hero .verdict{padding-right:130px}
+.statusmark{position:absolute;top:18px;right:18px;width:112px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:.78rem;font-weight:600;line-height:1.25}
+.statusmark svg{width:60px;height:60px}
+.mini{display:inline-block;width:14px;height:14px;margin-right:6px;vertical-align:-2px}
+.mini svg{width:14px;height:14px;display:block}
+:root{--markOk:#1D8A4E;--markWarn:#E2B100;--markBad:#C62E22}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--markOk:#5FD08D;--markWarn:#F5D46A;--markBad:#FF7A6B}}
+:root[data-theme="dark"]{--markOk:#5FD08D;--markWarn:#F5D46A;--markBad:#FF7A6B}
+@media (max-width:560px){.hero .verdict{padding-right:76px}.statusmark{width:64px;top:16px;right:12px}.statusmark svg{width:44px;height:44px}.statusmark span{display:none}}
+@media (prefers-reduced-motion:no-preference){.seg{transition:left .25s,width .25s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="start" class="start" hidden>
+    <h1>How many hours of work does a family cost?</h1>
+    <p class="lede">Wages are paid by the hour, so every bill can be measured in hours of paid work. Find out whether a family’s costs fit inside the work week.</p>
+    <p class="frame">These are hours of paid work at your own wage: each cost divided by pay per hour. They are not the HOURS framework’s obligation hours (EOH) or TEH. The market layer, where prices and wages are set, is not modelled in the framework yet, so nothing here comes from its calculations. The figures are US national data, each listed with its source and date at the bottom of the page.</p>
+    <div class="paths">
+      <button class="path" id="goNumbers"><strong>Show me the numbers</strong><span>Open the explorer with national averages for a family of four. Change anything once you’re in.</span></button>
+      <button class="path" id="goGuide"><strong>Walk me through it</strong><span>Five quick questions about your household. Skip any question to keep the national average.</span></button>
+    </div>
+  </section>
+
+  <section id="guide" class="guide" hidden>
+    <div class="panel">
+      <p class="gstep" id="gStep"></p>
+      <h2 class="gq" id="gQ"></h2>
+      <div id="gBody"></div>
+      <div class="gnav">
+        <button id="gBack">Back</button>
+        <button id="gSkip">Skip</button>
+        <span class="spacer"></span>
+        <button class="linkbtn" id="gDefaults">Use averages for the rest</button>
+        <button id="gNext">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="tool" hidden>
+  <div class="topbar"><button id="rerunGuide">Guided setup</button><span class="restored" id="restored" hidden>Your last settings were restored.</span></div>
+  <h1>How many hours of work does a family cost?</h1>
+  <p class="lede">Wages are paid by the hour. Set a wage, choose how many people work, and see whether a family’s costs fit inside their work week. Every setting is saved in the page link, so you can share your numbers.</p>
+  <p class="frame">These are hours of paid work at your own wage: each cost divided by pay per hour. They are not the HOURS framework’s obligation hours (EOH) or TEH. The market layer, where prices and wages are set, is not modelled in the framework yet, so nothing here comes from its calculations. The figures are US national data, each listed with its source and date at the bottom of the page.</p>
+
+  <section class="hero" aria-live="polite">
+    <div class="statusmark" id="statusMark"></div>
+    <p class="verdict" id="verdict"></p>
+    <div id="badges"></div>
+    <div class="week">
+      <div class="track" id="track"></div>
+      <div class="marks" id="marks"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="heroact"><button id="img" class="primary">Download image</button><button id="copy2">Copy share link</button><span class="hint" id="imgMsg" role="status"></span>
+      <div class="key">
+        <span class="badge s-ok"><span class="mini" data-k="ok"></span>Fits</span>
+        <span class="badge s-warn"><span class="mini" data-k="warn"></span>Needs 1 more worker</span>
+        <span class="badge s-bad"><span class="mini" data-k="bad"></span>Needs 2+ more workers</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <aside class="panel" aria-label="Settings">
+      <h2>Your household</h2>
+      <div class="field">
+        <label for="wageR">Pay per hour, each earner</label>
+        <div class="wagebox">
+          <input type="range" id="wageR">
+          <input type="number" id="wageN" aria-label="Pay per hour in dollars">
+        </div>
+        <div class="presets" id="presets"></div>
+      </div>
+      <div class="field">
+        <span class="flabel">People working</span>
+        <div class="seg-ctl" id="earners"></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="h">Hours per week, each</label><input type="number" id="h"></div>
+        <div class="field"><label for="a">Adults at home</label><input type="number" id="a"></div>
+        <div class="field"><label for="k6">Kids under 6</label><input type="number" id="k6"></div>
+        <div class="field"><label for="ks">School-age kids</label><input type="number" id="ks"></div>
+      </div>
+      <div class="field">
+        <label for="cc">Child care</label>
+        <select id="cc">
+          <option value="auto">Only when every adult works</option>
+          <option value="on">Always include</option>
+          <option value="off">Never include</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="com">One-way commute, minutes</label>
+        <input type="number" id="com">
+        <div class="hint">Unpaid time, shown on the week bar but not counted as work.</div>
+      </div>
+      <label class="check"><input type="checkbox" id="eitc"> <span>Include the Earned Income Tax Credit<span class="hint" id="eitcNote" style="display:block"></span></span></label>
+
+      <details>
+        <summary>Housing</summary>
+        <div class="seg-ctl" id="ownCtl" style="margin-bottom:12px"><button data-own="1">Own</button><button data-own="0">Rent</button></div>
+        <div class="two" id="ownFields">
+          <div class="field"><label for="price">Home price ($)</label><input type="number" id="price" step="1000"></div>
+          <div class="field"><label for="rate">Rate (%)</label><input type="number" id="rate" step="0.01"></div>
+          <div class="field"><label for="down">Down payment (%)</label><input type="number" id="down" step="0.5"></div>
+          <div class="field"><label for="ptax">Property tax (%)</label><input type="number" id="ptax" step="0.05"></div>
+          <div class="field"><label for="ins">Insurance ($/yr)</label><input type="number" id="ins" step="50"></div>
+          <div class="field"><label for="mip">Mortgage ins. (%)</label><input type="number" id="mip" step="0.05"></div>
+        </div>
+        <div id="rentFields" hidden>
+          <div class="field"><label for="rent">Rent per month ($)</label><input type="number" id="rent" step="25"></div>
+          <div class="hint" id="rentHint"></div>
+        </div>
+        <div class="hint" id="houseOut"></div>
+      </details>
+      <details>
+        <summary>Other costs and income</summary>
+        <div class="hint">Dollar amounts are per year. Child care is per child.</div>
+        <div class="two">
+          <div class="field"><label for="r6">Care, under 6</label><input type="number" id="r6" step="100"></div>
+          <div class="field"><label for="rs">Care, school-age</label><input type="number" id="rs" step="100"></div>
+          <div class="field"><label for="food">Food</label><input type="number" id="food" step="100"></div>
+          <div class="field"><label for="tr">Transportation</label><input type="number" id="tr" step="100"></div>
+          <div class="field"><label for="hl">Health insurance</label><input type="number" id="hl" step="100"></div>
+          <div class="field"><label for="oth">Everything else</label><input type="number" id="oth" step="100"></div>
+          <div class="field"><label for="ret">Retirement (%)</label><input type="number" id="ret" step="0.5"></div>
+          <div class="field"><label for="st">State/local tax (%)</label><input type="number" id="st" step="0.25"></div>
+          <div class="field full"><label for="xinc">Other income, take-home ($)</label>
+            <div class="inrow"><input type="number" id="xinc" step="10" min="0"><select id="xw" aria-label="Other income period"><option value="1">per week</option><option value="0">per year</option></select></div>
+          </div>
+        </div>
+        <div class="hint">Other income covers a side job, child support, benefits or anything else that arrives as a flat amount. It is treated as already taxed.</div>
+        <label class="check"><input type="checkbox" id="fs"> <span>Scale food to household size (USDA method). Uncheck to keep a flat amount.</span></label>
+        <div class="hint">Food is entered for a family of four. “Everything else” covers utilities, phone, clothing and medical bills. It starts at $0, so the default budget is a floor.</div>
+      </details>
+
+      <details>
+        <summary>Find your local numbers</summary>
+        <ul class="hint" style="padding-left:18px;margin:0">
+          <li>Child care by county: <a href="https://www.dol.gov/agencies/wb/topics/featured-childcare" target="_blank" rel="noopener">DOL National Database of Childcare Prices</a></li>
+          <li>Rents by county: <a href="https://www.huduser.gov/portal/datasets/fmr.html" target="_blank" rel="noopener">HUD Fair Market Rents</a></li>
+          <li>Home values, incomes and commute times: <a href="https://data.census.gov" target="_blank" rel="noopener">Census ACS on data.census.gov</a></li>
+        </ul>
+        <div class="hint">Enter what you find, then copy the share link to keep your local version.</div>
+      </details>
+
+      <div class="actions">
+        <button id="copy">Copy share link</button>
+        <button id="reset">Reset to defaults</button>
+      </div>
+      <div class="hint" id="copyMsg" role="status"></div>
+    </aside>
+
+    <main>
+      <section class="panel">
+        <h2>Actual costs, in hours of work per week</h2>
+        <div class="tablewrap"><table id="actual"></table></div>
+        <div class="balance"><button id="balance">Find the wage that covers it in 40 hours</button><span class="hint" id="balMsg" role="status"></span></div>
+        <p class="note" id="taxNote"></p>
+      </section>
+      <section class="panel" style="margin-top:22px">
+        <h2>Federal affordability standards, in hours</h2>
+        <div class="tablewrap"><table id="fed"></table></div>
+        <p class="note">Each standard is a share of pay, so it converts straight into hours of each earner’s week at any wage. “Actual” is the real cost as a share of pay (of 40-hour pay for rows marked “40-hour base”), and “Change from standard” is the gap in percentage points. “Budget” is what the standard allows at your pay; “Fits” compares it with the actual cost above.</p>
+        <label class="check"><input type="checkbox" id="fcap"> <span>Base the housing, transportation and health standards on a 40-hour week. Those costs don’t grow when you work longer, so extra hours shouldn’t raise their budget. Child care, retirement and taxes follow the hours you set.</span></label>
+      </section>
+    </main>
+  </div>
+
+  <section class="panel" style="margin-top:22px" aria-labelledby="cmpH">
+    <h2 id="cmpH">Compare</h2>
+    <div id="cmpBody"></div>
+  </section>
+
+
+  <section class="sources">
+    <h2>How the page figures</h2>
+    <ul id="method"></ul>
+    <h2>Default values and sources</h2>
+    <p>Every value was read into the HOURS repository from the explorer handoff on the date shown. Where no document was cited, the entry says so.</p>
+    <ul id="sources"></ul>
+  </section>
+  </div>
+</div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script id="math">
+/* The page's arithmetic, kept apart from the page so tests can run it under node.
+   P is the embedded data (hours_eoh/reference/data/family_costs.json via build.py). */
+function familyMath(P){
+  const DEF={...P.defaults};
+  const BOOL=["eitc","fs","fcap"];
+  const WEEKS=P.weeks_per_year;
+  // What a setting may hold. A value from a link is clamped here too, so a link
+  // cannot set a wage or week of zero and divide by it.
+  const LIMITS={w:[1,1000],n:[1,4],h:[1,100],a:[1,6],k6:[0,8],ks:[0,8],com:[0,300],
+    rate:[0,30],down:[0,100],ptax:[0,20],mip:[0,5],ret:[0,100],st:[0,100],
+    fhou:[0,100],ftra:[0,100],fhea:[0,100],fchi:[0,100],fret:[0,100],ftax:[0,100],
+    eitc:[0,1],fs:[0,1],fcap:[0,1],own:[0,1],xw:[0,1]};
+  const WHOLE=["n","a","k6","ks","eitc","fs","fcap","own","xw"];
+  function clamp(k,v){
+    if(!isFinite(v)) return DEF[k];
+    const L=LIMITS[k]||[0,Infinity];
+    let x=Math.min(L[1],Math.max(L[0],v));
+    if(WHOLE.includes(k)) x=Math.round(x);
+    return x;
+  }
+  function encode(st){ const p=new URLSearchParams(); for(const k in DEF) if(st[k]!==DEF[k]) p.set(k,st[k]); return p.toString(); }
+  function decode(str){
+    const o={...DEF}, p=new URLSearchParams(str);
+    for(const [k,v] of p){ if(!(k in DEF)) continue;
+      if(k==="cc"){ if(["auto","on","off"].includes(v)) o.cc=v; }
+      else o[k]=clamp(k,parseFloat(v)); }
+    return o;
+  }
+  function housing(st){
+    if(!st.own) return st.rent*12;
+    const F=P.fha, base=st.price*(1-st.down/100), fha=st.down<F.conventional_from_down_pct;
+    const loan=fha?base*(1+F.upfront_mip):base, i=st.rate/1200, n=F.term_months;
+    const pi=i>0?loan*i/(1-Math.pow(1+i,-n)):loan/n;
+    const mipM=fha?base*st.mip/100/12:0;
+    return 12*(pi+mipM)+st.price*st.ptax/100+st.ins;
+  }
+  const filing=joint=>joint?"joint":"head";
+  // Federal income tax after the child tax credit. `inc` is pay less pre-tax
+  // retirement and health premiums; `earned` is gross pay, for the refundable part.
+  function fedTax(inc,earned,kids,joint){
+    const T=P.tax, f=filing(joint);
+    let ti=Math.max(0,inc-T.standard_deduction[f]), t=0, prev=0;
+    for(const [top,r] of T.brackets[f]){ const cap=top===null?Infinity:top;
+      if(ti>prev) t+=(Math.min(ti,cap)-prev)*r; prev=cap; }
+    const C=T.ctc, over=Math.max(0,inc-C.phaseout_start[f]);
+    const ctc=Math.max(0,C.per_child*kids-Math.ceil(over/1000)*C.phaseout_per_1000);
+    const nonref=Math.min(t,ctc);
+    const ref=Math.min(ctc-nonref,C.refundable_max*kids,Math.max(0,C.refund_rate*(earned-C.earned_floor)));
+    return t-nonref-ref;
+  }
+  const eitcRow=kids=>P.eitc.by_children[Math.min(kids,P.eitc.by_children.length-1)];
+  function eitc(earn,kids,joint){
+    const E=eitcRow(kids), start=E.phaseout_start[filing(joint)];
+    return Math.max(0,Math.min(E.rate*earn,E.rate*E.earned_max)-E.phaseout_rate*Math.max(0,earn-start));
+  }
+  function eitcEnd(kids,joint){
+    const E=eitcRow(kids);
+    return E.phaseout_start[filing(joint)]+E.rate*E.earned_max/E.phaseout_rate;
+  }
+  function foodCost(st){
+    const n=st.a+st.k6+st.ks; if(!st.fs) return st.food;
+    const row=P.food_scaling.by_size.find(([upTo])=>upTo===null||n<=upTo);
+    return st.food/4*n*row[1];
+  }
+  function status(hours,cap,h){
+    if(hours<=cap+1e-9) return "ok";
+    if(hours<=cap+h+1e-9) return "warn";
+    return "bad";
+  }
+  function compute(w,st){
+    w=w??st.w;
+    const kids=st.k6+st.ks, gross=w*st.h*st.n*WEEKS, joint=st.a>=2;
+    const ccOn=st.cc==="on"||(st.cc==="auto"&&st.n>=st.a&&kids>0);
+    const care=ccOn?st.k6*st.r6+st.ks*st.rs:0;
+    const retire=gross*st.ret/100;
+    // Retirement saving and the worker's health premium are taken before income
+    // tax; the premium also before FICA (a section 125 plan).
+    const incBase=Math.max(0,gross-retire-st.hl), ficaBase=Math.max(0,gross-st.hl);
+    const tax=fedTax(incBase,gross,kids,joint)+ficaBase*P.tax.fica+incBase*st.st/100
+             -(st.eitc?eitc(gross,kids,joint):0);
+    const rows=[
+      {k:"Housing",v:housing(st),f:"fhou"},
+      {k:"Child care",v:care,f:"fchi",off:!ccOn},
+      {k:"Food",v:foodCost(st)},
+      {k:"Transportation",v:st.tr,f:"ftra"},
+      {k:"Health insurance",v:st.hl,f:"fhea"},
+      {k:"Everything else",v:st.oth},
+      {k:"Retirement",v:retire,f:"fret"},
+      {k:"Taxes",v:tax,f:"ftax"}];
+    const xi=st.xinc*(st.xw?WEEKS:1);
+    if(xi>0) rows.push({k:"Other income (take-home)",v:-xi,inc:true});
+    rows.forEach(r=>{r.h=r.v/(w*WEEKS);});
+    const total=rows.reduce((s,r)=>s+r.h,0);
+    const home=!ccOn&&kids>0&&st.a>st.n, unpaidV=home?st.k6*st.r6+st.ks*st.rs:0;
+    return {rows,total,gross,ccOn,cap:st.n*st.h,unpaidV,unpaidH:unpaidV/(w*WEEKS)};
+  }
+  // The lowest wage, to the cent, at which the hours needed fit the hours
+  // available. With realistic costs the hours needed fall steadily as the wage
+  // rises, and plain bisection gives the same answer. With costs near zero the
+  // EITC can make them rise again, so a scan finds the first crossing first.
+  function balanceWage(st){
+    const cap=st.n*st.h, fits=w=>compute(w,st).total<=cap, top=LIMITS.w[1];
+    if(!fits(top)) return null;
+    let lo=LIMITS.w[0], hi=null;
+    if(fits(lo)) return lo;
+    for(let w=lo;w<=top;w*=1.01){ if(fits(w)){hi=w;break;} lo=w; }
+    if(hi===null) hi=top;
+    for(let i=0;i<60;i++){ const m=(lo+hi)/2; if(fits(m)) hi=m; else lo=m; }
+    let c=Math.ceil(hi*100)/100;
+    while(!fits(c)&&c<top) c=Math.round(c*100+1)/100;
+    return c;
+  }
+  return {DEF,BOOL,LIMITS,clamp,encode,decode,housing,fedTax,eitc,eitcEnd,foodCost,status,compute,balanceWage};
+}
+</script>
+<script>
+const P=JSON.parse(document.getElementById("data").textContent.replace(/<\\\//g,"</"));
+const M=familyMath(P);
+const DEF=M.DEF, BOOL=M.BOOL;
+const NUM=Object.keys(DEF).filter(k=>k!=="cc"&&!BOOL.includes(k));
+const LS_KEY="hoursFamily:v1";
+const WEEKS=P.weeks_per_year;
+let S={...DEF}, B=null, BL="Starting point";
+
+const $=id=>document.getElementById(id);
+const money=x=>(x<0?"−$":"$")+Math.round(Math.abs(x)).toLocaleString("en-US");
+const hrs=x=>(x<0?"−":"")+Math.abs(x).toFixed(1);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const encode=M.encode, decode=M.decode, housing=M.housing, status=M.status, eitcEnd=M.eitcEnd;
+const balanceWage=st=>M.balanceWage(st);
+
+/* ---------- link state ---------- */
+function stateString(){
+  const p=new URLSearchParams(encode(S));
+  if(B){ p.set("cmp",encode(B)||"d"); p.set("cl",BL); }
+  return p.toString();
+}
+function loadString(str){
+  const p=new URLSearchParams(str);
+  S=decode(str);
+  if(p.has("cmp")){ const c=p.get("cmp"); B=decode(c==="d"?"":c); BL=p.get("cl")||"Starting point"; } else { B=null; }
+}
+function writeHash(){
+  const h=stateString();
+  try{ history.replaceState(null,"",h?"#"+h:location.pathname+location.search); }catch(e){}
+  try{ localStorage.setItem(LS_KEY,h||"_defaults"); }catch(e){}
+}
+function shareURL(){ return location.href.split("#")[0]+(stateString()?"#"+stateString():""); }
+
+/* ---------- math (in the math block) ---------- */
+const COLORS=["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8","--okInk"];
+function compute(w,st){ const R=M.compute(w,st||S); R.rows.forEach((r,i)=>{r.c=COLORS[i];}); return R; }
+const LABEL={ok:"Fits your earners’ weeks",warn:"Needs one more full-time worker",bad:"Needs two or more extra workers"};
+function markSVG(k){
+  if(k==="ok") return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="var(--markOk)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if(k==="warn") return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="var(--markWarn)"/></svg>`;
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13" fill="none" stroke="var(--markBad)" stroke-width="3.2" stroke-linecap="round"/></svg>`;
+}
+document.querySelectorAll(".mini").forEach(m=>m.innerHTML=markSVG(m.dataset.k));
+
+/* ---------- text drawn from the data ---------- */
+const presetHTML=attr=>P.presets.map(p=>`<button ${attr}="${p.per_hour}">${esc(p.label)} $${p.per_hour.toFixed(2)}</button>`).join("");
+const srcOf=name=>P.sources.find(s=>s.name===name)||{};
+function drawStatic(){
+  $("presets").innerHTML=presetHTML("data-w");
+  const rentSrc=srcOf("defaults.rent");
+  $("rentHint").textContent=`The default, ${money(DEF.rent)} a month, is ${rentSrc.label?rentSrc.label.charAt(0).toLowerCase()+rentSrc.label.slice(1):"the national median gross rent"}.`;
+  const T=P.tax, C=T.ctc;
+  $("taxNote").textContent=`Taxes are approximate: ${T.year} federal brackets with the child tax credit (${money(C.per_child)} a child, phasing out above ${money(C.phaseout_start.joint)} joint or ${money(C.phaseout_start.head)} otherwise), FICA, a flat state and local rate, and the EITC only when checked. Retirement saving and the health premium are taken out before income tax, and the premium before FICA. Hours per week = yearly cost ÷ (pay per hour × ${WEEKS}). A row is colored when that one cost alone outgrows your earners’ weeks.`;
+  const fs=P.food_scaling.by_size.map(([n,f])=>(n===null?"more":n)+": "+(f>1?"+":f<1?"−":"±")+Math.round(Math.abs(f-1)*100)+"%").join(", ");
+  $("method").innerHTML=[
+    `Hours per week = yearly cost ÷ (pay per hour × ${WEEKS}). A yearly salary converts to an hourly wage over ${P.hours_per_year.toLocaleString("en-US")} hours (40 a week).`,
+    `Taxes: ${T.year} federal brackets and standard deduction (married filing jointly with 2+ adults, head of household otherwise), FICA ${(T.fica*100).toFixed(2)}%, and a flat state and local rate. Retirement saving and the health premium are pre-tax.`,
+    `EITC: ${esc(P.eitc.note||"")} It is included only when checked.`,
+    `Food scales with household size (${fs}) when that box is checked.`,
+    `Owning: an FHA loan below ${P.fha.conventional_from_down_pct}% down, with ${(P.fha.upfront_mip*100).toFixed(2)}% upfront mortgage insurance added to the loan and the annual rate you set, over ${P.fha.term_months/12} years.`,
+    `Colors compare total hours needed with earners × hours: green fits, yellow needs one more full-time worker, red needs two or more.`,
+    `Unpaid child care: when a parent stays home, the market price of the care they give is shown but not counted as paid hours.`,
+    `Other income is treated as already taxed.`
+  ].map(t=>`<li>${t}</li>`).join("");
+  const val=s=>{ const k=s.name.split(".")[1]; return (k in DEF&&typeof DEF[k]==="number"&&s.name.split(".")[0]!=="wages")?` ${DEF[k].toLocaleString("en-US")}`:""; };
+  $("sources").innerHTML=P.sources.map(s=>{
+    const name=s.label||s.name;
+    const src=s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.source)}</a>`:esc(s.source);
+    return `<li><b>${esc(name)}</b>${s.name.startsWith("wages.")?` $${(P.presets.find(p=>"wages."+p.key===s.name)||{}).per_hour?.toFixed(2)} an hour`:val(s)}: ${src}${s.period?` (${esc(s.period)})`:""}. Read ${esc(s.read)}; ${s.updates==="chosen"?"a chosen value, not a measurement":s.updates==="rarely"?"changes rarely":s.updates==="by statute"?"changes by statute":"the source updates "+esc(s.updates)}.${s.note?" "+esc(s.note):""}</li>`;
+  }).join("");
+  // input limits
+  const L=M.LIMITS;
+  const setLim=(id,k)=>{ const el=$(id); if(el&&L[k]){ el.min=L[k][0]; el.max=L[k][1]; } };
+  ["h","a","k6","ks","com","rate","down","ptax","mip","ret","st"].forEach(k=>setLim(k,k));
+  setLim("wageN","w"); $("wageR").min=L.w[0]; $("wageR").max=150; $("wageR").step=0.25; $("wageN").step=0.25;
+  ["h","a","k6","ks"].forEach(k=>$(k).step=1); $("com").step=5;
+}
+drawStatic();
+/* ---------- week bar (shared by hero and compare) ---------- */
+const edge=f=>f>0.82?"transform:translateX(-100%)":f<0.12?"transform:none":"";
+function barHTML(R,st,withMarks){
+  const commute=st.com*2*5/60*st.n, cap=R.cap;
+  const scale=Math.max(R.total+commute+R.unpaidH,cap,40)*1.08;
+  let x=0,html="",leg="";
+  R.rows.forEach(r=>{ if(r.h<=0) return; const w=r.h/scale*100;
+    html+=`<div class="seg" style="left:${x}%;width:${w}%;background:var(${r.c})" title="${r.k}: ${hrs(r.h)} h"></div>`; x+=w;
+    leg+=`<span><i style="background:var(${r.c})"></i>${r.k}</span>`; });
+  if(commute>0){ const w=commute/scale*100;
+    html+=`<div class="seg" style="left:${x}%;width:${w}%;background:repeating-linear-gradient(45deg,var(--muted) 0 4px,transparent 4px 8px)" title="Commute: ${hrs(commute)} h"></div>`; x+=w;
+    leg+=`<span><i style="background:var(--muted)"></i>Commute (unpaid)</span>`; }
+  if(R.unpaidH>0){ const w=R.unpaidH/scale*100;
+    html+=`<div class="seg" style="left:${x}%;width:${w}%;background:repeating-linear-gradient(-45deg,var(--c3) 0 3px,transparent 3px 9px)" title="Unpaid child care at home: ${hrs(R.unpaidH)} h of pay"></div>`; x+=w;
+    leg+=`<span><i style="background:var(--c3);opacity:.5"></i>Unpaid child care at home</span>`; }
+  let marks="";
+  for(let i=1;i<=st.n+2;i++){ const at=i*st.h; if(at>scale) break;
+    html+=`<div class="mark" style="left:${at/scale*100}%"></div>`;
+    if(withMarks) marks+=`<span style="left:${at/scale*100}%;${edge(at/scale)}">${i===1?"1 worker":i+" workers"}, ${at} h</span>`; }
+  if(168<=scale){ html+=`<div class="mark" style="left:${168/scale*100}%;border-left-style:solid"></div>`;
+    if(withMarks) marks+=`<span style="left:${168/scale*100}%;top:22px;${edge(168/scale)}">168 h, a whole week</span>`; }
+  return {html,marks,leg};
+}
+
+/* ---------- render ---------- */
+function render(){
+  const R=compute(), cap=R.cap, st=status(R.total,cap,S.h);
+  const people=R.total/S.h, fam=S.a+S.k6+S.ks;
+  const who=S.n===1?"One earner":`${S.n} earners`;
+  $("verdict").innerHTML=`At $${S.w.toFixed(2)} an hour, this family of ${fam} needs <b>${hrs(R.total)} hours</b> of paid work a week. ${who} at ${S.h} hours ${S.n===1?"provides":"provide"} ${cap}.`;
+  $("statusMark").innerHTML=`${markSVG(st)}<span class="s-${st}-ink">${LABEL[st]}</span>`;
+  $("statusMark").setAttribute("aria-label",LABEL[st]); $("statusMark").setAttribute("role","img");
+  let b=`<span class="badge s-${st}">${people.toFixed(1)} people working ${S.h} hours</span>`;
+  if(R.total>168*S.n) b+=`<span class="badge s-bad">More hours than ${S.n===1?"a week holds":"your earners’ weeks hold"} (168 each)</span>`;
+  $("badges").innerHTML=b;
+  const bar=barHTML(R,S,true);
+  $("track").innerHTML=bar.html; $("marks").innerHTML=bar.marks; $("legend").innerHTML=bar.leg;
+
+  // actual table
+  let t=`<thead><tr><th>Expense</th><th>Cost per year</th><th>Hours per week</th><th>Share of pay</th></tr></thead><tbody>`;
+  R.rows.forEach(r=>{ const rs=r.h>0?status(r.h,cap,S.h):"ok";
+    const cls=rs==="ok"?"":` class="cell-${rs}"`;
+    t+=`<tr><td><span class="dot" style="background:var(${r.c})"></span>${r.k}${r.off?" (not needed)":""}</td><td>${money(r.v)}</td><td${cls}>${hrs(r.h)}</td><td>${R.gross>0?(r.v/R.gross*100).toFixed(0)+"%":"—"}</td></tr>`; });
+  const left=cap-R.total;
+  t+=`</tbody><tfoot><tr><td>Hours needed</td><td>${money(R.rows.reduce((s,r)=>s+r.v,0))}</td><td class="cell-${st}">${hrs(R.total)}</td><td>${(R.total/cap*100).toFixed(0)}%</td></tr>
+     <tr><td>${left>=0?"Hours left for everything else":"Hours short"}</td><td></td><td class="cell-${st}">${hrs(Math.abs(left))}</td><td></td></tr>${R.unpaidV>0?`<tr class="unpaid"><td>Unpaid: child care given at home (not counted)</td><td>${money(R.unpaidV)}</td><td>${hrs(R.unpaidH)}</td><td></td></tr>`:""}</tfoot>`;
+  $("actual").innerHTML=t;
+  $("balance").textContent=`Find the wage that covers it in ${cap} hours`;
+
+  const ee=eitcEnd(S.k6+S.ks,S.a>=2);
+  $("eitcNote").textContent=`Ends at ${money(ee)} a year of pay for this household.`+(R.gross>=ee?" Your pay is above that, so it adds nothing.":"");
+  // federal table
+  const fedRows=[["Housing","fhou"],["Transportation","ftra"],["Health insurance","fhea"],["Child care","fchi"],["Retirement","fret"],["Taxes","ftax"]];
+  let sumP=0;
+  const pct=v=>R.gross>0?v/R.gross*100:0;
+  const pts=d=>(d>0.05?"+":d<-0.05?"−":"")+Math.abs(d).toFixed(1)+" pts";
+  const CAPPED=["fhou","ftra","fhea"], base40=P.hours_per_year/WEEKS, g40=S.w*base40*S.n*WEEKS;
+  let sumA=0, sumAct=0, sumB=0, sumH=0;
+  let f=`<thead><tr><th>Expense</th><th>Standard (% of pay)</th><th>Actual (% of pay)</th><th>Change from standard</th><th>Hours of each week at standard</th><th>Budget at your pay</th><th>Actual cost</th><th>Fits</th></tr></thead><tbody>`;
+  fedRows.forEach(([k,key])=>{ const p=S[key]; sumP+=p; const cap40=S.fcap&&CAPPED.includes(key);
+    const budget=(cap40?g40:R.gross)*p/100, hw=p/100*(cap40?base40:S.h); sumB+=budget; sumH+=hw;
+    const act=R.rows.find(r=>r.f===key).v, base=cap40?g40:R.gross, ap=base>0?act/base*100:0, d=ap-p; sumA+=ap; sumAct+=act; const fits=act<=budget+0.5;
+    f+=`<tr><td>${k}${cap40&&S.h!==40?'<small class="cap">40-hour base</small>':""}</td><td><input type="number" step="0.25" min="0" max="100" data-f="${key}" value="${p}" aria-label="${k} standard percent"></td><td>${ap.toFixed(1)}%</td><td class="cell-${d>0.05?"bad":"ok"}">${pts(d)}</td><td>${hrs(hw)}</td><td>${money(budget)}</td><td>${money(act)}</td><td class="cell-${fits?"ok":"bad"}">${fits?"Yes":`No<small>${money(act-budget)} over</small>`}</td></tr>`; });
+  const fh=sumH*S.n, fst=status(fh,cap,S.h), dT=sumA-sumP, leftB=R.gross-sumB;
+  f+=`</tbody><tfoot><tr><td>Total</td><td>${sumP.toFixed(2)}%</td><td>${sumA.toFixed(1)}%</td><td class="cell-${dT>0.05?"bad":"ok"}">${pts(dT)}</td><td class="cell-${fst}">${hrs(sumH)}</td><td>${money(sumB)}</td><td>${money(sumAct)}</td><td></td></tr>
+     <tr><td>Left for food, utilities and everything else</td><td>${pct(leftB).toFixed(2)}%</td><td>${(100-sumA).toFixed(1)}%</td><td></td><td class="cell-${fst}">${hrs(S.h-sumH)}</td><td>${money(leftB)}</td><td>${money(R.gross-sumAct)}</td><td></td></tr></tfoot>`;
+  $("fed").innerHTML=f;
+  document.querySelectorAll("[data-f]").forEach(el=>el.addEventListener("change",e=>{
+    const v=parseFloat(e.target.value); if(isFinite(v)){S[e.target.dataset.f]=M.clamp(e.target.dataset.f,v); update();} }));
+
+  $("houseOut").textContent=S.own?`Owning works out to ${money(housing(S))} a year (${money(housing(S)/12)} a month), including taxes and insurance.`:`Renting works out to ${money(housing(S))} a year.`;
+  renderCompare(R);
+}
+
+/* ---------- compare ---------- */
+function renderCompare(R){
+  const box=$("cmpBody");
+  if(!B){
+    box.innerHTML=`<p class="note">Save your current settings as a starting point, then change the wage, workers or costs to see the gap to where you want to be. Or paste someone’s share link to compare against theirs.</p>
+      <div class="actions"><button id="pin" class="primary">Save these settings as my starting point</button></div>
+      <div class="pastebox"><label for="cmpLink" class="flabel">Compare with a shared link</label>
+      <div class="wagebox"><input type="text" id="cmpLink" placeholder="Paste a link to this tool"><button id="cmpLoad">Compare</button></div>
+      <div class="hint" id="cmpMsg" role="status"></div></div>`;
+    $("pin").onclick=()=>{B={...S}; BL="Starting point"; update();};
+    $("cmpLoad").onclick=()=>{
+      const v=$("cmpLink").value.trim(), i=v.indexOf("#");
+      if(i<0){ $("cmpMsg").textContent="That link has no settings in it. Copy it with the Copy share link button."; return; }
+      const p=new URLSearchParams(v.slice(i+1));
+      if(![...p.keys()].some(k=>k in DEF)){ $("cmpMsg").textContent="No settings found in that link."; return; }
+      B=decode(v.slice(i+1)); BL="Shared link"; update();
+    };
+    return;
+  }
+  const A=compute(null,B), sa=status(A.total,A.cap,B.h), sc=status(R.total,R.cap,S.h);
+  const wa=balanceWage(B), wc=balanceWage(S);
+  const row=(label,a,c,d)=>`<tr><td>${label}</td><td>${a}</td><td>${c}</td><td>${d??""}</td></tr>`;
+  const diff=(x,y,f)=>{ const d=y-x; if(Math.abs(d)<0.005) return "No change"; return (d>0?"+":"−")+f(Math.abs(d)); };
+  const fam=st=>st.a+st.k6+st.ks;
+  const ba=barHTML(A,B,false), bc=barHTML(R,S,false);
+  box.innerHTML=`<div class="tablewrap"><table class="cmp">
+    <thead><tr><th></th><th>${esc(BL)}</th><th>Current settings</th><th>Change</th></tr></thead><tbody>
+    ${row("Pay per hour","$"+B.w.toFixed(2),"$"+S.w.toFixed(2),diff(B.w,S.w,x=>"$"+x.toFixed(2)))}
+    ${row("People working",B.n,S.n,diff(B.n,S.n,x=>x))}
+    ${row("Family size",fam(B),fam(S),diff(fam(B),fam(S),x=>x))}
+    ${row("Housing per year",money(housing(B)),money(housing(S)),diff(housing(B),housing(S),money))}
+    ${row("Child care counted",A.ccOn?"Yes":"No",R.ccOn?"Yes":"No")}
+    <tr><td>Hours of paid work needed</td><td class="cell-${sa}">${hrs(A.total)}</td><td class="cell-${sc}">${hrs(R.total)}</td><td>${diff(A.total,R.total,hrs)} h</td></tr>
+    ${row("Hours available",A.cap,R.cap,diff(A.cap,R.cap,x=>x))}
+    ${row("Wage that balances, each",wa?("$"+wa.toFixed(2)):"None",wc?("$"+wc.toFixed(2)):"None",(wa&&wc)?diff(wa,wc,x=>"$"+x.toFixed(2)):"")}
+    ${row("Result",`<span class="badge s-${sa}">${LABEL[sa]}</span>`,`<span class="badge s-${sc}">${LABEL[sc]}</span>`)}
+    </tbody></table></div>
+    <div class="minibar"><span class="flabel">${esc(BL)}</span><div class="track sm">${ba.html}</div></div>
+    <div class="minibar"><span class="flabel">Current settings</span><div class="track sm">${bc.html}</div></div>
+    <p class="hint">The two bars use their own scales; dashed lines mark each worker’s ${S.h} hours.</p>
+    <div class="actions"><button id="repin">Make current settings the starting point</button><button id="swap">Load ${esc(BL.toLowerCase())} into the tool</button><button id="unpin">Stop comparing</button></div>`;
+  $("repin").onclick=()=>{B={...S}; BL="Starting point"; update();};
+  $("swap").onclick=()=>{const t={...S}; S={...B}; B=t; BL="Previous settings"; update();};
+  $("unpin").onclick=()=>{B=null; update();};
+}
+
+/* ---------- shareable image ---------- */
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function wrapText(ctx,text,maxW){ const words=text.split(" "),lines=[]; let line="";
+  for(const w of words){ const t=line?line+" "+w:w; if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;} else line=t; }
+  if(line) lines.push(line); return lines; }
+async function makeImage(){
+  try{ await document.fonts.ready; }catch(e){}
+  const R=compute(), st=status(R.total,R.cap,S.h);
+  const W=1200,H=630,c=document.createElement("canvas"); c.width=W; c.height=H;
+  const x=c.getContext("2d"), F='system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
+  const pal={bg:"#EDF1F5",ink:"#18212C",muted:"#5A6676",panel:"#FFFFFF",bar:"#C7D2E0",
+    ok:["#DDF1E4","#1D6B3E"],warn:["#FBE7A1","#7A5A00"],bad:["#F6CFCB","#9B2116"],
+    seg:["#1F4FB8","#7B4FC4","#2E8B6E","#C2762B","#B5487A","#6E7F96","#3A9BB5","#8A6D3B"]};
+  x.fillStyle=pal.bg; x.fillRect(0,0,W,H);
+  x.fillStyle=pal.muted; x.font=`600 26px ${F}`; x.fillText("How many hours of work does a family cost?",60,78);
+  // big number
+  x.fillStyle=pal.ink; x.font=`800 150px ${F}`; const big=hrs(R.total);
+  x.fillText(big,56,236); const bw=x.measureText(big).width;
+  x.font=`600 34px ${F}`; x.fillText("hours of paid work a week",56+bw+24,180);
+  x.fillStyle=pal.muted; x.font=`500 30px ${F}`; x.fillText(`${S.n===1?"One earner has":S.n+" earners have"} ${R.cap}. A week has 168.`,56+bw+24,226);
+  // verdict
+  x.fillStyle=pal.ink; x.font=`500 30px ${F}`;
+  wrapText(x,`Family of ${S.a+S.k6+S.ks}, $${S.w.toFixed(2)} an hour${R.ccOn?", child care included":""}.`,1080).forEach((l,i)=>x.fillText(l,60,300+i*40));
+  // badge
+  const [bgc,fgc]=pal[st]; x.font=`700 28px ${F}`; const lb=LABEL[st]; const lw=x.measureText(lb).width+40;
+  x.fillStyle=bgc; roundRect(x,60,340,lw,48,24); x.fill(); x.fillStyle=fgc; x.fillText(lb,80,374);
+  // bar
+  const bx=60,by=430,bwid=1080,bh=64;
+  const scale=Math.max(R.total,R.cap,40)*1.08;
+  x.fillStyle=pal.bar; roundRect(x,bx,by,bwid,bh,8); x.fill();
+  x.save(); roundRect(x,bx,by,bwid,bh,8); x.clip();
+  let cx=bx; R.rows.forEach((r,i)=>{ if(r.h<=0) return; const w=r.h/scale*bwid; x.fillStyle=pal.seg[i]; x.fillRect(cx,by,w,bh); cx+=w; });
+  x.restore();
+  x.font=`500 20px ${F}`; x.fillStyle=pal.ink; x.strokeStyle=pal.ink; x.lineWidth=3;
+  const mark=(h,label,dash)=>{ if(h>scale) return; const mx=bx+h/scale*bwid; x.setLineDash(dash?[8,6]:[]); x.beginPath(); x.moveTo(mx,by-12); x.lineTo(mx,by+bh+12); x.stroke(); x.setLineDash([]);
+    const tw=x.measureText(label).width; x.fillText(label,Math.min(Math.max(mx-tw/2,bx),bx+bwid-tw),by+bh+40); };
+  for(let i=1;i<=S.n;i++) mark(i*S.h,`${i===1?"1 worker":i+" workers"}, ${i*S.h} h`,true);
+  mark(168,"168 h, a whole week",false);
+  let lx=60; x.font=`500 17px ${F}`; R.rows.forEach((r,i)=>{ if(r.h<=0) return; x.fillStyle=pal.seg[i]; x.fillRect(lx,560,14,14); x.fillStyle=pal.muted; x.fillText(r.k,lx+20,573); lx+=x.measureText(r.k).width+44; });
+  const own=encode(S)!==""&&Object.keys(DEF).some(k=>!["w","n","h","a","k6","ks","cc","com","eitc","fs","fcap","own","xinc","xw"].includes(k)&&S[k]!==DEF[k]);
+  x.fillStyle=pal.muted; x.font=`500 18px ${F}`; x.fillText(own?"Costs entered by the user, with national defaults for the rest. Hours of paid work at the wage shown.":"National cost data: Census, BLS, USDA, KFF, Child Care Aware, Freddie Mac. Hours of paid work at the wage shown.",60,H-24);
+  return c;
+}
+function roundRect(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+async function saveImage(){
+  const msg=$("imgMsg"); msg.textContent="Making the image…";
+  const c=await makeImage();
+  const blob=await new Promise(r=>c.toBlob(r,"image/png"));
+  const name=`family-hours-${Math.round(compute().total)}h.png`;
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000); msg.textContent="Image saved.";
+}
+
+/* ---------- inputs ---------- */
+function syncInputs(){
+  $("wageR").value=Math.min(150,Math.max(M.LIMITS.w[0],S.w)); $("wageN").value=S.w;
+  NUM.forEach(k=>{ const el=$(k); if(el&&el.tagName==="INPUT"&&el.id!=="wageN") el.value=S[k]; });
+  $("cc").value=S.cc;
+  BOOL.forEach(k=>$(k).checked=!!S[k]);
+  $("xw").value=String(S.xw?1:0);
+  document.querySelectorAll("#ownCtl button").forEach(b=>b.classList.toggle("on",+b.dataset.own===(S.own?1:0)));
+  $("ownFields").hidden=!S.own; $("rentFields").hidden=!!S.own;
+  document.querySelectorAll("#earners button").forEach(b=>b.classList.toggle("on",+b.dataset.n===S.n));
+  document.querySelectorAll(".presets button").forEach(b=>b.classList.toggle("on",+b.dataset.w===S.w));
+}
+function update(){ writeHash(); syncInputs(); render(); }
+
+$("earners").innerHTML=[1,2,3,4].map(n=>`<button data-n="${n}" aria-label="${n} working">${n}</button>`).join("");
+$("earners").addEventListener("click",e=>{const b=e.target.closest("button"); if(b){S.n=+b.dataset.n; update();}});
+document.querySelector(".presets").addEventListener("click",e=>{const b=e.target.closest("button"); if(b){S.w=+b.dataset.w; update();}});
+$("wageR").addEventListener("input",e=>{S.w=+e.target.value; $("wageN").value=S.w; writeHash(); render(); syncInputs();});
+$("wageN").addEventListener("change",e=>{const v=parseFloat(e.target.value); if(isFinite(v)){S.w=M.clamp("w",v); update();}});
+NUM.forEach(k=>{ const el=$(k); if(!el||el.tagName!=="INPUT"||k==="w") return;
+  el.addEventListener("change",e=>{const v=parseFloat(e.target.value); if(isFinite(v)){S[k]=M.clamp(k,v); update();}}); });
+$("cc").addEventListener("change",e=>{S.cc=e.target.value; update();});
+BOOL.forEach(k=>$(k).addEventListener("change",e=>{S[k]=e.target.checked?1:0; update();}));
+$("xw").addEventListener("change",e=>{S.xw=+e.target.value; update();});
+$("ownCtl").addEventListener("click",e=>{const b=e.target.closest("button"); if(b){S.own=+b.dataset.own; update();}});
+$("balance").addEventListener("click",()=>{
+  const w=balanceWage(S);
+  if(w===null){ $("balMsg").textContent="No wage balances this: taxes and retirement alone take more than 100% of pay. Lower the percentages."; return; }
+  S.w=w; update();
+  const minW=(P.presets.find(p=>p.key==="minimum")||{}).per_hour;
+  $("balMsg").textContent=`$${S.w.toFixed(2)} an hour each (${money(S.w*S.h*S.n*WEEKS)} a year combined${minW?`, ${(S.w/minW).toFixed(1)}× minimum wage`:""}).`;
+});
+$("reset").addEventListener("click",()=>{S={...DEF}; update(); $("balMsg").textContent=""; $("copyMsg").textContent="Reset to the default values.";});
+async function copyLink(msgId){
+  writeHash(); const url=shareURL();
+  try{ await navigator.clipboard.writeText(url); $(msgId).textContent="Link copied. It opens with these settings."; }
+  catch(e){ $(msgId).textContent="Copy this link: "+url; }
+}
+$("copy").addEventListener("click",()=>copyLink("copyMsg"));
+$("copy2").addEventListener("click",()=>copyLink("imgMsg"));
+$("img").addEventListener("click",saveImage);
+window.addEventListener("hashchange",()=>{ loadString(location.hash.slice(1)); syncInputs(); render(); });
+
+/* ---------- start screen and guide ---------- */
+let G=null, step=0;
+const STEPS=[
+  {q:"Who brings home pay?",
+   body:()=>`<div class="choices">
+     ${[["One earner, one parent at home",2,1],["Both parents work",2,2],["Single parent, working",1,1]].map(([t,a,n])=>
+       `<button class="choice${G.a===a&&G.n===n?" on":""}" data-a="${a}" data-n="${n}">${t}</button>`).join("")}</div>
+     <p class="hint">You can set three or four earners later.</p>`,
+   bind:()=>document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{G.a=+b.dataset.a;G.n=+b.dataset.n;next();})},
+  {q:"How many children?",
+   body:()=>`<div class="two"><div class="field"><label for="gk6">Under 6</label><input type="number" id="gk6" min="0" max="8" value="${G.k6}"></div>
+     <div class="field"><label for="gks">School-age</label><input type="number" id="gks" min="0" max="8" value="${G.ks}"></div></div>`,
+   read:()=>{G.k6=M.clamp("k6",+$("gk6").value||0);G.ks=M.clamp("ks",+$("gks").value||0);}},
+  {q:"What does each earner make?",
+   body:()=>`<div class="two"><div class="field"><label for="gw">Per hour ($)</label><input type="number" id="gw" step="0.25" min="1" value="${G.w}"></div>
+     <div class="field"><label for="gy">Or per year ($)</label><input type="number" id="gy" step="500" min="0" placeholder="e.g. 52000"></div></div>
+     <div class="presets">${presetHTML("data-gw")}</div>
+     <p class="hint">Yearly pay is divided by ${P.hours_per_year.toLocaleString("en-US")} hours (40 a week).</p>`,
+   bind:()=>{document.querySelectorAll("[data-gw]").forEach(b=>b.onclick=()=>{$("gw").value=b.dataset.gw;$("gy").value="";});
+     $("gy").oninput=()=>{const y=+$("gy").value; if(y>0) $("gw").value=(y/P.hours_per_year).toFixed(2);};},
+   read:()=>{const w=parseFloat($("gw").value); if(isFinite(w)) G.w=M.clamp("w",w);}},
+  {q:"Do you own or rent?",
+   body:()=>`<div class="seg-ctl" id="gOwn"><button data-o="1" class="${G.own?"on":""}">Own</button><button data-o="0" class="${G.own?"":"on"}">Rent</button></div>
+     <div id="gOwnF" style="margin-top:16px" ${G.own?"":"hidden"}>
+       <div class="presets">${[200000,260000,350000,450000,600000].map(p=>`<button data-gp="${p}" class="${G.price===p?"on":""}">${money(p)}</button>`).join("")}</div>
+       <div class="two" style="margin-top:12px"><div class="field"><label for="gp">Home price ($)</label><input type="number" id="gp" step="5000" value="${G.price}"></div>
+       <div class="field"><label for="gr">Mortgage rate (%)</label><input type="number" id="gr" step="0.01" value="${G.rate}"></div></div>
+       <p class="hint">${money(DEF.price)} is a modest home, below the national median sale price.</p>
+     </div>
+     <div id="gRentF" style="margin-top:16px" ${G.own?"hidden":""}>
+       <div class="field" style="max-width:260px"><label for="grent">Rent per month ($)</label><input type="number" id="grent" step="25" value="${G.rent}"></div>
+       <p class="hint">The national default is ${money(DEF.rent)} a month (${esc(srcOf("defaults.rent").period||"")}).</p>
+     </div>`,
+   bind:()=>{
+     document.querySelectorAll("[data-gp]").forEach(b=>b.onclick=()=>{$("gp").value=b.dataset.gp;});
+     document.querySelectorAll("#gOwn button").forEach(b=>b.onclick=()=>{ G.own=+b.dataset.o;
+       document.querySelectorAll("#gOwn button").forEach(x=>x.classList.toggle("on",x===b));
+       $("gOwnF").hidden=!G.own; $("gRentF").hidden=!!G.own; });
+   },
+   read:()=>{
+     if(G.own){ const p=+$("gp").value,r=parseFloat($("gr").value); if(p>0) G.price=p; if(isFinite(r)&&r>=0) G.rate=r; }
+     else { const r=+$("grent").value; if(r>0) G.rent=r; }
+   }},
+  {q:"What does child care cost per child?",
+   body:()=>`<div class="two"><div class="field"><label for="gc6">Under 6, per month ($)</label><input type="number" id="gc6" step="25" value="${Math.round(G.r6/12)}"></div>
+     <div class="field"><label for="gcs">School-age, per month ($)</label><input type="number" id="gcs" step="25" value="${Math.round(G.rs/12)}"></div></div>
+     <button id="gcNat">Use the national average</button>
+     <p class="hint">Child care is only counted when every adult works.</p>`,
+   bind:()=>{$("gcNat").onclick=()=>{$("gc6").value=Math.round(DEF.r6/12);$("gcs").value=Math.round(DEF.rs/12);};},
+   read:()=>{const a=+$("gc6").value,b=+$("gcs").value; if(a>=0&&a!==Math.round(G.r6/12)) G.r6=a*12; if(b>=0&&b!==Math.round(G.rs/12)) G.rs=b*12;}}
+];
+function showOnly(id){ ["start","guide","tool"].forEach(k=>$(k).hidden=(k!==id)); window.scrollTo(0,0); }
+function drawStep(){
+  const s=STEPS[step];
+  $("gStep").textContent=`Question ${step+1} of ${STEPS.length}`;
+  $("gQ").textContent=s.q; $("gBody").innerHTML=s.body(); s.bind&&s.bind();
+  $("gBack").disabled=step===0; $("gNext").textContent=step===STEPS.length-1?"See my numbers":"Next";
+  const f=$("gBody").querySelector("input,button"); if(f) f.focus();
+}
+function readStep(){ const s=STEPS[step]; s.read&&s.read(); }
+function next(){ readStep(); if(step<STEPS.length-1){step++;drawStep();} else finishGuide(); }
+function finishGuide(){ S={...G}; showOnly("tool"); update(); }
+function startGuide(){ G={...S}; step=0; showOnly("guide"); drawStep(); }
+$("goNumbers").onclick=()=>{ S={...DEF}; showOnly("tool"); update(); };
+$("goGuide").onclick=()=>{ S={...DEF}; startGuide(); };
+$("gNext").onclick=next;
+$("gBack").onclick=()=>{ readStep(); if(step>0){step--;drawStep();} };
+$("gSkip").onclick=()=>{ if(step<STEPS.length-1){step++;drawStep();} else finishGuide(); };
+$("gDefaults").onclick=()=>{ readStep(); finishGuide(); };
+$("rerunGuide").onclick=startGuide;
+
+/* ---------- entry ---------- */
+(function init(){
+  const h=location.hash.slice(1);
+  if(h){ loadString(h); showOnly("tool"); syncInputs(); render(); return; }
+  let saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
+  if(saved){ loadString(saved==="_defaults"?"":saved); showOnly("tool"); update();
+    $("restored").hidden=false; return; }
+  showOnly("start");
+})();
+</script>
+</body>
+</html>

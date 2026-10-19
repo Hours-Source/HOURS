@@ -3,7 +3,9 @@
 The tools linked here run entirely in your browser. There is nothing to install
 and nothing to download, and a tool page makes no requests to other sites. Each one is built from the
 repository's data every time the documentation is published, and the build
-refuses to publish a page whose numbers no longer match the code.
+refuses to publish a page that breaks its contract: for the multiplier explorer,
+numbers that no longer match the code; for the family hours explorer, a value
+with no stated source.
 
 ## Multiplier registry explorer
 
@@ -31,3 +33,32 @@ What it shows, and what it does not:
 
 The method is described under [Multipliers](../api/core/multipliers.md) and
 [Parameter Provenance](../parameter_provenance.md).
+
+## Family hours explorer
+
+**[Open the family hours explorer](family-hours/index.html)**
+
+Turn a US family's living costs into hours of paid work a week at the
+household's own wage, and see whether they fit the hours its earners have. Set
+the wage, the earners, the children, housing and the other costs, and compare
+the result with federal affordability standards. Every setting is saved in the
+page link, so a result can be shared.
+
+What it shows, and what it does not:
+
+- **These are market hours, not obligation hours.** Each cost is divided by pay
+  per hour. They are not EOH or TEH, and none of the figures comes from the
+  framework's calculations. The market layer, where prices and wages are set, is
+  not modelled in this repository yet.
+- **Every default is external US data with its source and date.** The values
+  live in one file, `hours_eoh/reference/data/family_costs.json`, and the page,
+  its sources list and its wage presets are built from it. The build refuses a
+  value with no source, read date or update cadence, and reports a value whose
+  source has published since it was read. Where the handoff the values came from
+  cited no document, or quoted a secondary report, the entry says so.
+- **Taxes are approximate.** Federal brackets with the child tax credit and its
+  phase-out, FICA, a flat state and local rate, and the EITC when checked.
+  Retirement saving and the health premium are taken out before tax.
+- **The yearly-to-hourly divisor is the framework's `H_REF`**, 40 hours × 52
+  weeks, a declared convention rather than a measurement of hours worked.
+

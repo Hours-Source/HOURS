@@ -44,6 +44,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
   ASD-STE100 writing rules. It reports; it does not gate.
 - The docs run the CLI commands they display when the site is built
   (`hooks/docs_runs.py`), so a published run is the run of the published version.
+- The family hours explorer (`tools/family-hours/`): a US family's living costs
+  in hours of paid work at its own wage, against the hours its earners have.
+  Market data, not the framework's: every default is in
+  `hours_eoh/reference/data/family_costs.json` with its source and date, and the
+  build refuses a value without one. Adapted from the handoff page, with
+  retirement and health premiums taken before tax, the child tax credit's
+  phase-out, link values clamped, and no outside requests.
 
 ### Changed
 

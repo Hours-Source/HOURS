@@ -273,7 +273,9 @@ utils/                 Presentation layer — CLI and research helpers (see READ
   explorers/           In-browser explorers published with the docs at tools/<name>/ — a
                        template + a builder that embeds the shipped data and data.py
                        constants, and REFUSES unless the repo's own functions reproduce
-                       what the page shows. Built by hooks/docs_explorers.py on every
+                       what the page shows. `family_hours` is the exception: US MARKET
+                       data (family_costs.json), not the framework's, and it refuses a
+                       value with no source. Built by hooks/docs_explorers.py on every
                        `mkdocs build`; the generated HTML is never committed
 ```
 
@@ -736,7 +738,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,249 tests passing (1 skipped), mypy clean on 110 source files** (verified
+**6,259 tests passing (1 skipped), mypy clean on 110 source files** (verified
 2026-10-19). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **125** of 143<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -901,7 +903,7 @@ are the ones worth knowing by name.
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
 | `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down only what it OWES, and no term in its balance depends on the balance — the sharp form since 2026-09-15, when unspent dividend stopped leaving). |
-| `test_explorer_build.py` | The in-browser explorers (`utils/explorers/`). The builder must REFUSE — each refusal broken and required to fire — when `data.py` and the bounds file disagree, when the repo's own functions do not reproduce the registry, or when the page names a provenance key or tag the CSV lacks. The page's JavaScript math block is run under node against `core/multipliers.py` and `multiplier_sensitivity.reconstruct`, including under perturbed weights, so a page that re-anchors the frozen scale fails. The weight sliders set SHARES that always total 100%, stay within published ± the harness's `delta`, and keep the other three's proportions when one moves — checked over a 2,000-move walk. **States its own gaps:** the node half SKIPS without node, and the rendering and wording are not tested. |
+| `test_explorer_build.py` | The in-browser explorers (`utils/explorers/`). The builder must REFUSE — each refusal broken and required to fire — when `data.py` and the bounds file disagree, when the repo's own functions do not reproduce the registry, or when the page names a provenance key or tag the CSV lacks. The page's JavaScript math block is run under node against `core/multipliers.py` and `multiplier_sensitivity.reconstruct`, including under perturbed weights, so a page that re-anchors the frozen scale fails. The weight sliders set SHARES that always total 100%, stay within published ± the harness's `delta`, and keep the other three's proportions when one moves — checked over a 2,000-move walk. The family hours explorer: the builder refuses an unsourced value, the defaults are the data file's, and its math under node clamps a link's values, takes retirement pre-tax, phases out the child tax credit and finds the lowest balancing wage. **States its own gaps:** the node half SKIPS without node, and the rendering and wording are not tested. |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
 
 ### Cross-cutting, or named differently from the module

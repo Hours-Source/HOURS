@@ -10,6 +10,10 @@ JavaScript. Two checks keep it honest:
    and scenarios.multiplier_sensitivity.reconstruct, including under perturbed weights.
    That catches a page that re-anchors the frozen scale.
 
+The family hours explorer has a different contract, because its data is US
+market data and no repo function computes it: its builder refuses a value with no
+stated source, and its math block runs under node against cases built in the test.
+
 Stated gap: part 2 needs node on PATH and SKIPS without it. The rendering (labels,
 wording, layout) is not tested; only the math block and the payload are.
 """
@@ -330,3 +334,129 @@ def test_moving_away_and_back_restores_the_published_weights(rebalance_result: d
     for w in rebalance_result["roundtrip"]:
         for name, pub in zip(B.FACTOR_NAMES, D.M_FACTOR_WEIGHTS):
             assert w[name] == pytest.approx(pub, abs=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# The family hours explorer — market data with its sources, not the framework
+# ---------------------------------------------------------------------------
+
+from utils.explorers.family_hours import build as FH  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def family_html() -> str:
+    return FH.build_html()
+
+
+def test_family_page_defaults_are_the_data_file(family_html: str) -> None:
+    """The page's defaults are the data file's, the derived two are computed, and a
+    yearly wage converts over H_REF. A typed copy on the page fails this."""
+    d = json.loads(FH.DATA.read_text(encoding="utf-8"))
+    p = _payload(family_html)
+    for k, e in {**d["defaults"], **d["standards"]}.items():
+        assert p["defaults"][k] == e["value"], k
+    hl = d["derived"]["hl"]
+    assert p["defaults"]["hl"] == round(hl["premium"] * hl["worker_share"])
+    assert p["hours_per_year"] == D.H_REF
+    worker = d["wages"][d["wages"]["default"]]
+    assert p["defaults"]["w"] == round(worker["per_year"] / D.H_REF, 2)
+    expected = ({"w"} | set(d["defaults"]) | set(d["derived"]) | set(d["standards"])
+                | set(d["household"]["settings"]))
+    assert set(p["defaults"]) == expected
+
+
+def test_family_page_makes_no_external_requests(family_html: str) -> None:
+    """Source links are allowed; a remote script, stylesheet, font or image is not."""
+    assert not re.search(r'<(?:script|img|link|iframe)[^>]+(?:src|href)\s*=\s*["\']https?://',
+                         family_html)
+    assert not re.search(r"url\(\s*['\"]?https?://", family_html)
+    assert "@import" not in family_html
+
+
+@pytest.mark.parametrize("breakage", ["no source", "bad date", "http link", "no value"])
+def test_family_build_refuses_an_unsourced_value(tmp_path: Path, breakage: str) -> None:
+    d = json.loads(FH.DATA.read_text(encoding="utf-8"))
+    e = d["defaults"]["rate"]
+    if breakage == "no source":
+        e["source"] = ""
+    elif breakage == "bad date":
+        e["read"] = "October 2026"
+    elif breakage == "http link":
+        e["url"] = "http://example.org"
+    else:
+        e["value"] = None
+    bad = tmp_path / "family_costs.json"
+    bad.write_text(json.dumps(d), encoding="utf-8")
+    with pytest.raises(FH.BuildError):
+        FH.build_html(data=bad)
+
+
+def test_family_stale_report_fires_on_cadence_only() -> None:
+    """A weekly figure goes stale after a week; a chosen one never does."""
+    import datetime as dt
+    d = json.loads(FH.DATA.read_text(encoding="utf-8"))
+    read = dt.date.fromisoformat(d["defaults"]["rate"]["read"])
+    assert not any("defaults.rate" in s for s in FH.stale(d, read))
+    later = FH.stale(d, read + dt.timedelta(days=8))
+    assert any("defaults.rate" in s for s in later)
+    assert not any("defaults.price" in s for s in later)
+
+
+_FAMILY_DRIVER = r"""
+const fs = require("fs");
+const inp = JSON.parse(fs.readFileSync(0, "utf8"));
+const M = new Function(inp.math + "; return familyMath;")()(inp.data);
+const D = M.DEF;
+const tax = st => M.compute(null, st).rows.find(r => r.k === "Taxes").v;
+const fits = (w, st) => M.compute(w, st).total <= st.n * st.h;
+const zero = M.decode("w=0&h=0&n=0&a=0&k6=-3");
+const jt = s => s === "joint";
+const out = {
+  zero_total: M.compute(null, zero).total, zero: zero,
+  tax_ret0: tax({...D, ret: 0}), tax_ret15: tax({...D, ret: 15}),
+  ctc_low: M.fedTax(150000, 150000, 2, true) - M.fedTax(150000, 150000, 0, true),
+  ctc_high: M.fedTax(450000, 450000, 2, true) - M.fedTax(450000, 450000, 0, true),
+  balance: [], 
+};
+for (const st of [D, {...D, eitc: 1}, {...D, eitc: 1, w: 10, n: 2, a: 2}, {...D, k6: 0, ks: 3, eitc: 1}]) {
+  const w = M.balanceWage(st);
+  out.balance.push({w, fits: w !== null && fits(w, st), below: w !== null && fits(Math.round(w * 100 - 1) / 100, st)});
+}
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def family_node(family_html: str) -> dict:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node not on PATH — the family page's math is UNTESTED in this run")
+    m = re.search(r'<script id="math">(.*?)</script>', family_html, re.S)
+    assert m, "math block missing"
+    inp = {"math": m.group(1), "data": _payload(family_html)}
+    out = subprocess.run([node, "-e", _FAMILY_DRIVER], input=json.dumps(inp),
+                         capture_output=True, text=True, check=True, timeout=60)
+    return json.loads(out.stdout)
+
+
+def test_family_link_values_are_clamped(family_node: dict) -> None:
+    """A link holding a zero wage or week reads as the lowest allowed value, so the
+    hours stay finite (the handoff page divided by zero)."""
+    z = family_node["zero"]
+    assert z["w"] > 0 and z["h"] >= 1 and z["n"] >= 1 and z["a"] >= 1 and z["k6"] == 0
+    assert family_node["zero_total"] is not None and family_node["zero_total"] > 0
+
+
+def test_family_retirement_is_pre_tax_and_the_ctc_phases_out(family_node: dict) -> None:
+    """Saving for retirement lowers the tax at one pay; the child tax credit is
+    smaller above its phase-out start than below it."""
+    assert family_node["tax_ret15"] < family_node["tax_ret0"]
+    assert family_node["ctc_high"] < 0 and family_node["ctc_low"] < 0
+    assert family_node["ctc_high"] > family_node["ctc_low"]
+
+
+def test_family_balance_wage_is_the_lowest_cent_that_fits(family_node: dict) -> None:
+    """The balance wage fits the hours available and a cent less does not, with the
+    EITC on or off."""
+    for b in family_node["balance"]:
+        assert b["w"] is not None and b["fits"] and not b["below"], b

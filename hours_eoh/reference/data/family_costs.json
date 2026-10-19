@@ -1,0 +1,426 @@
+{
+  "about": "Inputs to the family hours explorer (utils/explorers/family_hours/). US national figures for a family's living costs, and the tax rules the page applies. EXTERNAL MARKET DATA: none of it is computed by hours_eoh, and the market layer is not modelled in the repo. Each value states its source (a link only where the handoff gave one), the date it was read into the repo, the period it describes, and how often the source updates. utils/explorers/family_hours/build.py refuses to build the page if any of these is missing, and reports values past their next update.",
+  "region": "United States",
+  "defaults": {
+    "rate": {
+      "value": 7.28,
+      "unit": "% a year",
+      "label": "30-year fixed mortgage rate",
+      "source": "Freddie Mac Primary Mortgage Market Survey",
+      "url": "https://www.freddiemac.com/pmms",
+      "updates": "weekly",
+      "read": "2026-10-19",
+      "period": "week of 2026-10-01"
+    },
+    "price": {
+      "value": 260000,
+      "unit": "$",
+      "label": "Home price",
+      "source": "Example: a modest home, below the national median sale price",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    },
+    "down": {
+      "value": 3.5,
+      "unit": "%",
+      "label": "Down payment (the FHA minimum)",
+      "source": "FHA loan terms, as stated in the handoff (no source cited)",
+      "url": null,
+      "updates": "rarely",
+      "read": "2026-10-19"
+    },
+    "mip": {
+      "value": 0.55,
+      "unit": "% a year",
+      "label": "FHA annual mortgage insurance",
+      "source": "FHA loan terms, as stated in the handoff (no source cited)",
+      "url": null,
+      "updates": "rarely",
+      "read": "2026-10-19"
+    },
+    "ptax": {
+      "value": 1.1,
+      "unit": "% of price a year",
+      "label": "Property tax",
+      "source": "Example rate",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    },
+    "ins": {
+      "value": 2000,
+      "unit": "$ a year",
+      "label": "Home insurance",
+      "source": "Example amount",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    },
+    "rent": {
+      "value": 1487,
+      "unit": "$ a month",
+      "label": "Median gross rent, 2024 (includes utilities the renter pays)",
+      "source": "Census ACS 2024 median gross rent, as reported by Discover",
+      "url": "https://www.discover.com/credit-cards/card-smarts/average-rent-in-us/",
+      "updates": "yearly, September",
+      "note": "A secondary report; not yet checked against the primary table.",
+      "read": "2026-10-19",
+      "period": "2024"
+    },
+    "r6": {
+      "value": 13184,
+      "unit": "$ a year per child",
+      "label": "Child care, under 6",
+      "source": "Child Care Aware of America, Price and Supply 2025",
+      "url": "https://info.childcareaware.org/price-and-supply-2025",
+      "updates": "yearly",
+      "read": "2026-10-19",
+      "period": "2025"
+    },
+    "food": {
+      "value": 16640,
+      "unit": "$ a year",
+      "label": "Food, family of four (USDA moderate-cost plan)",
+      "source": "USDA moderate-cost food plan, family of four, as reported by WTOP",
+      "url": "https://wtop.com/news/2026/07/how-much-should-i-spend-on-groceries/",
+      "updates": "monthly",
+      "note": "A secondary report; not yet checked against the primary table.",
+      "read": "2026-10-19",
+      "period": "July 2026"
+    },
+    "tr": {
+      "value": 13318,
+      "unit": "$ a year",
+      "label": "Transportation per household, 2024",
+      "source": "BLS Consumer Expenditure Survey",
+      "url": "https://www.bls.gov/opub/ted/2026/housing-and-transportation-accounted-for-50-percent-of-household-spending-in-2024.htm",
+      "updates": "yearly, September",
+      "read": "2026-10-19",
+      "period": "2024"
+    },
+    "ret": {
+      "value": 15,
+      "unit": "% of pay",
+      "label": "Retirement saving",
+      "source": "Common planning guideline",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    },
+    "st": {
+      "value": 4,
+      "unit": "% of taxable pay",
+      "label": "State and local income tax (flat)",
+      "source": "Example rate",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    }
+  },
+  "derived": {
+    "hl": {
+      "label": "Health insurance, the worker's share of a family premium",
+      "unit": "$ a year",
+      "premium": 26993,
+      "worker_share": 0.26,
+      "source": "KFF Employer Health Benefits Survey 2025",
+      "url": "https://www.kff.org/health-costs/report/2025-employer-health-benefits-survey/",
+      "updates": "yearly, October",
+      "read": "2026-10-19",
+      "period": "2025"
+    },
+    "rs": {
+      "label": "Child care, school-age",
+      "unit": "$ a year per child",
+      "per_week": 180,
+      "weeks": 52,
+      "source": "Example rate",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    }
+  },
+  "wages": {
+    "minimum": {
+      "label": "Minimum wage",
+      "per_hour": 7.25,
+      "source": "Federal minimum wage",
+      "url": null,
+      "updates": "by statute",
+      "read": "2026-10-19",
+      "period": "current"
+    },
+    "median_worker": {
+      "label": "Median worker",
+      "per_year": 53010,
+      "source": "Census median individual income (Income in the United States)",
+      "url": null,
+      "updates": "yearly, September",
+      "read": "2026-10-19",
+      "period": "2025 report"
+    },
+    "median_household": {
+      "label": "Median household",
+      "per_year": 87460,
+      "source": "Census median household income (Income in the United States)",
+      "url": null,
+      "updates": "yearly, September",
+      "read": "2026-10-19",
+      "period": "2025 report"
+    },
+    "default": "median_worker"
+  },
+  "standards": {
+    "fhou": {
+      "value": 30,
+      "label": "Housing",
+      "source": "HUD cost-burden threshold",
+      "url": null,
+      "updates": "rarely",
+      "read": "2026-10-19"
+    },
+    "ftra": {
+      "value": 15,
+      "label": "Transportation",
+      "source": "CNT Housing + Transportation Index",
+      "url": "https://htaindex.cnt.org/about/",
+      "updates": "rarely",
+      "read": "2026-10-19"
+    },
+    "fhea": {
+      "value": 9.96,
+      "label": "Health insurance",
+      "source": "IRS Rev. Proc. 2025-25 (ACA affordability, 2026)",
+      "url": "https://www.irs.gov/pub/irs-drop/rp-25-25.pdf",
+      "updates": "yearly, summer",
+      "read": "2026-10-19",
+      "period": "2026"
+    },
+    "fchi": {
+      "value": 7,
+      "label": "Child care",
+      "source": "HHS child care affordability benchmark",
+      "url": null,
+      "updates": "rarely",
+      "read": "2026-10-19"
+    },
+    "fret": {
+      "value": 15,
+      "label": "Retirement",
+      "source": "Common planning guideline",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    },
+    "ftax": {
+      "value": 17.5,
+      "label": "Taxes",
+      "source": "Estimate",
+      "url": null,
+      "updates": "chosen",
+      "read": "2026-10-19"
+    }
+  },
+  "tax": {
+    "year": 2026,
+    "source": "IRS 2026 federal brackets, standard deduction and child tax credit, as stated in the handoff (source document not cited)",
+    "url": null,
+    "updates": "yearly, fall",
+    "standard_deduction": {
+      "joint": 32200,
+      "head": 24150
+    },
+    "brackets": {
+      "joint": [
+        [
+          24800,
+          0.1
+        ],
+        [
+          100800,
+          0.12
+        ],
+        [
+          211400,
+          0.22
+        ],
+        [
+          403550,
+          0.24
+        ],
+        [
+          512450,
+          0.32
+        ],
+        [
+          768700,
+          0.35
+        ],
+        [
+          null,
+          0.37
+        ]
+      ],
+      "head": [
+        [
+          17700,
+          0.1
+        ],
+        [
+          67450,
+          0.12
+        ],
+        [
+          105700,
+          0.22
+        ],
+        [
+          201750,
+          0.24
+        ],
+        [
+          256200,
+          0.32
+        ],
+        [
+          640600,
+          0.35
+        ],
+        [
+          null,
+          0.37
+        ]
+      ]
+    },
+    "fica": 0.0765,
+    "ctc": {
+      "per_child": 2200,
+      "refundable_max": 1700,
+      "earned_floor": 2500,
+      "refund_rate": 0.15,
+      "phaseout_start": {
+        "joint": 400000,
+        "head": 200000
+      },
+      "phaseout_per_1000": 50
+    },
+    "read": "2026-10-19",
+    "label": "Federal income tax and child tax credit"
+  },
+  "eitc": {
+    "year": 2025,
+    "source": "IRS EITC parameters for 2025, approximate, as stated in the handoff (source document not cited)",
+    "url": null,
+    "updates": "yearly, fall",
+    "note": "2025 parameters; 2026 amounts run slightly higher.",
+    "by_children": [
+      {
+        "rate": 0.0765,
+        "earned_max": 8490,
+        "phaseout_rate": 0.0765,
+        "phaseout_start": {
+          "joint": 17730,
+          "head": 10620
+        }
+      },
+      {
+        "rate": 0.34,
+        "earned_max": 12730,
+        "phaseout_rate": 0.1598,
+        "phaseout_start": {
+          "joint": 30470,
+          "head": 23350
+        }
+      },
+      {
+        "rate": 0.4,
+        "earned_max": 17880,
+        "phaseout_rate": 0.2106,
+        "phaseout_start": {
+          "joint": 30470,
+          "head": 23350
+        }
+      },
+      {
+        "rate": 0.45,
+        "earned_max": 17880,
+        "phaseout_rate": 0.2106,
+        "phaseout_start": {
+          "joint": 30470,
+          "head": 23350
+        }
+      }
+    ],
+    "read": "2026-10-19",
+    "label": "Earned Income Tax Credit"
+  },
+  "fha": {
+    "upfront_mip": 0.0175,
+    "conventional_from_down_pct": 20,
+    "term_months": 360,
+    "source": "FHA loan terms, as stated in the handoff (no source cited)",
+    "url": null,
+    "updates": "rarely",
+    "read": "2026-10-19",
+    "label": "FHA mortgage insurance and loan term"
+  },
+  "food_scaling": {
+    "by_size": [
+      [
+        1,
+        1.2
+      ],
+      [
+        2,
+        1.1
+      ],
+      [
+        3,
+        1.05
+      ],
+      [
+        4,
+        1.0
+      ],
+      [
+        6,
+        0.95
+      ],
+      [
+        null,
+        0.9
+      ]
+    ],
+    "source": "USDA household-size adjustments, as stated in the handoff (no source cited)",
+    "url": null,
+    "updates": "rarely",
+    "read": "2026-10-19",
+    "label": "Food scaling by household size"
+  },
+  "provenance": "Every value, source and link was read from the explorer handoff (handoffs/hours-family-explorer/, 2026-10-19). Where the handoff cited no document, the source says so; nothing here was re-checked against the primary source.",
+  "household": {
+    "source": "Example household for the explorer's starting screen: a family of four, one earner at 40 hours, two children under 6",
+    "url": null,
+    "read": "2026-10-19",
+    "updates": "chosen",
+    "label": "Starting household",
+    "settings": {
+      "n": 1,
+      "h": 40,
+      "a": 2,
+      "k6": 2,
+      "ks": 0,
+      "cc": "auto",
+      "com": 0,
+      "own": 1,
+      "oth": 0,
+      "xinc": 0,
+      "xw": 1,
+      "eitc": 0,
+      "fs": 1,
+      "fcap": 1
+    }
+  },
+  "weeks_per_year": 52
+}
