@@ -1776,20 +1776,31 @@ simulations pass actual tracked state, and a real collective should also pass
 <hr />
 <h2 id="one-collective-end-to-end">One Collective, End to End<a class="headerlink" href="#one-collective-end-to-end" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_economy_state</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">collective_snapshot</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">state</span> <span class="o">=</span> <span class="n">make_economy_state</span><span class="p">(</span><span class="n">population</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                           <span class="n">capital_stock_teh</span><span class="o">=</span><span class="mf">6.0e7</span><span class="p">,</span> <span class="n">trust_balance</span><span class="o">=</span><span class="mf">1.05e9</span><span class="p">)</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">report</span> <span class="o">=</span> <span class="n">collective_snapshot</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">land_hectares</span><span class="o">=</span><span class="mf">300.0</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>                             <span class="n">available_labor_eoh</span><span class="o">=</span><span class="mf">2.0e7</span><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">"verdict"</span><span class="p">])</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">default_parcel_count</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">collective_snapshot</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">state</span> <span class="o">=</span> <span class="n">make_economy_state</span><span class="p">(</span><span class="n">population</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>                           <span class="n">capital_stock_teh</span><span class="o">=</span><span class="mf">6.0e7</span><span class="p">,</span> <span class="n">trust_balance</span><span class="o">=</span><span class="mf">1.05e9</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">report</span> <span class="o">=</span> <span class="n">collective_snapshot</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">land_hectares</span><span class="o">=</span><span class="mf">300.0</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>                             <span class="n">available_labor_eoh</span><span class="o">=</span><span class="mf">2.0e7</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>                             <span class="n">guf_parcel_count</span><span class="o">=</span><span class="n">default_parcel_count</span><span class="p">(</span><span class="mi">30_000</span><span class="p">))</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">"verdict"</span><span class="p">])</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">"land_fee"</span><span class="p">])</span>   <span class="c1"># assessed, collected, unpaid, payable_ceiling</span>
 </span></code></pre></div>
 <p>The pipeline, the Ground Use Fee and the fiscal snapshot run on one stated
-frame. See the <a href="../implementation_guide/">Implementation Guide</a> for what each
-input means and where to find it.</p>
+frame. The fee is charged on the parcel count, and holders pay at most what the
+mint leaves them after the levy and D3 consumption. Any rest is <code>unpaid</code>, never
+revenue. Leave out <code>guf_parcel_count</code> and the collective charges no fee, and the
+verdict says so.</p>
+<p>The same entry point runs on a real frame from the CLI. On the US frame every
+input is labelled with where it came from:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>scenario<span class="w"> </span>run<span class="w"> </span>collective<span class="w"> </span>--frame<span class="w"> </span>us
+</span></code></pre></div>
+<p>See the <a href="../implementation_guide/">Implementation Guide</a> for what each input
+means, the US run in full, and how to run your own frame.</p>
 <hr />
 <h2 id="structural-conditions-check">Structural Conditions Check<a class="headerlink" href="#structural-conditions-check" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>dashboard<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>dashboard<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40
 </span></code></pre></div>
 <p>Conditions I–IV should read OK. The overall status at the reference is YELLOW,
 not green, and the dashboard names why — see <a href="../../theory/structural_conditions/">Structural
@@ -1797,7 +1808,7 @@ Conditions</a>.</p>
 <hr />
 <h2 id="cli-quick-start">CLI Quick Start<a class="headerlink" href="#cli-quick-start" title="Permanent link">&para;</a></h2>
 <p>The research CLI lets you explore the system without writing Python:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>arc<span class="w"> </span>--points<span class="w"> </span><span class="m">10</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>arc<span class="w"> </span>--points<span class="w"> </span><span class="m">10</span>
 </span></code></pre></div>
 <p>Each row reports the obligation by domain, the registered share, TEH created,
 the floor price, floor purchasing power and solvency. Personal EOH dominates the
@@ -1805,14 +1816,14 @@ whole arc; the floor price falls and floor purchasing power rises as ε grows.</
 <p>For the full CLI reference see <a href="../cli/">CLI Reference</a>.</p>
 <hr />
 <h2 id="ground-use-fee">Ground Use Fee<a class="headerlink" href="#ground-use-fee" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>calculate<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>--use-category<span class="w"> </span>residential_primary<span class="w"> </span>--location-value<span class="w"> </span><span class="m">0</span>.629
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>calculate<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span>--use-category<span class="w"> </span>residential_primary<span class="w"> </span>--location-value<span class="w"> </span><span class="m">0</span>.629
 </span></code></pre></div>
 <p>See <a href="../cli/#guf-land-use-fee-commands">CLI Reference — GUF commands</a> and <a href="../../theory/guf_framework/">GUF Framework</a>.</p>
 <hr />
 <h2 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w">          </span><span class="c1"># full suite</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python3<span class="w"> </span>-m<span class="w"> </span>mypy<span class="w"> </span>hours_eoh/<span class="w">           </span><span class="c1"># type check</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w">          </span><span class="c1"># full suite</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>python3<span class="w"> </span>-m<span class="w"> </span>mypy<span class="w"> </span>hours_eoh/<span class="w">           </span><span class="c1"># type check</span>
 </span></code></pre></div>
 
 

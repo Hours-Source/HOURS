@@ -1642,6 +1642,8 @@
 <hr />
 <h2 id="make_economy_stateepsilon-dict"><code>make_economy_state(epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#make_economy_stateepsilon-dict" title="Permanent link">&para;</a></h2>
 <p>Creates an initial economy state for simulation: every quantity that persists between periods. Fields left unsupplied take the function's defaults — the capital stock, knowledge complexity and monitoring capability from the canonical arc at ε, the rest from fixed defaults. Per-period inputs such as levy rates are passed to <code>simulate_period()</code> rather than stored in the state.</p>
+<p>The <strong>register</strong> is state too: <code>registration_epsilon</code> (default <code>None</code>, the register tracks ε). Set it to hold the register while capability moves; <code>simulate_period()</code> carries it forward unchanged and the pipeline, the guarantee and the period's on-ledger reads all use it.</p>
+<p>The <strong>knowledge base</strong> follows a rule set by <code>knowledge_follows_arc</code>. Left as <code>None</code>, a knowledge base the state takes from the canonical arc follows ε from period to period, as complexity per unit does, and a <code>knowledge_complexity</code> you supply is carried and moved only by its growth rate. A supplied stock is never rescaled by ε. Pass <code>True</code> or <code>False</code> to choose the rule yourself.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_economy_state</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">state</span> <span class="o">=</span> <span class="n">make_economy_state</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.30</span><span class="p">)</span>
@@ -1656,11 +1658,25 @@ arguments, not state. Applies, in causal order:</p>
 <li>Capital ages, and grows through investment</li>
 <li>Ecosystem degrades or restores, and deferred ecological EOH accumulates</li>
 <li>The EOH → TEH pipeline (machine/human split, registration, TEH creation)</li>
-<li>Fiscal mechanics (levies, stewardship, the sufficiency guarantee, the Trust balance)</li>
+<li>Fiscal mechanics (levies, the land fee, the sufficiency guarantee, the Trust balance)</li>
 <li>TEH destruction (see the table below)</li>
 <li>State update: ε advances and cumulative TEH is carried forward</li>
 </ol>
 <p>The period does not mutate <code>state</code>; it returns a fresh one.</p>
+<p><strong>The land fee.</strong> Pass <code>guf_assessed</code>, a function of ε that returns the fee
+assessed in TEH, and the period charges it at its own ε.
+<code>land.collective.per_parcel_fee(parcel_count)</code> builds one from a parcel count;
+<code>core/</code> cannot import <code>land/</code>, so the fee is passed in. Holders pay at most what
+the period's labour income leaves after the levy and D3 consumption, so the
+period collects <code>min(assessed, ceiling)</code>. <code>period_result["land_fee"]</code> reports
+<code>assessed</code>, <code>collected</code>, <code>unpaid</code> and <code>payable_ceiling</code>, and
+<code>period_result["guf_net_inflow"]</code> is the fee collected. <code>guf_net_inflow=</code>
+instead books a fixed inflow uncapped; passing both raises. With neither, the
+period charges no fee.</p>
+<p>The labour income is the period's mint unless <code>labor_income_scale</code> overrides
+it. With growth switched off, one period agrees with
+<code>scenarios.stationarity.stationarity_at</code> on the mint, the levy, the fee and
+the guarantee.</p>
 <p>Returns <code>(next_state, period_result)</code>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">simulate_period</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>

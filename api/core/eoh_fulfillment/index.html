@@ -991,6 +991,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#register_sharesepsilon-registration_epsilonnone-dict-the-one-reading-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      register_shares(epsilon, registration_epsilon=None) → dict — the one reading point
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#personal_eoh_registration_shareepsilon-float" class="md-nav__link">
     <span class="md-ellipsis">
       personal_eoh_registration_share(epsilon, …) → float
@@ -1686,6 +1695,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#register_sharesepsilon-registration_epsilonnone-dict-the-one-reading-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      register_shares(epsilon, registration_epsilon=None) → dict — the one reading point
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#personal_eoh_registration_shareepsilon-float" class="md-nav__link">
     <span class="md-ellipsis">
       personal_eoh_registration_share(epsilon, …) → float
@@ -1828,6 +1846,15 @@
 <hr />
 <h2 id="registration-registrationpy">Registration (registration.py)<a class="headerlink" href="#registration-registrationpy" title="Permanent link">&para;</a></h2>
 <p>Registration curves are sigmoid functions of ε. Each domain uses a distinct curve.</p>
+<h3 id="register_sharesepsilon-registration_epsilonnone-dict-the-one-reading-point"><code>register_shares(epsilon, registration_epsilon=None)</code> → <code>dict</code> — the one reading point<a class="headerlink" href="#register_sharesepsilon-registration_epsilonnone-dict-the-one-reading-point" title="Permanent link">&para;</a></h3>
+<p>The register is <strong>separate from machine capability</strong>: one is what the collective carries, the other how much human labour carries it. Every registration share in the package is read through this function, at the register's own maturity <code>registration_epsilon</code> — <code>None</code> means the register tracks the capability (the canonical arc). Returns a share for each of <code>REGISTER_KEYS</code>: <code>personal</code>, <code>labour</code>, <code>infrastructure</code>, <code>ecological</code>, <code>knowledge</code>, <code>care</code>, <code>land</code>. <code>eoh_to_teh_pipeline</code>, <code>fiscal_snapshot</code> / <code>sufficiency_guarantee</code>, <code>make_economy_state</code> / <code>simulate_period</code> and the dashboard indicators all take <code>registration_epsilon</code>; <code>tests/test_one_register.py</code> refuses a curve imported anywhere else in the package.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.registration</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_shares</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">tracking</span> <span class="o">=</span> <span class="n">register_shares</span><span class="p">(</span><span class="mf">0.90</span><span class="p">)</span>                            <span class="c1"># the register follows ε</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">held</span> <span class="o">=</span> <span class="n">register_shares</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">registration_epsilon</span><span class="o">=</span><span class="mf">0.90</span><span class="p">)</span>      <span class="c1"># machines failed, register stands</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">assert</span> <span class="n">held</span><span class="p">[</span><span class="s2">"personal"</span><span class="p">]</span> <span class="o">==</span> <span class="n">tracking</span><span class="p">[</span><span class="s2">"personal"</span><span class="p">]</span>
+</span></code></pre></div>
+<p>The individual curves below remain public for study.</p>
 <h3 id="personal_eoh_registration_shareepsilon-float"><code>personal_eoh_registration_share(epsilon, …)</code> → <code>float</code><a class="headerlink" href="#personal_eoh_registration_shareepsilon-float" title="Permanent link">&para;</a></h3>
 <p>Share of personal EOH admitted to the collective ledger. Near-zero at ε = 0 (off-ledger subsistence), rising through the mid-automation range to most — not all — of personal EOH at ε = 0.99. It is a <em>demand</em> boundary (what the collective is formally accountable for), not a labor registration share.</p>
 <div class="admonition warning">
@@ -1837,14 +1864,14 @@
 <h3 id="total_registration_shareepsilon-float"><code>total_registration_share(epsilon, …)</code> → <code>float</code><a class="headerlink" href="#total_registration_shareepsilon-float" title="Permanent link">&para;</a></h3>
 <p>The weighted composite of care, production and stewardship registration, each weighted by its share of human EOH fulfillment at ε. The pipeline applies it to the non-personal domains.</p>
 <h3 id="domain-specific-registration">Domain-specific registration<a class="headerlink" href="#domain-specific-registration" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.registration</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">care_registration_share</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">production_registration_share</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">stewardship_registration_share</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">knowledge_eoh_registration_share</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">labor_category_weights</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">validate_registration_trajectory</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.registration</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">care_registration_share</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">production_registration_share</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">stewardship_registration_share</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">knowledge_eoh_registration_share</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">labor_category_weights</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">validate_registration_trajectory</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>Each follows its own sigmoid with different inflection points. Care registration accelerates in the mid-ε range.</p>
 <p><code>validate_registration_trajectory(epsilon_sequence)</code> — verifies all registration curves are monotonically non-decreasing and well-behaved at the arc extremes.</p>
@@ -1864,14 +1891,14 @@
 <p>D1 destruction: TEH removed when capital degrades beyond maintainability.</p>
 <h3 id="eoh_to_teh_pipelineepsilon-dict"><code>eoh_to_teh_pipeline(epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#eoh_to_teh_pipelineepsilon-dict" title="Permanent link">&para;</a></h3>
 <p>Full pipeline in one call — physical state (canonical where not supplied) → EOH → machine/human split → registration → TEH. With <code>available_labor_eoh</code> supplied, the mint is capped at the labour actually available and the shortfall is booked as deferral. Solvency is the fiscal layer's question, not this function's — see <code>fiscal_snapshot()</code> or <code>scenarios.collective.collective_snapshot()</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Returns, among others: teh_created, total_eoh, eoh_by_domain, human_eoh,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># registered_eoh, registration_share, human_fraction, epsilon_observable,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># labor_constrained, deferred_total. Supply available_labor_eoh= to mint from</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># what was SERVED rather than what was demanded.</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"teh_created"</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">"labor_constrained"</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Returns, among others: teh_created, total_eoh, eoh_by_domain, human_eoh,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># registered_eoh, registration_share, human_fraction, epsilon_observable,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># labor_constrained, deferred_total. Supply available_labor_eoh= to mint from</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># what was SERVED rather than what was demanded.</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"teh_created"</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">"labor_constrained"</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="teh-destruction-mechanisms">TEH Destruction Mechanisms<a class="headerlink" href="#teh-destruction-mechanisms" title="Permanent link">&para;</a></h2>

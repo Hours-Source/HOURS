@@ -1192,9 +1192,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#domain_eoh_coveragereserve_result-domain_eoh_demands-dict" class="md-nav__link">
+  <a href="#condition_iv_coveragereserve_result-pipeline-demandregistered-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      domain_eoh_coverage(reserve_result, domain_eoh_demands, …) → dict
+      condition_iv_coverage(reserve_result, pipeline, demand="registered", …) → dict
     </span>
   </a>
   
@@ -1731,9 +1731,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#domain_eoh_coveragereserve_result-domain_eoh_demands-dict" class="md-nav__link">
+  <a href="#condition_iv_coveragereserve_result-pipeline-demandregistered-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      domain_eoh_coverage(reserve_result, domain_eoh_demands, …) → dict
+      condition_iv_coverage(reserve_result, pipeline, demand="registered", …) → dict
     </span>
   </a>
   
@@ -1830,8 +1830,9 @@
 </span></code></pre></div>
 <h3 id="dashboard_snapshotteh_created-teh_destroyed-teh_observed-mean_multiplier-balance_start-earnings-expenditures-balance_end-workforce-competent_workers-epsilon-dict"><code>dashboard_snapshot(teh_created, teh_destroyed, teh_observed, mean_multiplier, balance_start, earnings, expenditures, balance_end, workforce, competent_workers, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#dashboard_snapshotteh_created-teh_destroyed-teh_observed-mean_multiplier-balance_start-earnings-expenditures-balance_end-workforce-competent_workers-epsilon-dict" title="Permanent link">&para;</a></h3>
 <p>Single-call all-conditions check at ε.</p>
-<h3 id="domain_eoh_coveragereserve_result-domain_eoh_demands-dict"><code>domain_eoh_coverage(reserve_result, domain_eoh_demands, …)</code> → <code>dict</code><a class="headerlink" href="#domain_eoh_coveragereserve_result-domain_eoh_demands-dict" title="Permanent link">&para;</a></h3>
-<p>Whether the certified workforce can actually cover each domain's EOH. Condition IV checks certified fractions, not capacity: a domain whose EOH has outgrown its certified workers passes Condition IV and is still in shortfall, and this is the check that sees it.</p>
+<h3 id="condition_iv_coveragereserve_result-pipeline-demandregistered-dict"><code>condition_iv_coverage(reserve_result, pipeline, demand="registered", …)</code> → <code>dict</code><a class="headerlink" href="#condition_iv_coveragereserve_result-pipeline-demandregistered-dict" title="Permanent link">&para;</a></h3>
+<p>Whether the people certified in each essential domain can carry its work — Condition IV in hours. Capacity is <code>certified × hours_per_certified_worker</code> (default <code>MEASURED_CAPACITY_H_YR</code>, the measured adult capacity), independent of ε. Demand is read off an <code>eoh_to_teh_pipeline</code> result — <code>"registered"</code> hours by default (the register is what the collective carries), or <code>"human"</code> — and mapped onto the seven essential domains by <code>eoh_generation.eoh_to_essential_domains</code>. A domain is covered or it is not; no threshold is chosen. Returns <code>per_domain</code>, <code>domains_short</code>, <code>all_covered</code>, <code>status</code>.</p>
+<p><code>demand="personal"</code> reads only the registered PERSONAL hours — the survival tier: Condition IV is first about whether the agents' own needs have competent hands, and the rest can be rebuilt as the arc climbs (author, 2026-10-01). Hours no essential domain is certified for are reported as <code>unattributed_eoh</code>, never counted short. The bridge's personal column is derived from the obligation's components; the other three columns are the original judgement. At the Condition IV minimum healthcare is short over a band of the upper arc in both registered readings, because care — most of the personal obligation — has no essential domain of its own and is set against healthcare.</p>
 <hr />
 <h2 id="dashboard-dashboardpy">Dashboard (dashboard.py)<a class="headerlink" href="#dashboard-dashboardpy" title="Permanent link">&para;</a></h2>
 <h3 id="eoh_health_indicatorstotal_eoh-fulfilled_eoh-epsilon-dict"><code>eoh_health_indicators(total_eoh, fulfilled_eoh, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#eoh_health_indicatorstotal_eoh-fulfilled_eoh-epsilon-dict" title="Permanent link">&para;</a></h3>
@@ -1853,6 +1854,15 @@ ledger and Trust accounts from one simulated period on the same frame. One input
 is declared rather than tracked — the certified share of the workforce, which
 nothing in the package measures (<code>--certified-fraction</code>) — and the command prints
 it as declared. For a real collective, pass your own ledger figures.</p>
+<p><strong>Condition IV is read twice.</strong> <code>condition_iv</code> is the certified <em>fraction</em> per
+domain against the threshold. <code>condition_iv_hours</code> asks whether those people can
+carry the <em>hours</em> (<code>condition_iv_coverage</code>), in two tiers: a shortfall against
+the agents' own registered needs (<code>personal</code>) is RED and fails the condition; a
+shortfall only against everything the collective registers (<code>registered</code>) is
+YELLOW. A reserve can pass the fraction and fail the hours: at the CLI's
+declared 0.18 it does over a band of the upper arc, in care. Pass <code>pipeline=</code>
+(an <code>eoh_to_teh_pipeline</code> result) to read both at your own state; without it the
+dashboard computes one from the fiscal arguments.</p>
 <div class="admonition important">
 <p class="admonition-title">The dashboard is the constitution's test bench</p>
 <p>Green means every check it runs passes on the accounts it was given — not that the system works. A yellow or red reading is reported, never tuned away. See <a href="../../../theory/design_principles/#8-the-code-is-the-constitutions-test-bench">Design Principle 8</a>.</p>

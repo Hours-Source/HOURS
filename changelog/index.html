@@ -1497,9 +1497,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
-      Fixed
+      Added
     </span>
   </a>
   
@@ -1515,9 +1515,27 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
-      Added
+      Removed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
     </span>
   </a>
   
@@ -1533,7 +1551,25 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1551,7 +1587,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1560,7 +1596,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       Changed
     </span>
@@ -1584,7 +1620,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       Added
     </span>
@@ -1680,9 +1716,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
-      Fixed
+      Added
     </span>
   </a>
   
@@ -1698,9 +1734,27 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
-      Added
+      Removed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
     </span>
   </a>
   
@@ -1716,7 +1770,25 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1734,7 +1806,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1743,7 +1815,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       Changed
     </span>
@@ -1767,7 +1839,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added_1" class="md-nav__link">
+  <a href="#added_2" class="md-nav__link">
     <span class="md-ellipsis">
       Added
     </span>
@@ -1822,7 +1894,118 @@
 Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<p><em>2026-09-13 to 2026-10-19. Each entry's record is in <code>record/</code>, filed by area.</em></p>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<p><strong>Frames: every scenario runs on a stated population, land and capital (2026-10-03 → 10-16)</strong>
+- <code>--frame us</code> and <code>--frame-file PATH</code>. Every scenario that takes a population
+  runs on a frame, prints each input it reads labelled <code>supplied</code>, <code>measured</code>,
+  <code>derived</code> or <code>default</code>, and refuses a frame flag it does not read.
+  <code>frame show --frame us --format json</code> writes a frame file that runs back to
+  the same result.
+- The US frame is built from the repo's own data: the mainland population
+  (Census 339,614,767) and Census 2025 ages, MTUS labour capacity, BEA capital
+  stock and stock ages, EIA energy, ERS land use, the contiguous-48 private
+  parcel count, and both ε instruments. ε is read as a range, and each verdict
+  is printed at both ends of it and of the capital conversion band.
+- <code>indust_overbuilt</code> ships as a frame file, a constructed frame for testing bounds.
+- <code>coasean federation --frame/--frame-file --split</code> divides a frame into a
+  federation. The <code>us_states</code> split ships: the 48 states and DC, each on its own
+  measured population, land, private parcels and Census 2025 age mix (2026-10-15/16).</p>
+<p><strong>New reporting scenarios and modules</strong>
+- CLI scenarios: <code>stationarity</code> (labour hours and TEH under the doctrine that
+  minted TEH is the wage), <code>stationarity_drawdown</code> (the Trust carried along an
+  arc), <code>reserve_plan</code>, <code>registered_work</code>, <code>mint_reach</code>, <code>capacity_breakdown</code>
+  and <code>capital_loss</code> (a disaster's D1 write-down).
+- Modules: <code>scenarios/compensation.py</code> (which mechanisms cover for each other),
+  <code>research/parcel_condition.py</code> (the holder pays for what they do to land) and
+  <code>research/dynamic_stability.py</code> (no cycle in the period engine; a bounded,
+  decaying cobweb in the formation loop).
+- Measured capacity weights by age (MTUS), BEA depreciation 1926–2024, and the
+  stock's condition from its measured age on BLS's age-efficiency curve.
+- <code>utils/ste_check.py</code> reports the share of docstring sentences that meet the
+  ASD-STE100 writing rules. It reports; it does not gate.
+- The docs run the CLI commands they display when the site is built
+  (<code>hooks/docs_runs.py</code>), so a published run is the run of the published version.
+- The family hours explorer (<code>tools/family-hours/</code>): a US family's living costs
+  in hours of paid work at its own wage, against the hours its earners have.
+  Market data, not the framework's: every default is in
+  <code>hours_eoh/reference/data/family_costs.json</code> with its source and date, and the
+  build refuses a value without one. Adapted from the handoff page, with
+  retirement and health premiums taken before tax, the child tax credit's
+  phase-out, link values clamped, and no outside requests.</p>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<p><strong>The wage doctrine (author, 2026-09-15 → 09-17)</strong>
+- Minted TEH is the wage. Registered labour, including stewardship, ecological
+  and care work, is paid at the mint; the Trust owes only the sufficiency
+  guarantee. The guarantee and D3 are sized on effective personal EOH.
+- The Trust's opening inheritance is repriced to 8,760 TEH per person, read as
+  prior work, and travels with the population. A collective starting from
+  subsistence brings 0.0, and zero is honoured. The rationale that sized
+  <code>TRUST_BASE_TEH</code> backwards was withdrawn, and the value was not re-fitted.
+- The levy is assessed on the realised obligation. It is 4.6% since
+  2026-10-15: under 4.5% the levy and the land fee together no longer covered
+  the rural archetype collective at ε 0.99. This is a statement about the two
+  archetypes, not every frame; read <code>trust_stable</code> at your own ε.</p>
+<p><strong>The land fee (2026-10-15 → 10-19)</strong>
+- Land is fixed and people move: the period engine, the shocks and the autarky
+  reference no longer derive area from population.
+- The fee collected is what holders can pay: at most what the mint leaves after
+  the levy and D3 consumption. The rest is reported unpaid, never booked to the
+  Trust.
+- On a frame the fee is its measured per-parcel half over the frame's private
+  parcels. The area half is not supplied, so the fee is a lower bound and says so.
+- The period engine charges a frame's land fee in every period, capped the same
+  way (<code>simulate_period(guf_assessed=)</code>, <code>land.collective.per_parcel_fee</code>).
+  <code>canonical_arc</code>, <code>trust_stress</code>, <code>transition</code> and <code>measured_sim</code> charge it on
+  a named frame. One engine period with growth off now equals <code>stationarity_at</code>.
+- A knowledge base the engine takes from the canonical arc follows ε, as
+  complexity per unit does. A supplied knowledge base is still carried.
+- <code>stationarity_drawdown</code> runs N years on the frame's Trust and moves ε as the
+  period engine does: the start is the baseline, and each year advances before
+  its flow.</p>
+<p><strong>The federation settles hour for hour (author, 2026-09-30)</strong>
+- Cross-collective exchange settles on <code>registered_rate</code> (m_b/m_a), with the
+  floor reported beside it as purchasing power. <code>parity_rate</code> is kept as the
+  superseded form. The federation is built from frames.</p>
+<p><strong>The institutional entry point (2026-10-14)</strong>
+- <code>collective_snapshot</code> sends a value both halves take to both the pipeline and
+  the fisc, or refuses it, and runs on a frame.
+- The period engine carries the age mix as state, and the long-run family reads
+  the frame's mix.</p>
+<p><strong>One reading of the register, one path for the shocks (2026-10-01)</strong>
+- The register is read in one place (<code>core/registration.register_shares</code>) and
+  carried as state. The shocks and the sweep run on the shared path. Care is the
+  eighth essential domain, and Condition IV is read in hours.</p>
+<p><strong>Docstrings to about 80% ASD-STE100 (2026-10-17 → 10-18)</strong>
+- Test and package docstrings rewritten to the STE writing rules, with every
+  number, direction and caveat kept. Printed figures in runtime strings are
+  computed from their functions rather than typed.</p>
+<h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The labour-income proxy and the income floor (2026-09-30): the mint is the
+  labour income.</li>
+<li>The deprecated layer: items with no production caller are deleted, and git
+  history holds them (author, 2026-10-16).</li>
+<li><code>LEVY_SUFFICIENCY_WARN</code> and <code>funding_coverage</code> (2026-09-16).</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Frame seams closed: capital (2026-09-16) and the Trust (2026-09-17) resolve
+  against the population; a head count, three CLI flags, <code>thermal_load</code>'s flow
+  and the industrial backlog now scale with the frame; the contiguous-48 land is
+  paired with the contiguous-48 parcels.</li>
+<li>Stranded inputs wired: a supplied capital, the stock's age, the adult share
+  and the age mix reach both sides of the accounts they feed; the land fee
+  reaches the period engine.</li>
+<li><code>labour_epsilon</code> takes the caller's obligation state and reports the ε floor.</li>
+<li>ATUS ages 80–84 are binned correctly; ATUS converts at each survey year's own
+  Census share; <code>KNOWLEDGE_EOH_BASE</code> re-derived at the 2024 Census.</li>
+<li>44 hand-set tier conditions now follow from tier ages.</li>
+<li><code>stationarity_drawdown</code> counts labour-short years, not distinct ε.</li>
+</ul>
+<hr />
+<p><em>2026-09-12 and earlier:</em></p>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <p><strong>Flagged cleanup after the docs pass (2026-09-12)</strong>
 - <code>eoh dashboard</code> no longer invents its accounts. The ledger, the Trust and the
   EOH totals were built from literals (destroyed = 0.85 × created, expenditure =
@@ -1841,7 +2024,7 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
   personal registration no longer claimed to approach 1.0.
 - <code>guf_framework.md</code> describes the shipped per-parcel term and the ×100 use-rate
   scaling beside the NLSA specification.</p>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <p><strong>The signed-off transparency pass reaches the front pages (2026-09-12)</strong>
 - <code>overview.md</code>, <code>design_principles.md</code>, <code>three_economies.md</code> and the arc
   waypoints now carry the positions adopted on 2026-08-15: ε → 1 as a limit,
@@ -1851,7 +2034,7 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
 - <code>guf_framework.md</code> gives the shipped fee (Ψ retired, monotone in ε) beside the
   NLSA bell in §4.1 and §4.4, and labels the worked example as the published
   NLSA form.</p>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <p><strong>The anchor comparison is published, and the docs are gated (2026-09-12)</strong>
 - <code>docs/theory/anchor_comparison.md</code> — <em>What Anchors a Unit of Account</em>, published
   as work in progress beside Prior Art. It quotes shapes where a figure is
@@ -1926,7 +2109,7 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
   the thermal layer already wrote; it applies only where there is a source to grade.
   <code>convention</code> promoted to a declared sub-label. The ad-hoc <code>Physics-adjacent</code> tag is
   retired, along with <code>CHOSEN</code> itself (see the split above).</p>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <p><strong>Provenance doc: tables generated, prose hand-written</strong>
 - Every constant table in <code>docs/parameter_provenance.md</code> now sits inside a
   <code>&lt;!-- provenance:table --&gt;</code> region rendered from <code>data.py</code>. The prose around them — where
@@ -1939,7 +2122,7 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
   definition honestly leaves <code>A_EARTH_M2</code> and <code>SIGMA_SB</code> and nothing else. The 190 that
   first became <code>CHOSEN</code> were then split (see above), because one tag covering three
   epistemic states was itself obscuring the picture.</p>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <p><strong>Four documentation drifts, found by the migration</strong>
 - <code>KNOWLEDGE_EOH_BASE</code> — doc said 490,107,421; the shipped value has been
   381,962,855.27 since the ε_ref fixed-point re-anchor.
@@ -2199,7 +2382,7 @@ author 2026-07-26)</strong>
 - MkDocs GitHub Pages site deployed at <code>https://hours-source.github.io/HOURS/</code>.
 - Five GUF Mermaid diagrams: calculation flow, LVI component weights, Ψ(ε) epsilon arc,
   Trust fund flow, and ecological write-down pathways. Rendered SVGs in <code>docs/images/</code>.</p>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>eco-collapse-1 (closed)</strong> — Ecological collapse is now handled via the GUF layer
   (<code>land/guf.py</code> §9) rather than direct TEH destruction. Two pathways: restoration
@@ -2211,14 +2394,14 @@ author 2026-07-26)</strong>
 <li><code>WORKFORCE_FRACTION_MIN</code> named constant added to <code>data.py</code>; replaces anonymous <code>0.05</code>
   literal in simulation.</li>
 </ul>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Test count: 1040 → 1169 (129 new tests across <code>tests/land/</code>, <code>tests/scenarios/</code>).</li>
 </ul>
 <hr />
 <h2 id="010-2026-05-06"><a href="https://github.com/Hours-Source/HOURS/releases/tag/v0.1.0">0.1.0</a> — 2026-05-06<a class="headerlink" href="#010-2026-05-06" title="Permanent link">&para;</a></h2>
 <p>Initial public release of the HOURS EOH framework.</p>
-<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
 <p><strong>Core package (<code>hours_eoh/core/</code>)</strong>
 - <code>trajectory.py</code> — Canonical arc, ε derivation, <code>canonical_physical_state()</code>, <code>compute_epsilon()</code>
 - <code>eoh_generation.py</code> — Four EOH domain functions: <code>personal_eoh</code>, <code>infrastructure_eoh</code>, <code>ecological_eoh</code>, <code>knowledge_eoh</code>, <code>total_eoh</code>

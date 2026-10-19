@@ -1929,13 +1929,13 @@
 <h2 id="trust-allocations">Trust Allocations<a class="headerlink" href="#trust-allocations" title="Permanent link">&para;</a></h2>
 <p>Ecological and stewardship requirements are co-equal — neither is residual. Since 2026-09-15 (minted TEH is the wage) both are paid at the mint, not by the Trust; the Trust owes only the guarantee.</p>
 <h3 id="stewardship_allocationcapital_stock_teh-capital_age_ratio-epsilon-available_teh-dict"><code>stewardship_allocation(capital_stock_teh, capital_age_ratio, epsilon, available_teh, …)</code> → <code>dict</code><a class="headerlink" href="#stewardship_allocationcapital_stock_teh-capital_age_ratio-epsilon-available_teh-dict" title="Permanent link">&para;</a></h3>
-<p>TEH directed toward fulfilling infrastructure entropy obligations from the capital stock. Grows with the capital stock, making it the dominant revenue-independent fiscal flow at high ε.</p>
+<p>The TEH the infrastructure obligation of the capital stock calls for. It grows with the capital stock; since 2026-09-15 it is paid at the mint (as registered stewardship labour), so <code>trust_management</code> reports it as <code>paid_by_mint</code> and it is not a Trust expenditure.</p>
 <h3 id="ecological_allocationecosystem_health-epsilon-available_teh-dict"><code>ecological_allocation(ecosystem_health, epsilon, available_teh, …)</code> → <code>dict</code><a class="headerlink" href="#ecological_allocationecosystem_health-epsilon-available_teh-dict" title="Permanent link">&para;</a></h3>
 <p>TEH directed toward ecological EOH fulfillment and natural system stewardship.</p>
 <h3 id="effective_personal_eohepsilon-personal_eoh_base-automation_response-float"><code>effective_personal_eoh(epsilon, personal_eoh_base, automation_response)</code> → <code>float</code><a class="headerlink" href="#effective_personal_eohepsilon-personal_eoh_base-automation_response-float" title="Permanent link">&para;</a></h3>
 <p>Personal obligation hours per person that still need human labour at ε: the age-weighted obligation × its human-carried share. The obligation itself does not fall with automation; this does. Labour embodied in machine-delivered goods mints in infrastructure and is not in this share.</p>
 <h3 id="sufficiency_guaranteepopulation-epsilon-dict"><code>sufficiency_guarantee(population, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#sufficiency_guaranteepopulation-epsilon-dict" title="Permanent link">&para;</a></h3>
-<p>The floor — minimum TEH guaranteed to every collective member. The EOH reimbursement pays <code>effective_personal_eoh(ε)</code> at <code>M_FLOOR</code>, 1 TEH per human obligation hour, so it buys the same human-carried obligation at every ε; any rise in purchasing power comes from the meaningful-activity term. <code>capital_personal_eoh_fulfilled_per_person</code> is deprecated and not applied. See <a href="../../../theory/design_principles/#5-the-floor-rises-with-automation-it-never-falls">Design Principle 5</a>.</p>
+<p>The floor — minimum TEH guaranteed to every collective member. The EOH reimbursement pays <code>effective_personal_eoh(ε)</code> at <code>M_FLOOR</code>, 1 TEH per human obligation hour, so it buys the same human-carried obligation at every ε; any rise in purchasing power comes from the meaningful-activity term. See <a href="../../../theory/design_principles/#5-the-floor-rises-with-automation-it-never-falls">Design Principle 5</a>.</p>
 <hr />
 <h2 id="trust-management">Trust Management<a class="headerlink" href="#trust-management" title="Permanent link">&para;</a></h2>
 <h3 id="trust_managementtrust_balance-levy_revenue-stewardship_cost-guarantee_cost-dict"><code>trust_management(trust_balance, levy_revenue, stewardship_cost, guarantee_cost, …)</code> → <code>dict</code><a class="headerlink" href="#trust_managementtrust_balance-levy_revenue-stewardship_cost-guarantee_cost-dict" title="Permanent link">&para;</a></h3>
@@ -1978,10 +1978,6 @@
 <td>Fraction of housing/land EOH registered to the collective ledger</td>
 </tr>
 <tr>
-<td><code>stewardship_dividend_needed(stewardship_teh_required, dep_rate, trust_balance)</code></td>
-<td>Minimum <code>div_rate</code> for the Trust dividend to cover stewardship cost</td>
-</tr>
-<tr>
 <td><code>accumulation_ceiling_commitment(teh_in_circulation, population, …)</code></td>
 <td>D6 — TEH above the accumulation ceiling, routed into capital formation</td>
 </tr>
@@ -1989,7 +1985,9 @@
 </table>
 <hr />
 <h2 id="key-design-invariant">Key Design Invariant<a class="headerlink" href="#key-design-invariant" title="Permanent link">&para;</a></h2>
-<p>The fiscal system must remain solvent across the whole arc, including both ends: at ε = 0, where almost none of the obligation is registered and creation is at its lowest, and at ε = 0.99, where human labor is a small share of the obligation and creation has fallen back from its late-arc peak while staying far above its ε = 0 level. Revenue streams that depend on production output are supplementary. The Stewardship Allocation — which scales with the capital stock — is the foundational revenue source that persists even at full automation.</p>
+<p>The fiscal system must remain solvent across the whole arc, including both ends: at ε = 0, where almost none of the obligation is registered and creation is at its lowest, and at ε = 0.99, where human labour is a small share of the obligation and creation has fallen back from its late-arc peak while staying far above its ε = 0 level.</p>
+<p>Under the wage doctrine (2026-09-15) the Trust owes one thing, the sufficiency guarantee. Registered labour — stewardship, ecological and care work included — is paid when it mints, not by the Trust. What flows in is the levy (a share of the mint) and the Ground Use Fee; what a collective brought with it is its opening balance. Solvency is therefore <code>levy + GUF</code> against the guarantee, with the balance as the buffer.</p>
+<p>Where that holds is computed, not asserted. <code>scenarios.stationarity.stationary_bands()</code> reports the range of ε over which a collective founded with <strong>no</strong> prior work stands still in TEH; it covers nearly the whole arc and stops short of the top, where the mint falls and the guarantee does not. With the default prior work the balance carries that last stretch. Call the function for the edge rather than quoting it — it moves with the levy rate and the guarantee design.</p>
 
 
 

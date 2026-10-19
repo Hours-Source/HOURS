@@ -2265,8 +2265,8 @@ and ε is derived from the capital actually formed.</p>
 <ul>
 <li><strong>Supply analytics</strong> — r_priv(s) = (1−s)(1/ν−δ); linear supply f(s)
   between <code>FORMATION_HURDLE_RATE_MIN</code> and <code>FORMATION_FULL_SUPPLY_RATE</code>;
-  the incentive-compatible share s<em> = 1 − r_full/r_gross = </em><em>0.50</em><em> at
-  defaults. The charter is genuinely free below s</em> (crossed at ε ≈ 0.33).</li>
+  the incentive-compatible share s* = 1 − r_full/r_gross = <strong>0.50</strong> at
+  defaults. The charter is genuinely free below s* (crossed at ε ≈ 0.33).</li>
 <li><strong><code>formation_feedback_simulation(n_years, priority, ...)</code></strong> — year-by-year
   forward simulation: charter share endogenous, private supply f(s),
   commons co-funding from net income (gross φ·Y minus own replacement
@@ -2308,6 +2308,18 @@ three-regime inflation metric (within-collective floor-impossibility at all ε;
 inter-collective relative inflation as FX in transition; system-wide
 impossibility as the ε→1 limit), settlement rules, and Trust/capital dynamics
 with the §8.3 Piketty-inversion check.</p>
+<p><strong>Settlement basis (author decision, 2026-09-30).</strong> The federation settles
+hour for hour: <code>exchange_rates(collectives)</code> defaults to <code>basis="registered"</code>,
+r(i, j) = m_j / m_i, via <code>research/exchange.registered_rate</code>. Register capture
+does not move it; a collective minting at a higher multiplier depreciates; the
+rate stays within the Condition II band ratio only while both sides honour the
+band, which <code>exchange.settlement_terms</code> reports alongside the floor reading
+(purchasing power, at both the supplied and the observed ε, applied to
+nothing). A <code>discovery_premium</code> is refused on this basis. <code>basis="parity"</code>
+(per-capita mint over per-capita mint) reproduces pre-adoption figures and is
+superseded because it rewards register capture. <code>make_federation(...,
+multiplier_schedule=[...])</code> is the lever the settlement basis reads; without
+it every rate is 1.0.</p>
 <h3 id="phase-4-boundary-events-and-the-federation-commons-87">Phase 4 — boundary events and the federation commons (§8.7)<a class="headerlink" href="#phase-4-boundary-events-and-the-federation-commons-87" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>merge_collectives(absorber, absorbed, rate, indivisible_fraction) → dict</code></strong> —
