@@ -595,7 +595,7 @@ someone remembering it, which is what this section is for.
    That gap let a `STILL OPEN` line sit stale for a day while the file asserted
    the adoption two entries up.
 
-8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029, F-042, F-048)*
+8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029, F-042, F-048, F-050)*
    `SKILL_WORKING_LIFE_YEARS` pointed at BLS Employee Tenure: median years with
    the *current employer* (3.9) against working life (37.5) — wrong by 2.6× and
    wrong in mechanism. Reading pointers in full dissolved about half the
@@ -611,6 +611,11 @@ someone remembering it, which is what this section is for.
    *Do:* open the source and check it measures the quantity before binding
    anything to it — and if you cannot cite where you read the label, you are not
    testing a hypothesis.
+   **A gate that REQUIRES a citation supplies the pressure to invent one**
+   (2026-10-19): the family explorer's builder refused any value without a
+   source and link, and the first draft of its data filled links and dates the
+   handoff never gave. Honest absence needs a legal value (`url: null`, "no
+   source cited"), and every citation is diffed against the input it came from.
 
 9. **CALIBRATED TO THE TARGET IT IS CHECKED AGAINST** *(corpus F-018, F-032)* — `DEFAULT_SEGMENTS`' means
    were set so the weighted mean landed exactly on the band ceiling, making
@@ -643,7 +648,7 @@ someone remembering it, which is what this section is for.
     term whether it carries its own response to the shared driver, then ask
     whether another term already implements your stated rationale.
 
-12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033, F-039, F-041)* The
+12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033, F-039, F-041, F-049)* The
     reporting-position check passed a deliberate breakage: "lands under a literal
     key" accepts any dict value. Worse, **a mutation that does not execute is a
     false pass** — an edit inside `if epsilon is not None` while the test called
@@ -652,7 +657,9 @@ someone remembering it, which is what this section is for.
     run with `PYTHONDONTWRITEBYTECODE=1` — `cp`-restoring a module does not
     reliably invalidate `__pycache__`, and "passes alone, fails in suite" is a
     bytecode question before a logic one. `git status` cannot verify restoration
-    of an untracked file. **AND A GATE THAT HAS NEVER FIRED IS UNTESTED, not
+    of an untracked file — nor that a NEW file a test reads will ship: a blanket
+    `*.json` ignore dropped one on 2026-10-19, so `git check-ignore -v` each new
+    fixture before committing. **AND A GATE THAT HAS NEVER FIRED IS UNTESTED, not
     reassuring** (F-041): the floor's falsification check sat under three
     standards for a year because only one component was priced, then crossed the
     lowest and reported a falsification that was a SCOPE artefact — the standard
@@ -859,7 +866,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 48 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 50 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
