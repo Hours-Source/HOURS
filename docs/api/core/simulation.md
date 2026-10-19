@@ -12,6 +12,8 @@ Creates an initial economy state for simulation: every quantity that persists be
 
 The **register** is state too: `registration_epsilon` (default `None`, the register tracks ε). Set it to hold the register while capability moves; `simulate_period()` carries it forward unchanged and the pipeline, the guarantee and the period's on-ledger reads all use it.
 
+The **knowledge base** follows a rule set by `knowledge_follows_arc`. Left as `None`, a knowledge base the state takes from the canonical arc follows ε from period to period, as complexity per unit does, and a `knowledge_complexity` you supply is carried and moved only by its growth rate. A supplied stock is never rescaled by ε. Pass `True` or `False` to choose the rule yourself.
+
 ```python
 from hours_eoh.core.simulation import make_economy_state
 
@@ -30,11 +32,27 @@ arguments, not state. Applies, in causal order:
 2. Capital ages, and grows through investment
 3. Ecosystem degrades or restores, and deferred ecological EOH accumulates
 4. The EOH → TEH pipeline (machine/human split, registration, TEH creation)
-5. Fiscal mechanics (levies, stewardship, the sufficiency guarantee, the Trust balance)
+5. Fiscal mechanics (levies, the land fee, the sufficiency guarantee, the Trust balance)
 6. TEH destruction (see the table below)
 7. State update: ε advances and cumulative TEH is carried forward
 
 The period does not mutate `state`; it returns a fresh one.
+
+**The land fee.** Pass `guf_assessed`, a function of ε that returns the fee
+assessed in TEH, and the period charges it at its own ε.
+`land.collective.per_parcel_fee(parcel_count)` builds one from a parcel count;
+`core/` cannot import `land/`, so the fee is passed in. Holders pay at most what
+the period's labour income leaves after the levy and D3 consumption, so the
+period collects `min(assessed, ceiling)`. `period_result["land_fee"]` reports
+`assessed`, `collected`, `unpaid` and `payable_ceiling`, and
+`period_result["guf_net_inflow"]` is the fee collected. `guf_net_inflow=`
+instead books a fixed inflow uncapped; passing both raises. With neither, the
+period charges no fee.
+
+The labour income is the period's mint unless `labor_income_scale` overrides
+it. With growth switched off, one period agrees with
+`scenarios.stationarity.stationarity_at` on the mint, the levy, the fee and
+the guarantee.
 
 Returns `(next_state, period_result)`.
 

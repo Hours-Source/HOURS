@@ -64,18 +64,33 @@ Every mechanism must produce meaningful output at all four arc waypoints:
 
 ```python
 from hours_eoh.core.simulation import make_economy_state
+from hours_eoh.land.collective import default_parcel_count
 from hours_eoh.scenarios.collective import collective_snapshot
 
 state = make_economy_state(population=30_000, epsilon=0.40,
                            capital_stock_teh=6.0e7, trust_balance=1.05e9)
 report = collective_snapshot(state, land_hectares=300.0,
-                             available_labor_eoh=2.0e7)
+                             available_labor_eoh=2.0e7,
+                             guf_parcel_count=default_parcel_count(30_000))
 print(report["verdict"])
+print(report["land_fee"])   # assessed, collected, unpaid, payable_ceiling
 ```
 
 The pipeline, the Ground Use Fee and the fiscal snapshot run on one stated
-frame. See the [Implementation Guide](implementation_guide.md) for what each
-input means and where to find it.
+frame. The fee is charged on the parcel count, and holders pay at most what the
+mint leaves them after the levy and D3 consumption. Any rest is `unpaid`, never
+revenue. Leave out `guf_parcel_count` and the collective charges no fee, and the
+verdict says so.
+
+The same entry point runs on a real frame from the CLI. On the US frame every
+input is labelled with where it came from:
+
+```bash
+python3 utils/eoh_cli.py scenario run collective --frame us
+```
+
+See the [Implementation Guide](implementation_guide.md) for what each input
+means, the US run in full, and how to run your own frame.
 
 ---
 

@@ -108,9 +108,13 @@ where each came from, and refuses a flag it does not read — the shocks read th
 age mix and labour supply; the long-run, Trust and simulation scenarios read
 population, capital, Trust and ε; `indust_*` read population and ε; the arcs
 (`canonical_arc`, `transition`, `thermal_load`) sweep ε themselves and refuse
-`--epsilon`. `collective` is the exception: its frame is its own parcel
-inventory, so it refuses `--frame`; the parcel-based GUF scenarios take only
-the frame's ε for the same reason:
+`--epsilon`. On a named frame, `canonical_arc`, `trust_stress`, `transition`
+and `measured_sim` also charge the frame's land fee in every period, capped at
+what the wage can pay, as `stationarity` does. Without a frame, `collective`
+runs the urban archetype's own parcel inventory. On `--frame` / `--frame-file`
+it runs the frame's land, labour supply and private parcels instead. The
+parcel-based GUF scenarios (`guf_integration`, `guf_writedown`) take only the
+frame's ε, because their land is their own parcel sample:
 
 | Kind | Meaning |
 |---|---|
@@ -536,8 +540,9 @@ or `--n` of them. A split file is JSON. Each entry in its `collectives` list
 gives an `id`, an optional `label`, and positive `population`,
 `land_hectares` and `parcel_count`. Those three are WEIGHTS: each collective
 gets its share of the frame's totals, and its population share of the frame's
-capital and Trust. Every other input (age mix, labour capacity, stock age,
-ε) is the frame's. Because the fee cap applies collective by collective, the
+capital and Trust. An entry may also state its own `age_fractions`, which
+replace the frame's mix; `us_states` does, from Census 2025 single-year ages.
+Every other input (labour capacity, stock age, ε) is the frame's. Because the fee cap applies collective by collective, the
 collected fees need not add up to the whole frame's.
 
 ### coasean simulate flags

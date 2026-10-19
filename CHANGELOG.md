@@ -9,6 +9,123 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+*2026-09-13 to 2026-10-19. Each entry's record is in `record/`, filed by area.*
+
+### Added
+
+**Frames: every scenario runs on a stated population, land and capital (2026-10-03 → 10-16)**
+- `--frame us` and `--frame-file PATH`. Every scenario that takes a population
+  runs on a frame, prints each input it reads labelled `supplied`, `measured`,
+  `derived` or `default`, and refuses a frame flag it does not read.
+  `frame show --frame us --format json` writes a frame file that runs back to
+  the same result.
+- The US frame is built from the repo's own data: the mainland population
+  (Census 339,614,767) and Census 2025 ages, MTUS labour capacity, BEA capital
+  stock and stock ages, EIA energy, ERS land use, the contiguous-48 private
+  parcel count, and both ε instruments. ε is read as a range, and each verdict
+  is printed at both ends of it and of the capital conversion band.
+- `indust_overbuilt` ships as a frame file, a constructed frame for testing bounds.
+- `coasean federation --frame/--frame-file --split` divides a frame into a
+  federation. The `us_states` split ships: the 48 states and DC, each on its own
+  measured population, land, private parcels and Census 2025 age mix (2026-10-15/16).
+
+**New reporting scenarios and modules**
+- CLI scenarios: `stationarity` (labour hours and TEH under the doctrine that
+  minted TEH is the wage), `stationarity_drawdown` (the Trust carried along an
+  arc), `reserve_plan`, `registered_work`, `mint_reach`, `capacity_breakdown`
+  and `capital_loss` (a disaster's D1 write-down).
+- Modules: `scenarios/compensation.py` (which mechanisms cover for each other),
+  `research/parcel_condition.py` (the holder pays for what they do to land) and
+  `research/dynamic_stability.py` (no cycle in the period engine; a bounded,
+  decaying cobweb in the formation loop).
+- Measured capacity weights by age (MTUS), BEA depreciation 1926–2024, and the
+  stock's condition from its measured age on BLS's age-efficiency curve.
+- `utils/ste_check.py` reports the share of docstring sentences that meet the
+  ASD-STE100 writing rules. It reports; it does not gate.
+- The docs run the CLI commands they display when the site is built
+  (`hooks/docs_runs.py`), so a published run is the run of the published version.
+
+### Changed
+
+**The wage doctrine (author, 2026-09-15 → 09-17)**
+- Minted TEH is the wage. Registered labour, including stewardship, ecological
+  and care work, is paid at the mint; the Trust owes only the sufficiency
+  guarantee. The guarantee and D3 are sized on effective personal EOH.
+- The Trust's opening inheritance is repriced to 8,760 TEH per person, read as
+  prior work, and travels with the population. A collective starting from
+  subsistence brings 0.0, and zero is honoured. The rationale that sized
+  `TRUST_BASE_TEH` backwards was withdrawn, and the value was not re-fitted.
+- The levy is assessed on the realised obligation. It is 4.6% since
+  2026-10-15: under 4.5% the levy and the land fee together no longer covered
+  the rural archetype collective at ε 0.99. This is a statement about the two
+  archetypes, not every frame; read `trust_stable` at your own ε.
+
+**The land fee (2026-10-15 → 10-19)**
+- Land is fixed and people move: the period engine, the shocks and the autarky
+  reference no longer derive area from population.
+- The fee collected is what holders can pay: at most what the mint leaves after
+  the levy and D3 consumption. The rest is reported unpaid, never booked to the
+  Trust.
+- On a frame the fee is its measured per-parcel half over the frame's private
+  parcels. The area half is not supplied, so the fee is a lower bound and says so.
+- The period engine charges a frame's land fee in every period, capped the same
+  way (`simulate_period(guf_assessed=)`, `land.collective.per_parcel_fee`).
+  `canonical_arc`, `trust_stress`, `transition` and `measured_sim` charge it on
+  a named frame. One engine period with growth off now equals `stationarity_at`.
+- A knowledge base the engine takes from the canonical arc follows ε, as
+  complexity per unit does. A supplied knowledge base is still carried.
+- `stationarity_drawdown` runs N years on the frame's Trust and moves ε as the
+  period engine does: the start is the baseline, and each year advances before
+  its flow.
+
+**The federation settles hour for hour (author, 2026-09-30)**
+- Cross-collective exchange settles on `registered_rate` (m_b/m_a), with the
+  floor reported beside it as purchasing power. `parity_rate` is kept as the
+  superseded form. The federation is built from frames.
+
+**The institutional entry point (2026-10-14)**
+- `collective_snapshot` sends a value both halves take to both the pipeline and
+  the fisc, or refuses it, and runs on a frame.
+- The period engine carries the age mix as state, and the long-run family reads
+  the frame's mix.
+
+**One reading of the register, one path for the shocks (2026-10-01)**
+- The register is read in one place (`core/registration.register_shares`) and
+  carried as state. The shocks and the sweep run on the shared path. Care is the
+  eighth essential domain, and Condition IV is read in hours.
+
+**Docstrings to about 80% ASD-STE100 (2026-10-17 → 10-18)**
+- Test and package docstrings rewritten to the STE writing rules, with every
+  number, direction and caveat kept. Printed figures in runtime strings are
+  computed from their functions rather than typed.
+
+### Removed
+
+- The labour-income proxy and the income floor (2026-09-30): the mint is the
+  labour income.
+- The deprecated layer: items with no production caller are deleted, and git
+  history holds them (author, 2026-10-16).
+- `LEVY_SUFFICIENCY_WARN` and `funding_coverage` (2026-09-16).
+
+### Fixed
+
+- Frame seams closed: capital (2026-09-16) and the Trust (2026-09-17) resolve
+  against the population; a head count, three CLI flags, `thermal_load`'s flow
+  and the industrial backlog now scale with the frame; the contiguous-48 land is
+  paired with the contiguous-48 parcels.
+- Stranded inputs wired: a supplied capital, the stock's age, the adult share
+  and the age mix reach both sides of the accounts they feed; the land fee
+  reaches the period engine.
+- `labour_epsilon` takes the caller's obligation state and reports the ε floor.
+- ATUS ages 80–84 are binned correctly; ATUS converts at each survey year's own
+  Census share; `KNOWLEDGE_EOH_BASE` re-derived at the 2024 Census.
+- 44 hand-set tier conditions now follow from tier ages.
+- `stationarity_drawdown` counts labour-short years, not distinct ε.
+
+---
+
+*2026-09-12 and earlier:*
+
 ### Fixed
 
 **Flagged cleanup after the docs pass (2026-09-12)**

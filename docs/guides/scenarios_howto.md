@@ -158,7 +158,22 @@ print(result["outcome"], result["first_insolvency"])
 # Fixed-step automation transition
 result = automation_transition_trajectory(epsilon_start=0.20, epsilon_delta=0.03)
 print(result["convergence_period"])
+
+# Charge a land fee in every period: the per-parcel fee over a parcel count,
+# capped at what the wage leaves after the levy and D3 consumption. Without
+# guf_parcel_count the engine charges no fee. On --frame us the CLI passes the
+# frame's private parcels.
+from hours_eoh.land.collective import default_parcel_count
+
+result = canonical_arc_trajectory(n_periods=3,
+                                  guf_parcel_count=default_parcel_count(1_000_000))
+for period in result["raw"]["period_results"]:
+    print(period["epsilon"], period["land_fee"])   # assessed, collected, unpaid
 ```
+
+All three functions take `guf_parcel_count`. A knowledge base the engine takes
+from the canonical arc follows ε from period to period, as complexity per unit
+does; a knowledge base you supply is carried and moved only by its growth rate.
 
 ### Industrial overshoot archetype
 

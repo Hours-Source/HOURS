@@ -18,6 +18,7 @@ report = collective_snapshot(
     parcels=your_parcel_inventory,          # or land_hectares=... if you have no inventory
     available_labor_eoh=your_labour_hours,  # omit it and you are measuring DEMAND
     age_fractions=your_age_mix,             # reaches the pipeline AND the fisc
+    guf_parcel_count=your_private_parcels,  # the land fee; omit it and none is charged
 )
 report["frame"]["labour_supplied"]          # True: the mint is what was served, not demanded
 report["frame"]["labor_constrained"]        # True: your hours BOUND, and the shortfall is deferred
@@ -59,6 +60,64 @@ document the pieces, because you will want to understand them and because
 them yourself means keeping eleven parameters in agreement across three
 functions, and that is where the frame comes apart. It came apart in this
 guide's own worked example, by nearly two orders of magnitude.
+
+---
+
+## Start here: a real frame, the US
+
+The quickest way to see what your own frame will look like is to run the
+entry point on one the repo already measures. The US frame is the contiguous 48
+states and DC, and it is built from the repo's own US data. The run below is
+made when this site is built, so its figures are those of the published version.
+
+<!-- eoh-run: scenario run collective --frame us -->
+
+**Read the Inputs block first.** Each line says where the value came from:
+
+| Kind | What it means for your frame |
+|---|---|
+| `measured` | Read from a dataset the repo ships for the US: Census population and ages, MTUS labour capacity, BEA capital ages, ERS land, county parcel counts, and the two ε instruments. **These are the lines you replace with your own data.** |
+| `derived` | Computed from other inputs. A line marked *partly from defaults* leans on a framework value. For the US, capital is BEA's stock in dollars, converted at a $/TEH rate that is a judgement, so the run also prints the result at both ends of that rate's band. |
+| `default` | The framework's reference value. It says nothing about the US. A default whose source starts *charter choice* (the Trust's opening balance, the retirement register) is a governance setting your charter decides, not missing data. |
+
+**Then read the band lines.** ε is not one number for a real economy. The US
+reading is a range from two instruments that share no data, so the run is
+repeated at both ends of the range and prints each verdict. A verdict that
+holds at both ends does not depend on where ε sits inside the band.
+
+**Then the fee.** On a frame the land fee is its measured per-parcel half,
+charged on the frame's private parcels. The area half needs a land-class→use
+mapping and a location value, and neither ships, so the fee is a **lower
+bound**. Holders pay at most what the mint leaves them after the levy and D3
+consumption (`guf_payable_ceiling`); any rest is `guf_unpaid`, never revenue.
+
+!!! warning "The whole US as one collective is a hypothetical"
+    This run treats the whole mainland population as one collective with one Trust and one
+    register. That is a reference frame for reading the inputs, not a proposal.
+    A federation of collectives is closer to how a real transition would be
+    organised: [§5](#5-a-federation-the-us-by-state-experimental) divides the
+    same frame into its states.
+
+### Your own frame
+
+Write the US frame to a file, replace the values you have measured, and run any
+frame-aware scenario on it. Every value you change is then labelled `supplied`:
+
+```bash
+python3 utils/eoh_cli.py frame show --frame us --format json > my_frame.json
+python3 utils/eoh_cli.py scenario run collective --frame-file my_frame.json
+python3 utils/eoh_cli.py scenario run stationarity --frame-file my_frame.json
+```
+
+Population, land, parcels and capital are one frame and travel together. On a
+named frame the land and its parcels stay fixed when `--population` moves: land
+is fixed and people move. State more land in the frame file instead. See the
+[CLI reference](cli.md#frame-running-on-your-own-frame) for every field and the
+scenarios that read each one.
+
+The Python sections below document the pieces under the entry point, because
+you will want to understand them. Section 4 runs them by hand on a small
+illustrative collective that runs short of labour, which the US frame does not.
 
 ---
 
@@ -155,8 +214,8 @@ must travel together: they are all extensive, so pairing one jurisdiction's
 population with another's land silently rescales the ecological domain.
 `CAPITAL_STOCK_DEFAULT` and `TRUST_BASE_TEH` say "at the 1M reference
 population" in their own tag blocks and are per-frame quantities — running the
-US population against an unscaled default would model 335M people holding the
-capital, and the Trust, of 1M. Since 2026-09-16/17 both RESOLVE against the
+US population against an unscaled default would model the US holding the
+capital, and the Trust, of 1M people. Since 2026-09-16/17 both RESOLVE against the
 population you pass: an unsupplied value travels with your frame, and a value
 you supply is used exactly as given. `scenarios/frame.py` declares named frames and
 `eoh scenario run frame` shows what an undeclared pairing costs.
@@ -258,10 +317,13 @@ retires them, and treating them as calibration knobs is a category error:
 
 - `M_BAND_LOW` / `M_BAND_HIGH` — the constitutional multiplier band
 - `DIV_RATE` — the share of depreciation paid out as dividend
-- `SUFF_LEVY_RATE` — a redistributive commitment. Worth knowing:
-  `min_levy_for_solvency()` returns **zero at every ε** on the canonical
-  configuration, because the dividend alone runs a surplus. This rate is not
-  sized for solvency and never was; the Trust dividend funds the guarantee.
+- `SUFF_LEVY_RATE` — a redistributive commitment. `min_levy_for_solvency()`
+  returns three rates, and they answer different questions. The rate that
+  covers this year's spending (`cover_expenditures_rate`) is zero at every ε on
+  the canonical configuration: the dividend alone covers the guarantee. The
+  rate that keeps the Trust's balance from falling (`stable_trust_rate`) is not
+  zero, and it rises toward the top of the arc. Call the function at your ε
+  for both; the levy is a charter commitment, not a solved value.
 
 ### Then: the placeholders worth your attention
 
@@ -276,7 +338,7 @@ Ranked by how much of the model they move, not by how wrong they are:
   (`AGE_WEIGHT_ELDERLY` is `measured`, from ATUS + Census, and
   `AGE_WEIGHT_WORKING_AGE` is the numeraire, 1.0 by definition.)
 - **`ECOLOGICAL_BASE_RATE`** — do NOT replace it with your stewardship-hours
-  census; read §6 first. Since the Phase 4f partition the recurring ecological
+  census; read §7 first. Since the Phase 4f partition the recurring ecological
   cost is the Ground Use Fee's, and charging it here as well would bill the same
   hours twice.
 - **`CAPITAL_MACHINE_PROFILES`** — the tiers behind `civilization_epsilon()`
@@ -386,12 +448,12 @@ number.** The framework carries two instruments that share no data:
   with no currency in the chain and one judgement instead of three. Run
   `eoh scenario run labour_epsilon`.
 
-Run for the US, the two bands land close to each other without overlapping **at
-government scope and current-cost doctrine** — the one cell the comparison reads
-by default — they OVERLAP, since the capital reading takes the stock at its
-measured ages and the condition those imply (BEA ages, BLS age-efficiency).
-**Across the whole declared grid they OVERLAP too**, with most cells inside the
-labour band. Call `instrument_comparison()` for the figures. The capital route returns a grid precisely
+Run for the US at **government scope and current-cost doctrine** (the one cell
+the comparison reads by default), the two bands OVERLAP. The capital reading
+takes the stock at its measured ages and the condition those imply (BEA ages,
+BLS age-efficiency). Across the whole declared grid most cells also fall inside
+the labour band. Call `instrument_comparison()` for the verdict and the
+figures; the `--frame us` runs above print the same range. The capital route returns a grid precisely
 because its three judgements are undeclared, so *which verdict you get is a
 function of the scope and doctrine you pick, not a property of the instruments*.
 `instrument_comparison()` reports both, and takes `scope=` and `doctrine=`
@@ -521,121 +583,73 @@ For fiscal parameters use the CLI:
 
 ---
 
-## 4. Running a scenario against local data — complete example
+## 4. A collective that runs short of labour — complete example
+
+The US frame supplies enough labour for its obligation, so its run never shows a
+deferral. This example does: a small collective with an illustrative 5M people,
+run by hand through the three calls under the entry point. **Replace every
+value.** The deferral it shows is the most important thing a first run can tell
+you, so do not raise the labour figure until it disappears.
 
 ```python
-"""
-Minimal complete example: run eoh_to_teh_pipeline and fiscal_snapshot
-with real inputs and interpret the outputs.
-"""
-
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
+from hours_eoh.land.collective import default_parcel_count, per_parcel_guf
 from hours_eoh.research.recalibration import exit_financing
 
-# --- Your data ---
-population         = 5_000_000     # 5M people
-land_hectares      = 12_000_000    # the land you steward — YOUR cadastre
-capital_stock_teh  = 8_000_000_000 # 8B TEH (≈ 1,600 TEH/person)
-capital_age_ratio  = 0.42
-ecosystem_health   = 0.65          # moderately degraded
-monitoring_cap     = 0.60
-epsilon            = 0.28          # machine CAPABILITY index (alias for
-                                   # machine_capability=); the OBSERVED machine
-                                   # share comes back below and is lower
-# YOUR labour force survey. Derived from this example's own demography so the
-# two cannot disagree, and note the EMPLOYMENT RATE: hours-per-worker applies to
-# people who work, not to the working-age band.
-#   from hours_eoh.data import H_REF          # 2,080 h/yr, the policy-free
-#                                             # nominal (40 h x 52 wk)
-employment_rate    = 0.70          # employed / working-age — YOUR labour survey
-workers            = 5_000_000 * 0.630 * employment_rate     # 2,205,000
-labour_hours       = workers * 2_080.0                       # H_REF
-trust_balance      = 150_000_000_000  # 30,000 TEH/person
+# --- Your data (illustrative) ---
+population        = 5_000_000
+land_hectares     = 12_000_000     # YOUR cadastre
+capital_stock_teh = 8_000_000_000  # national accounts ÷ your $/TEH rate
+capital_age_ratio = 0.42
+ecosystem_health  = 0.65
+epsilon           = 0.28           # machine CAPABILITY; the observed share is lower
+age_dist = {"infant": 0.065, "child": 0.180, "working_age": 0.630, "elderly": 0.125}
+workers           = population * age_dist["working_age"] * 0.70   # employment rate
+labour_hours      = workers * 2_080.0                             # H_REF
+trust_balance     = 150_000_000_000
+parcels           = default_parcel_count(population)  # or YOUR private parcel count
 
-# population, land and capital are ONE FRAME and must travel together.
-
-age_dist = {
-    "infant":      0.065,
-    "child":       0.180,
-    "working_age": 0.630,
-    "elderly":     0.125,
-}
-
-# --- Run the pipeline ---
+# --- The pipeline: population, land and capital are ONE frame ---
 pipe = eoh_to_teh_pipeline(
-    epsilon=epsilon,
-    population=population,
-    capital_stock=capital_stock_teh,
-    capital_age_ratio=capital_age_ratio,
-    ecosystem_health=ecosystem_health,
-    monitoring_capability=monitoring_cap,
-    age_distribution=age_dist,
+    epsilon=epsilon, population=population,
+    capital_stock=capital_stock_teh, capital_age_ratio=capital_age_ratio,
+    ecosystem_health=ecosystem_health, age_distribution=age_dist,
     ecological_area_hectares=land_hectares,
     available_labor_eoh=labour_hours,
 )
-# Check which path produced these figures before quoting any of them:
-#   pipe["labor_constrained"] is True  -> your labour BOUND (False: it sufficed)
-#   pipe["deferred_total"]             -> obligation your labour could not meet
-#
-# THIS EXAMPLE DOES NOT CLEAR, AND THAT IS THE POINT OF SHOWING IT.
-# The obligation is pipe["human_eoh"] + pipe["deferred_total"] — read it from
-# the call rather than from this comment. Against 2,205,000 workers it needs
-# more hours each per year than ANY point in WORK_YEAR_REFERENCE_POINTS reaches,
-# nominal included, so the shortfall stands at every work-year the framework
-# carries and pipe["deferred_total"] is non-zero.
-#
-# Only the SHAPE is stated here, deliberately. An earlier version of this
-# comment carried three derived figures and all three had gone stale — they
-# still described a configuration two changes back. That drift is failure mode
-# 13, and the remedy the repo already applies elsewhere is to print the number
-# instead of restating it.
-#
-# That is expected rather than alarming. Hold this capital stock and demography
-# fixed and the obligation is met from a capability somewhere near half; the
-# example runs at 0.28. COMPUTE YOUR OWN clearing point rather than quoting one
-# — it depends on your capital stock, your demography and your land, and the
-# package default from `eoh scenario run feasibility` is a DIFFERENT
-# configuration with a different answer.
-#
-# Do NOT raise the labour figure until the deferral disappears. The deferral is
-# the finding, and suppressing it is exactly what this field exists to prevent.
 
-# --- Run fiscal snapshot ---
-# The ecological obligation is passed straight through from the pipeline, so the
-# two calls cannot describe different jurisdictions. Equivalent here:
-#   ecological_area_hectares=land_hectares
+# --- The fisc, on the same frame, with the land fee charged ---
 snap = fiscal_snapshot(
-    trust_balance=trust_balance,
-    labor_income=pipe["teh_created"],
-    capital_stock_teh=capital_stock_teh,
-    capital_age_ratio=capital_age_ratio,
-    population=population,
-    epsilon=epsilon,
-    ecosystem_health=ecosystem_health,
+    trust_balance=trust_balance, labor_income=pipe["teh_created"],
+    capital_stock_teh=capital_stock_teh, capital_age_ratio=capital_age_ratio,
+    population=population, epsilon=epsilon, ecosystem_health=ecosystem_health,
     eco_eoh_override=pipe["eoh_by_domain"]["ecological"],
+    guf_revenue=per_parcel_guf(epsilon, parcels),
 )
-
-# --- Run contestability check (the ADOPTED §8.9 test) ---
 exit_fin = exit_financing(epsilon, population=population)
 
-# --- Interpret ---
-print(f"Total EOH demand:  {pipe['total_eoh']/1e9:.2f}B h/yr")
-print(f"Human EOH burden:  {pipe['human_eoh']/1e9:.2f}B h/yr  (= SERVED, not owed)")
-# Under a binding labour constraint human_eoh reports what was SERVED, so
-# reading it alone hands your own labour supply back to you. The obligation is
-# the sum below, and the identity is what makes the deferral visible.
+# Under a binding constraint human_eoh is what was SERVED. The obligation is
+# human_eoh + deferred_total; reading human_eoh alone reports your supply back.
 obligation = pipe["human_eoh"] + pipe["deferred_total"]
 print(f"Human obligation:  {obligation/1e9:.3f}B h/yr  "
-      f"({obligation/workers:,.0f} h per worker · yr against {workers:,.0f} workers)")
+      f"({obligation/workers:,.0f} h per worker · yr)")
 print(f"Deferred:          {pipe['deferred_total']/1e9:.3f}B h/yr  "
       f"(labour-constrained: {pipe['labor_constrained']})")
 print(f"TEH created:       {pipe['teh_created']/1e9:.2f}B TEH/yr")
-print(f"Fiscal solvent:    {snap['solvent']}")
-print(f"Trust end:         {snap['trust']['trust_end']/1e9:.1f}B TEH")
-print(f"Exit financeable:  {exit_fin['exit_financeable']}  "
-      f"via {exit_fin['channel']}  (t_exit {exit_fin['t_labor_years']:.2f} yr)")
+print(f"Land fee:          {snap['guf']['revenue']/1e6:.2f}M TEH/yr")
+print(f"Fiscal solvent:    {snap['solvent']}  (Trust stable: {snap['trust']['trust_stable']})")
+print(f"Exit financeable:  {exit_fin['exit_financeable']} via {exit_fin['channel']}")
 ```
+
+The obligation per worker comes out above every work-year the framework carries
+(`WORK_YEAR_REFERENCE_POINTS`), so the shortfall is real at any of them. This
+example states only that shape. Run it for the figures; a copy of them here
+would go stale.
+
+`fiscal_snapshot` books the fee you pass as collected. It does not apply the
+cap on what holders can pay. `collective_snapshot` applies it, and so does the
+CLI, which is one more reason to use the entry point for a reported result.
 
 > **Do not use `contestability_margin()` (the bare χ = P/K_entry) for a reported
 > result.** §8.9 superseded it with the three-channel time-to-finance-exit test
@@ -646,7 +660,64 @@ print(f"Exit financeable:  {exit_fin['exit_financeable']}  "
 
 ---
 
-## 5. Interpreting outputs
+## 5. A federation: the US by state *(experimental)*
+
+The [start](#start-here-a-real-frame-the-us) ran the US as one collective. A
+federation divides the same frame into collectives that each run their own
+pipeline, fee and Trust. The repo ships one division: the 48 states and DC. The
+run below is made when this site is built.
+
+<!-- eoh-run: coasean federation --frame us --split us_states -->
+
+!!! warning "Research tier"
+    This runs through `research/coasean.py`. Its API is not stable, and the CLI
+    prints `EXPERIMENTAL` for that reason. Read it as a structural check of how a
+    frame divides, not as a forecast for any state.
+
+**Which columns are each state's own, and which are allocated.** This matters
+more than any figure in the table:
+
+| Input | Per state | Source |
+|---|---|---|
+| Population | **measured** | Census 2025, by state |
+| Land (`ha/head`) | **measured** | ERS Major Land Uses 2022, by state |
+| Private parcels | **measured** | The county parcel census, summed by state |
+| Age mix | **measured** | Census 2025 single-year ages, by state; it replaces the frame's mix |
+| Capital | allocated | The frame's BEA stock, divided by population share. **It is not BEA by state.** |
+| Trust | allocated | The frame's Trust, divided by population share |
+| ε, labour capacity per adult, stock age | the frame's | One value for every state |
+
+So differences between states in this run come from people, land, parcels and
+age mix. A state with an unusually large or small capital stock per person
+does not show as one, because no per-state capital ships. A split file of your
+own can state that capital instead.
+
+**How to read it.**
+
+- `teh_created` is each state's mint. `surplus` is its Trust's surplus for the
+  year: its revenue (dividend, levy, fee collected, estate levy) less the
+  guarantee. A negative figure is a Trust that draws down its balance.
+- The fee cap applies state by state. A state can leave part of its fee unpaid
+  while the whole frame, run as one, pays in full. So the `total` row and the
+  `frame` row need not agree on the fee collected. When they disagree, the
+  difference is the cost of the division.
+- The last lines repeat the run at both ends of the ε range and of the capital
+  conversion band, and count the states that stay solvent and pay their fee.
+
+Settlement between the states is hour for hour (`registered_rate`, adopted
+2026-09-30). Every state mints at one multiplier, so every rate in this run is
+1.0. See [Research (Experimental)](../api/research.md) for the exchange layer.
+
+**Your own division.** A split file is JSON: a `collectives` list where each
+entry gives an `id`, an optional `label`, and positive `population`,
+`land_hectares` and `parcel_count`. Those three are weights on the frame's
+totals. An entry may also state its own `age_fractions`, which replace the
+frame's mix for that collective. Pass it with `--split my_split.json` beside your `--frame-file`. The
+[CLI reference](cli.md#coasean-federation-on-a-frame) has the full format.
+
+---
+
+## 6. Interpreting outputs
 
 **`fiscal_snapshot()["solvent"] = False`**
 The Trust cannot fund the guarantee from dividend + levy + GUF. Stewardship,
@@ -661,9 +732,10 @@ paying the difference out of principal. Long-run: the Trust depletes.
 Action: raise levy or build reserves now while the economy is labor-intensive.
 
 Since 2026-09-15 only what the Trust OWES leaves it (unspent dividend is
-retained), so at the shipped defaults `trust_stable` is **True at every ε** and
-the balance GROWS — levy inflow exceeds the guarantee across the arc. Eroding is
-now the exception rather than the default; `trust["guarantee_unfunded"]` reports
+retained), so at the shipped defaults `trust_stable` is True across most of the
+arc and the balance grows. It is **not** True at the top: on the canonical 1M
+frame at ε 0.99 the Trust erodes, with or without the land fee, while it stays
+solvent. Read the flag at your own ε. `trust["guarantee_unfunded"]` reports
 what the balance and inflows together could not cover.
 
 **`exit_financing()["exit_financeable"] = False`**
@@ -687,7 +759,7 @@ adversarial review. If below band: skill investment is insufficient.
 
 ---
 
-## 6. Known limitations
+## 7. Known limitations
 
 What the model **cannot** tell you:
 

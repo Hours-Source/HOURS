@@ -20,6 +20,8 @@ hooks:
   - hooks/docs_data_files.py
   # Builds the in-browser explorers (utils/explorers/) into tools/<name>/.
   - hooks/docs_explorers.py
+  # Runs the CLI commands a page displays (<!-- eoh-run: ... -->).
+  - hooks/docs_runs.py
 
 theme:
   name: material
