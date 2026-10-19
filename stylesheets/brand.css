@@ -1,0 +1,13 @@
+/* The site's colours: a navy header for the gold hourglass logo
+   (docs/images/hourglass.svg). Material reads these with `primary: custom`. */
+:root {
+  --md-primary-fg-color: #274068;
+  --md-primary-fg-color--light: #3a5a8c;
+  --md-primary-fg-color--dark: #1b2d4a;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: #ffffffb3;
+}
+/* Dark mode: links in the navy would not read on the dark page, so they lighten. */
+[data-md-color-scheme="slate"] {
+  --md-typeset-a-color: #8fb0e6;
+}
