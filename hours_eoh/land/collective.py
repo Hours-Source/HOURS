@@ -36,6 +36,7 @@ the fee reflects real costs rather than speculative value."
 """
 
 from __future__ import annotations
+from typing import Callable
 
 from hours_eoh.data import (
     GUF_SERVICE_PROFILE_DECLARED,
@@ -457,6 +458,21 @@ def per_parcel_guf(epsilon: float, parcel_count: float) -> float:
         raise ValueError(f"parcel_count must be >= 0, got {parcel_count}")
     from hours_eoh.land.guf import per_parcel_term
     return per_parcel_term(epsilon) * parcel_count
+
+
+def per_parcel_fee(parcel_count: float) -> Callable[[float], float]:
+    """
+    `per_parcel_guf` over a fixed parcel count, as a function of ε: what the
+    period engine's `guf_assessed` takes (2026-10-19). The engine calls it at
+    each period's ε, so the fee follows the arc and the parcels stay fixed
+    with the land. `core/` cannot import `land/`, so the scenario passes it.
+
+    Raises:
+        ValueError: on a negative count.
+    """
+    if parcel_count < 0.0:
+        raise ValueError(f"parcel_count must be >= 0, got {parcel_count}")
+    return lambda epsilon: per_parcel_guf(epsilon, parcel_count)
 
 
 def default_parcel_count(population: float) -> float:

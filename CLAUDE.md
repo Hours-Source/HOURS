@@ -464,6 +464,10 @@ someone remembering it, which is what this section is for.
    21 of 31 frame-aware scenarios read the frame's mix.
    ([record](record/fulfilment.md#compass-reads-the-age-mix),
    [engine](record/fulfilment.md#period-engine-carries-the-age-mix)).
+   A SIXTH, 2026-10-19, found the same way (the Trust gained 10.10e9 under
+   `canonical_arc` and 12.34e9 under the drawdown on one frame): the land fee
+   never reached the period engine, and its corpus stayed at the start ε
+   ([record](record/fulfilment.md#engine-meets-stationarity)).
    `gated by:` `TestASuppliedStockReachesTheAccounts`,
    `TestTheStockAgeReachesBothSides`, `TestTheAdultShareReachesTheSupply`,
    `TestTheAdultShareReachesBothFunctions`, and at the CLI
@@ -732,8 +736,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,236 tests passing (1 skipped), mypy clean on 110 source files** (verified
-2026-10-18). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **125** of 143<!-- /census:state -->,
+**6,245 tests passing (1 skipped), mypy clean on 110 source files** (verified
+2026-10-19). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **125** of 143<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

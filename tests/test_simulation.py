@@ -255,6 +255,20 @@ class TestSimulatePeriod:
         new_state, _ = simulate_period(state, knowledge_complexity_growth_rate=0.0)
         assert new_state["knowledge_complexity"] == pytest.approx(3.0)
 
+    @pytest.mark.parametrize("supplied", [None, 3.0], ids=["resolved", "supplied"])
+    def test_a_resolved_corpus_follows_the_arc_and_a_supplied_one_is_carried(self, supplied):
+        """A corpus resolved from the arc must read the canonical size at each
+        period's ε; a supplied one must stay as supplied. Fails if either
+        branch takes the other's rule
+        ([record](record/fulfilment.md#engine-meets-stationarity))."""
+        from hours_eoh.core.trajectory import canonical_physical_state
+        state = make_economy_state(epsilon=0.10, knowledge_complexity=supplied)
+        for _ in range(3):
+            state, _ = simulate_period(state, epsilon_delta=0.25)
+            expected = (canonical_physical_state(state["epsilon"])["knowledge_base_size"]
+                        if supplied is None else supplied)
+            assert state["knowledge_complexity"] == pytest.approx(expected, rel=1e-12)
+
     def test_infra_deferred_years_increments_when_backlog_exists(self):
         state = make_economy_state(
             epsilon=0.40,

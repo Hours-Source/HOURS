@@ -266,6 +266,14 @@ _READS_IF_STATED: dict[str, tuple[str, ...]] = {
     **{n: ("land_m2",) for n in ("trust_stress", "measured_sim",
                                  "canonical_arc", "transition", "thermal_load")},
 }
+# The engine's land fee reads the parcels on a named frame; the list below adds
+# them there even when their count is the labelled default.
+for _n in ("trust_stress", "measured_sim", "canonical_arc", "transition"):
+    _READS_IF_STATED[_n] = (*_READS_IF_STATED[_n], "parcel_count")
+#: The period engine charges the land fee on a named frame only (2026-10-19),
+#: as stationarity does: the frame's parcels, or the labelled default count.
+#: With no frame it charges none, so a frameless run is unchanged.
+_ENGINE_FEE_ON_A_FRAME = ("trust_stress", "measured_sim", "canonical_arc", "transition")
 
 #: The input each input-specific flag sets (--frame and --frame-file set the
 #: whole frame; --population is read by every frame-aware scenario).
@@ -335,9 +343,9 @@ _SCENARIOS: dict[str, str] = {
     "capital_loss":        "capital_loss_shock() — a disaster (wildfire, flood) destroys capital: D1 write-down, machine work falls to people, optional rebuild  [--capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh, --retirement-age]",
     "compound_shock":      "compound_shock() — simultaneous multi-axis shock (a wildfire: --ecology-collapse with --capital-fraction-lost)  [--ecology-collapse, --shock-type, --automation-fraction-lost, --capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     # -- multi-period trajectories --
-    "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods  [--epsilon-start, --epsilon-end, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
-    "trust_stress":        "trust_depletion_stress() — multi-stressor Trust depletion  [--epsilon, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
-    "transition":          "automation_transition_trajectory() — fixed Δε convergence  [--epsilon-start, --epsilon-delta, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods. On --frame/--frame-file: the frame's land fee, its per-parcel half at each period's ε, capped at what the wage pays  [--epsilon-start, --epsilon-end, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "trust_stress":        "trust_depletion_stress() — multi-stressor Trust depletion. On --frame/--frame-file: the frame's land fee, its per-parcel half at each period's ε, capped at what the wage pays  [--epsilon, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "transition":          "automation_transition_trajectory() — fixed Δε convergence. On --frame/--frame-file: the frame's land fee, its per-parcel half at each period's ε, capped at what the wage pays  [--epsilon-start, --epsilon-delta, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     # -- industrial overshoot --
     "indust_baseline":     "indust_overshoot_baseline() — industrial overshoot fiscal snapshot  [--frame, --frame-file]",
     "indust_recovery":     "indust_recovery_trajectory() — ecosystem recovery from overshoot  [--restoration-rate, --periods, --frame, --frame-file]",
@@ -346,7 +354,7 @@ _SCENARIOS: dict[str, str] = {
     "guf_writedown":       "guf_writedown_scenario() — ecological write-down pathways  [--pathway, --unfulfilled-eoh, --total-eoh-zone, --frame, --frame-file (ε only)]",
     "guf_sweep":           "guf_revenue_sweep() — GUF across the arc; monotone falling under the default psi_policy=retired",
     # -- measured inputs (the measurement spine) --
-    "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry. On --frame/--frame-file: the frame's land fee, its per-parcel half at each period's ε, capped at what the wage pays  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, the fee's measured per-parcel half over the frame's private parcels, the area part NOT SUPPLIED (a lower bound), as stationarity prices it  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
@@ -954,6 +962,15 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                # The frame's land when it states one, fixed for the run
                # (2026-10-14); unstated, each function resolves it once.
                land_hectares=land_ha)
+    # THE LAND FEE IN THE ENGINE (2026-10-19): the engine charged none, so on
+    # one frame stationarity and collective charged the parcels and the engine
+    # did not. Priced as stationarity prices it on a frame.
+    engine_count: float | None = None
+    if (name in _ENGINE_FEE_ON_A_FRAME
+            and (args.frame is not None or args.frame_file is not None)):
+        from hours_eoh.land.collective import default_parcel_count
+        engine_count = (v["parcel_count"] if v["parcel_count"] is not None
+                        else default_parcel_count(pop))
     periods = args.periods if args.periods is not None else _PERIODS_DEFAULT
     if name == "labor_income_shock":
         from hours_eoh.scenarios.shocks import labor_income_shock
@@ -961,22 +978,28 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                                   **sim), v, lab
     if name == "trust_stress":
         from hours_eoh.scenarios.long_run import trust_depletion_stress
-        return trust_depletion_stress(epsilon=epsilon, n_periods=periods, **sim), v, lab
+        return trust_depletion_stress(epsilon=epsilon, n_periods=periods,
+                                      guf_parcel_count=engine_count, **sim), v, lab
     if name == "measured_sim":
         from hours_eoh.core.simulation import make_economy_state
         from hours_eoh.scenarios.measured import run_measured_simulation
+        from hours_eoh.land.collective import per_parcel_fee
         state = make_economy_state(epsilon=epsilon, **sim)
-        return run_measured_simulation(state, n_periods=periods), v, lab
+        return run_measured_simulation(
+            state, n_periods=periods,
+            guf_assessed=None if engine_count is None else per_parcel_fee(engine_count)), v, lab
     if name == "canonical_arc":
         from hours_eoh.scenarios.long_run import canonical_arc_trajectory
         return canonical_arc_trajectory(epsilon_start=args.epsilon_start,
                                         epsilon_end=args.epsilon_end,
-                                        n_periods=periods, **sim), v, lab
+                                        n_periods=periods, guf_parcel_count=engine_count,
+                                        **sim), v, lab
     if name == "transition":
         from hours_eoh.scenarios.long_run import automation_transition_trajectory
         return automation_transition_trajectory(epsilon_start=args.epsilon_start,
                                                 epsilon_delta=args.epsilon_delta,
-                                                n_periods=periods, **sim), v, lab
+                                                n_periods=periods,
+                                                guf_parcel_count=engine_count, **sim), v, lab
     if name == "indust_baseline":
         from hours_eoh.scenarios.indust_overshoot import indust_overshoot_baseline
         return indust_overshoot_baseline(population=pop, epsilon=epsilon), v, lab
@@ -1319,6 +1342,9 @@ def _frame_run(args: argparse.Namespace) -> dict:
     result["epsilon_reading"] = None if swept else eps
     stated = {k for k in _READS_IF_STATED.get(args.name, ())
               if k in lab and lab[k]["kind"] != "default"}
+    if (args.name in _ENGINE_FEE_ON_A_FRAME
+            and (args.frame is not None or args.frame_file is not None)):
+        stated.add("parcel_count")
     if v.get("ecological_carried_by_people") and "ecological_carried_by_people" in stated:
         stated.add("restoration_eoh")
     if v.get("ecological_carried_by_people") or (

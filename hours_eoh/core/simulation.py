@@ -26,7 +26,7 @@ the reserve must cover critical infrastructure EOH."
 
 from __future__ import annotations
 import math
-from typing import Any
+from typing import Any, Callable
 
 from hours_eoh.data import (
     EPSILON_ARC_MAX,
@@ -78,6 +78,7 @@ def make_economy_state(
     registration_epsilon: float | None = None,
     age_fractions: dict[str, float] | None = None,
     land_hectares: float | None = None,
+    knowledge_follows_arc: bool | None = None,
 ) -> dict:
     """
     Construct a well-formed economy state dict for simulate_period().
@@ -105,6 +106,12 @@ def make_economy_state(
         ecosystem_health: Aggregate ecosystem state ∈ [0, 1].
         deferred_ecological: Accumulated deferred ecological EOH (hours).
         knowledge_complexity: Relative knowledge base size (1.0 = reference).
+            None → the canonical arc's size at `epsilon`.
+        knowledge_follows_arc: Whether `simulate_period` moves the corpus with
+            ε along the canonical arc. None → True when the corpus resolves
+            from the arc, False when the caller supplied it, because a supplied
+            stock is never rescaled (2026-10-19). The growth rate applies in
+            both cases.
         teh_created_cumulative: Cumulative TEH created since simulation start.
         teh_destroyed_cumulative: Cumulative TEH destroyed since start.
         capital_eoh_eliminated: Aggregate annual EOH eliminated by capital stock.
@@ -211,6 +218,9 @@ def make_economy_state(
         "registration_epsilon":          registration_epsilon,
         "age_fractions":                 None if age_fractions is None else dict(age_fractions),
         "land_hectares":                 None if land_hectares is None else float(land_hectares),
+        "knowledge_follows_arc":         (knowledge_complexity is None
+                                          if knowledge_follows_arc is None
+                                          else knowledge_follows_arc),
     }
 
 
@@ -270,6 +280,8 @@ def simulate_period(
     workforce_epsilon_decay: bool = False,
     # GUF revenue injection into Trust (disabled by default)
     guf_net_inflow: float | None = None,
+    # The land fee ASSESSED at the period's ε, capped at what the wage can pay
+    guf_assessed: Callable[[float], float] | None = None,
 ) -> tuple[dict, dict]:
     """
     Advance the economy by one period and return (new_state, period_result).
@@ -317,6 +329,16 @@ def simulate_period(
         guf_net_inflow: Net GUF revenue from ground-use fees to inject into
                         Trust this period (TEH). When None (default) GUF is
                         not included — matches existing fiscal behaviour.
+                        It is booked as given, with no cap.
+        guf_assessed: The land fee ASSESSED, as a function of ε (TEH per
+            year). The engine calls it at this period's ε. It books at most
+            what the wage can pay: the labour income less the levy and D3
+            consumption. The labour income is the mint unless
+            `labor_income_scale` overrides it; `collective` and `stationarity`
+            cap on the mint, so the three are equal without an override.
+            `core/` cannot import `land/`, so the caller supplies the price,
+            for example `per_parcel_guf` over the frame's parcels (2026-10-19).
+            Not with `guf_net_inflow`.
 
     Returns:
         (new_state, period_result) where:
@@ -405,7 +427,20 @@ def simulate_period(
     # gain (2 − δ)/b, measured at an investment propensity of ≈94.7 on these
     # constants, while the same-period form has no such threshold at any gain
     # tested. See notes/capital-path-decision.md §10.
-    new_know_complexity = know_complexity * (1.0 + knowledge_complexity_growth_rate)
+    #
+    # THE CORPUS FOLLOWS ε AS ITS COMPLEXITY PER UNIT DOES (2026-10-19, author).
+    # The per-unit complexity above is read at THIS period's ε, but the corpus
+    # was carried from the START ε and moved only by the growth rate (0.0 by
+    # default). So one state held the ε 0 corpus beside ε 0.66 complexity, and
+    # the mint read 6.3% under `stationarity`'s at one frame. A corpus resolved
+    # from the arc now moves by the canonical ratio between the two ε, so it
+    # stays canonical; the growth rate compounds on top. A SUPPLIED corpus is
+    # carried, never rescaled. With no ε step the ratio is 1.
+    _know_arc_step = (_canon["knowledge_base_size"]
+                      / _cps(state["epsilon"])["knowledge_base_size"]
+                      if state.get("knowledge_follows_arc", False) else 1.0)
+    new_know_complexity = (know_complexity * _know_arc_step
+                           * (1.0 + knowledge_complexity_growth_rate))
 
     # ---- 4. Ecological dynamics --------------------------------------------
     net_eco_change = ecological_restoration_rate - ecological_degradation_rate
@@ -529,22 +564,49 @@ def simulate_period(
         d5 = {"teh_destroyed": 0.0, "teh_levied_to_trust": 0.0,
               "teh_inherited": 0.0, "mechanism": "D5_disabled"}
 
-    fiscal = fiscal_snapshot(
-        state=fiscal_state,
-        guf_revenue=(guf_net_inflow or 0.0),
-        estate_levy_aggregate=d5["teh_levied_to_trust"],
-        levy_rates=levy_rates,
-        mean_multiplier=mean_multiplier,
-        dep_rate=dep_rate,
-        div_rate=div_rate,
-        floor_fraction=floor_fraction,
-        meaningful_activity_teh=meaningful_activity_teh,
-        meaningful_activity_scale=meaningful_activity_scale,
-        eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
-        care_stipend_aggregate=care_stipend_aggregate,
-        age_fractions=ages,
-        ecological_area_hectares=land,
-    )
+    def _fisc(guf: float) -> dict:
+        return fiscal_snapshot(
+            state=fiscal_state,
+            guf_revenue=guf,
+            estate_levy_aggregate=d5["teh_levied_to_trust"],
+            levy_rates=levy_rates,
+            mean_multiplier=mean_multiplier,
+            dep_rate=dep_rate,
+            div_rate=div_rate,
+            floor_fraction=floor_fraction,
+            meaningful_activity_teh=meaningful_activity_teh,
+            meaningful_activity_scale=meaningful_activity_scale,
+            eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
+            care_stipend_aggregate=care_stipend_aggregate,
+            age_fractions=ages,
+            ecological_area_hectares=land,
+        )
+
+    # THE LAND FEE, ASSESSED AND COLLECTED (2026-10-19). The engine collected
+    # no fee unless a caller passed `guf_net_inflow`, and no engine scenario
+    # did. So on one frame `stationarity` and `collective` charged the frame's
+    # parcels and the engine charged nothing (61% of the Trust gap on the US
+    # frame). The cap is `collective`'s `payable` rule on the fisc's OWN levy,
+    # with the labour income in place of the mint: they are one figure unless
+    # `labor_income_scale` overrides it, and the levy is charged on the income.
+    # The levy does not read the fee, so the first call's levy is the second's.
+    if guf_assessed is not None and guf_net_inflow is not None:
+        raise ValueError("pass guf_assessed or guf_net_inflow, not both")
+    if guf_assessed is not None:
+        assessed = float(guf_assessed(eps))
+        if assessed < 0.0:
+            raise ValueError(f"guf_assessed({eps}) must be >= 0, got {assessed}")
+        fiscal = _fisc(assessed)
+        ceiling = max(0.0, labor_income - float(fiscal["trust"]["levy_inflow"])
+                      - _d3_teh(pipeline, eps, reg_eps))
+        collected = min(assessed, ceiling)
+        payable: float | None = ceiling
+        if collected < assessed:
+            fiscal = _fisc(collected)
+    else:
+        assessed = collected = float(guf_net_inflow or 0.0)
+        payable = None
+        fiscal = _fisc(collected)
     # Every inflow is inside this figure now — levy, GUF and the estate levy —
     # so nothing is added to the balance after the fiscal period closes.
     new_trust_bal = fiscal["trust"]["trust_end"]
@@ -587,7 +649,7 @@ def simulate_period(
             human_eoh_per_domain(pipeline["eoh_by_domain"], eps)["personal"]
             / personal_eoh_total
         ) if personal_eoh_total > 0.0 else 0.0
-        consumption            = personal_eoh_on_ledger * d3_personal_human_fraction * M_FLOOR
+        consumption            = _d3_teh(pipeline, eps, reg_eps)
         consumption_rate_eff   = None
     else:
         d3_personal_human_fraction = None
@@ -662,6 +724,7 @@ def simulate_period(
         registration_epsilon=reg_eps,   # the register is state: carried, not re-read
         age_fractions=ages,             # held: the engine has no demographic dynamics
         land_hectares=land,             # held: land is fixed, the people move
+        knowledge_follows_arc=state.get("knowledge_follows_arc", False),
     )
 
     # derived_epsilon: architecture hook for when machine capacity is modeled endogenously.
@@ -723,8 +786,14 @@ def simulate_period(
         "capital_age_ratio": new_cap_age,
         "ecosystem_health":  new_eco_health,
         "deferred_ecological": new_deferred,
-        # GUF revenue injection
-        "guf_net_inflow":    guf_net_inflow,
+        # GUF revenue injection: what the Trust COLLECTED (the applied value)
+        "guf_net_inflow":    guf_net_inflow if guf_assessed is None else collected,
+        "land_fee": {
+            "assessed":        assessed,
+            "collected":       collected,
+            "unpaid":          assessed - collected,
+            "payable_ceiling": payable,
+        },
         # new-2/new-5: physical state tracking
         "monitoring_capability":         new_monitoring_cap,
         "knowledge_complexity_per_unit": knowledge_complexity_per_unit,
@@ -734,6 +803,18 @@ def simulate_period(
     }
 
     return new_state, period_result
+
+
+def _d3_teh(pipeline: dict, eps: float, reg_eps: float | None) -> float:
+    """D3 consumption in TEH: on-ledger personal EOH × its human-carried share
+    × `M_FLOOR`. One copy for the `use_d3` branch and the land fee's cap.
+    `scenarios.stationarity.d3_consumption` is bound to it by test."""
+    from hours_eoh.core.eoh_fulfillment import human_eoh_per_domain
+    personal = pipeline["eoh_by_domain"].get("personal", 0.0)
+    if personal <= 0.0:
+        return 0.0
+    human = human_eoh_per_domain(pipeline["eoh_by_domain"], eps)["personal"]
+    return personal * register_shares(eps, reg_eps)["personal"] * (human / personal) * M_FLOOR
 
 
 # ---------------------------------------------------------------------------

@@ -240,3 +240,49 @@ class TestAutomationTransitionTrajectory:
         result = automation_transition_trajectory(n_periods=5)
         for row in result["trajectory"]:
             assert row["floor_pp_index"] > 0.0
+
+
+# ===========================================================================
+# The engine and stationarity on one frame
+# ===========================================================================
+
+class TestTheEngineAgreesWithStationarityOnOneFrame:
+    """With its growth switched off, one engine period must read what
+    `stationarity_at` reads at the same ε and frame. The two disagreed by a
+    stranded land fee and a corpus frozen at the start ε
+    ([record](record/fulfilment.md#engine-meets-stationarity))."""
+
+    POP, CAP, AGE, TRUST = 3.0e6, 2.4e10, 0.59, 3.0e10
+    AGES = {"infant": 0.06, "child": 0.14, "working_age": 0.62, "elderly": 0.18}
+
+    @pytest.mark.parametrize("parcels", [1.4e6, 1.0e10], ids=["fee-paid", "fee-capped"])
+    @pytest.mark.parametrize("eps_start", [0.0, 0.33, 0.66])
+    def test_mint_fee_and_guarantee_match(self, eps_start, parcels):
+        """Fails if the engine drops the fee, caps it by another rule, or
+        reads its corpus at a different ε from its complexity per unit."""
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        from hours_eoh.land.collective import per_parcel_fee
+        from hours_eoh.scenarios.stationarity import stationarity_at
+
+        state = make_economy_state(
+            epsilon=eps_start, population=self.POP, capital_stock_teh=self.CAP,
+            capital_age_ratio=self.AGE, age_fractions=self.AGES,
+            trust_balance=self.TRUST, land_hectares=self.POP * 2.0)
+        _, r = simulate_period(
+            state, epsilon_delta=0.33, population_growth_rate=0.0,
+            capital_aging_rate=0.0, use_estate_dissolution=False,
+            ecological_degradation_rate=0.0, guf_assessed=per_parcel_fee(parcels))
+        t = stationarity_at(
+            r["epsilon"], population=self.POP, capital_stock_teh=self.CAP,
+            capital_age_ratio=self.AGE, age_fractions=self.AGES, guf_parcels=None,
+            guf_parcel_count=parcels, trust_start=self.TRUST)["teh"]
+        tr = r["fiscal"]["trust"]
+        fee = r["land_fee"]
+        assert (fee["collected"] < fee["assessed"]) == (parcels > 1.0e9)
+        for engine, static in ((r["teh_created"], t["mint"]),
+                               (tr["levy_inflow"], t["levy"]),
+                               (fee["assessed"], t["guf_uncapped"]),
+                               (fee["collected"], t["guf"]),
+                               (tr["guf_inflow"], t["guf"]),
+                               (tr["total_expenditure"], t["guarantee_owed"])):
+            assert engine == pytest.approx(static, rel=1e-12)

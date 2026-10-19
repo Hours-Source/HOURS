@@ -191,6 +191,7 @@ Lines without *(gated)* can go stale; check the code.
 - **US frame at 1M people, at the frame's ε:** assessed **6.313B**, collected **0.332B** (the ceiling), unpaid **5.981B** TEH/yr; `trust_end` 15.09B → **9.11B**. At 335M nothing goes unpaid anywhere on the arc, and no figure moves.
 - **No band moved, and the reason is not that the levy suffices.** At ε=0.99 the levy alone falls short of the guarantee at both populations. At 335M it is 7.993B against 8.630B owed, and the fee closes the gap with 0.04% to spare. At 1M the collected fee (0.249B of 0.641B assessed) still clears the 25.8M owed. Figures are from `stationarity_at` on the CLI's own frame call.
 - **The ceiling is an UPPER bound on collection.** It is the whole collective's disposable mint, but only private holders pay, and the private share of the mint is not modelled.
+- **The period engine caps the same way since 2026-10-19,** on its labour income, which is the mint without an override. Before that it booked no fee at all ([fulfilment.md](fulfilment.md#engine-meets-stationarity)).
 - **Not covered:** the federation (`research/exchange`, `coasean`) books no land fee at all. Conflict, i.e. a rival taking land a claimant cannot carry, is not modelled (author: out of scope for now).
 - Gated by `TestTheFeeCollectedIsWhatTheMintCanPay`, over the arc. Three mutations are each caught: no cap, Trust not re-booked, stationarity's unpaid zeroed.
 
